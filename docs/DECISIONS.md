@@ -47,3 +47,5 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | Oyuncu hareketi client-authoritative olacak | ADR-0004 | Davetle girilen arkadaş co-op'unda hile toleransı yüksek; prediction makinesi gereksiz | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
 | 2026-08-29 | Kabul edilen taviz: liderlik tablosu ve meta ilerleme manipüle edilebilir | ADR-0004 | Client otoritesinin bedeli; arkadaş co-op'unda kabul edilebilir | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
 | 2026-08-29 | Bütçeden $60 FishNet Pro kalemi çıktı | ADR-0004 | Mirror MIT, hiçbir özellik ücretli katmanda değil | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
+| 2026-08-29 | ÇK-9 karşılandı: Mirror, Unity 6000.3.23f1'de temiz derleniyor | M0-01 | ADR-0004'ün açık riski kapandı; Mirror Weaver çalıştı, LagCompensationSettings çözüldü | docs/qa/evidence/M0-01-mirror-unity63-uyumluluk.md |
+| 2026-08-29 | Mirror üçüncü parti olarak depoya commit edildi (30 MB) | analiz | Klonlayanın aynı sürümü alması ve .meta GUID'lerinin sabit kalması için | Assets/Mirror/ |

@@ -2,7 +2,9 @@
     "name": "Bunker.Net",
     "rootNamespace": "Bunker.Net",
     "references": [
-        "Bunker.Systems"
+        "Bunker.Systems",
+        "Mirror",
+        "Mirror.Components"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
