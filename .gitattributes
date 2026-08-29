@@ -11,17 +11,32 @@
 
 # ============================================================
 # Satir sonlari
+#
+# Unity kendi yazdigi metin dosyalarini LF ile yazar. Git bunlari
+# CRLF'e cevirirse Unity her acilista geri yazar ve depo sahte
+# diff'lerle dolar. Unity'nin dokundugu her sey eol=lf olmali.
 # ============================================================
 * text=auto
 *.cs      text diff=csharp eol=lf
 *.md      text eol=lf
 *.json    text eol=lf
-*.asmdef  text eol=lf
 *.shader  text eol=lf
 *.hlsl    text eol=lf
 *.cginc   text eol=lf
 *.ps1     text eol=crlf
 *.bat     text eol=crlf
+
+# Unity'nin urettigi metin dosyalari - LF zorunlu
+*.meta          text eol=lf
+*.asmdef        text eol=lf
+*.asmref        text eol=lf
+*.inputactions  text eol=lf
+*.uxml          text eol=lf
+*.uss           text eol=lf
+*.shadergraph   text eol=lf
+*.shadersubgraph text eol=lf
+ProjectSettings/*.txt text eol=lf
+ProjectSettings/*.asset text eol=lf
 
 # ============================================================
 # Git LFS - ikili varliklar
