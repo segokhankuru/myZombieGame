@@ -35,3 +35,6 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | Silah alışkanlık sistemi: kullandıkça 4 seviye, sınıfa özel nitelik | kullanıcı fikri, tasarım eklendi | Silah yakınsamasını kırar; dağıtıcıyı gerçek karara çevirir | design/systems/SYS-03-silah-cesitliligi-ve-aliskanlik.md |
 | 2026-08-29 | Draft ekranı: slot makinesi, süre yok, AFK kaçış kapısı | kullanıcı | Beklemek co-op'ta sosyal an; reddedilen belirsiz süreli bekleme | design/ux/draft-ekrani.md |
 | 2026-08-29 | PILLAR-03 düzeltildi: belirsiz süreli bekleme reddedilir, bekleme değil | analiz | Draft ekranı tasarımıyla çatıştı, çatışma örtülmeden çözüldü | design/PILLARS.md |
+| 2026-08-29 | Proje kod adı: Bunker (assembly ve namespace öneki) | kullanıcı | Satış ismi ayrı; kod adı kodda kalır | docs/architecture/ARCHITECTURE.md |
+| 2026-08-29 | Bunker.Systems assembly'si noEngineReferences ile Unity'ye kapatıldı | ADR-0001 sonucu | Saf C# kuralını disiplin değil derleyici zorlasın | docs/architecture/ARCHITECTURE.md |
+| 2026-08-29 | Git deposu kuruldu, LFS açıldı, ilk commit atıldı | kullanıcı | — | .gitattributes |

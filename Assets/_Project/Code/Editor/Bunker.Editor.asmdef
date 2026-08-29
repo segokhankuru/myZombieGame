@@ -1,0 +1,22 @@
+{
+    "name": "Bunker.Editor",
+    "rootNamespace": "Bunker.Editor",
+    "references": [
+        "Bunker.Systems",
+        "Bunker.Gameplay",
+        "Bunker.Net",
+        "Bunker.AI",
+        "Bunker.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

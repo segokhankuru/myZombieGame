@@ -1,0 +1,16 @@
+{
+    "name": "Bunker.UI",
+    "rootNamespace": "Bunker.UI",
+    "references": [
+        "Bunker.Systems"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
