@@ -1,6 +1,6 @@
 # Project Context
 
-**Game:** `<isim tbd>` — 4 kişilik co-op, sonsuz tur bazlı zombi hayatta kalma FPS'i;
+**Game:** Bunker *(kod adı — satış ismi `<tbd>`)* — 4 kişilik co-op, sonsuz tur bazlı zombi hayatta kalma FPS'i;
 klasik tur döngüsünün üstüne kart draft'ıyla kurulan build sistemi.
 **Genre / reference:** Call of Duty zombi modu · Killing Floor · Risk of Rain 2.
 Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı farklı kılar.
@@ -8,7 +8,7 @@ Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı
 sistemlerinden keyif alan oyuncu.
 **Platform:** PC / Steam. Hedef donanım `<tbd>`.
 **Stage:** preproduction
-**Milestone:** henüz planlanmadı
+**Milestone:** M-00 Teknoloji Doğrulaması (planned) — ~3-4 hafta part-time
 **Review mode:** lean
 
 ## Pillars
