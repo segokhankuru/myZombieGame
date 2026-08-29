@@ -57,12 +57,12 @@ bakılır, çözünürlüğe değil. Sayısal bütçe `<tbd>` — M0 ölçümü 
 
 ## Current work
 **Milestone:** M-00 Teknoloji Temeli — active, M0-01 bitti
-**In progress:** tasarım temeli yazıldı (brief, pillars, SYS-01/02/03, draft UX, ADR-0001/2/3)
+**In progress:** M-00 → M0-02 (Mirror host modu iskeleti). M0-01 bitti
 **Blocked:** kapsam sayıları — silah/zombi/kart adedi bilinçli olarak ertelendi
 
 ## Known debt and risks
 - En büyük risk: klon aşaması uzar, farklılaştırıcı (kartlar) hiç inşa edilmez. Uyarı
-  işareti M2 tarihinin ikinci kez kayması.
+  işareti M-03 tarihinin ikinci kez kayması. Sıralama değişikliği bu riski **artırdı** — kartlar bir milestone geriye itildi.
 - **Netcode doğrulaması M-02'ye ertelendi** (kullanıcı kararı). Bedeli: ölçüm kötü çıkarsa M-01'in üstünde değişiklik yapılır. İki korkuluk zorunlu: solo Mirror host modunda kurulur, zombi konum senkronu tek seam'den geçer.
 - IP sınırı: mekanik serbest, kimlik ve kat planı değil.
 - Ödül/tanınma sistemi tasarlandı ama henüz spec'e dökülmedi.

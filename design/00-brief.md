@@ -20,7 +20,7 @@ daraltılır (diriltme ve takım kartları çıkmaz).
 puan sayıları. Korku hedefi yok, atmosfer hedefi var.
 
 **Dönem:** Henüz seçilmedi ve seçilmesi gerekmiyor. Gri kutu dönemsizdir; karar asset
-satın alımıyla birlikte bağlayıcı hale gelir (M3).
+satın alımıyla birlikte bağlayıcı hale gelir (sanat geçişi milestone'ı).
 
 ---
 
@@ -59,8 +59,8 @@ duvar silahı, barikat) serbesttir. İsimler, ses efektleri ve jingle'lar, görs
 
 | ID | Hedef | Nasıl ölçülür | Ne zaman |
 |---|---|---|---|
-| GOAL-01 | Gri kutu tabanı 20 dakika sonra tekrar oynatır | 4 kişilik arkadaş testi: seans bitiminde "bir tur daha" talebi kendiliğinden geliyor mu | M1 sonu |
-| GOAL-02 | Kart sistemi gerçek build farklılaşması üretir | Telemetri: aynı run'da 4 oyuncunun kart yığınları arasındaki örtüşme < %40 | M2 sonu |
+| GOAL-01 | Gri kutu tabanı 20 dakika sonra tekrar oynatır |  ÇK-17: 20 dakika solo oynadıktan sonra tekrar oynama isteği (+ 2 arkadaş denemesi) | **M-01 sonu** |
+| GOAL-02 | Kart sistemi gerçek build farklılaşması üretir | Telemetri: aynı run'da 4 oyuncunun kart yığınları arasındaki örtüşme < %40 | **M-03 sonu** |
 | GOAL-03 | Ticari hedefler (istek listesi, satış, Steam puanı) | `<tbd>` | kapsam kararından sonra |
 
 ---
@@ -85,9 +85,9 @@ duvar silahı, barikat) serbesttir. İsimler, ses efektleri ve jingle'lar, görs
 
 | Varsayım | Nasıl test edilir | Ne zaman |
 |---|---|---|
-| 40 zombi + 4 oyuncu host-otoriteli ağda çökmüyor | Boş sahne, 40 hareketli küp, 4 istemci, bant genişliği ölçümü | **M0 — oyun kodu yazmadan önce** |
-| Klon taban tek başına eğlenceli | 4 kişilik arkadaş testi, gri kutu, 20 dakika | M1 sonu |
-| Kart sistemi klasik döngüyü gerçekten farklılaştırıyor | Aynı grup, kartlı ve kartsız iki seans, karşılaştırmalı | **M2 — sanata para harcamadan önce** |
+| 40 zombi + 4 oyuncu host-otoriteli ağda çökmüyor | Boş sahne, 40 hareketli küp, 4 istemci, bant genişliği ölçümü | **M-02** — ertelendi, aşağıdaki nota bak |
+| Klon taban tek başına eğlenceli | 4 kişilik arkadaş testi, gri kutu, 20 dakika | **M-01 sonu** |
+| Kart sistemi klasik döngüyü gerçekten farklılaştırıyor | Aynı grup, kartlı ve kartsız iki seans, karşılaştırmalı | **M-03 — sanata para harcamadan önce** |
 
 ---
 
@@ -99,6 +99,14 @@ düzeltilecek bir his kalır. Kart sistemi hep bir sonraki aya ertelenir. On iki
 elde iyi çalışan ama satılamaz bir kopya kalır, çünkü oyunu satacak olan parça hiç inşa
 edilmemiştir.
 
-**Erken uyarı işareti:** M2'nin başlama tarihi ikinci kez kaydıysa, klon aşamasını olduğu
+**Erken uyarı işareti:** M-03'ün başlama tarihi ikinci kez kaydıysa, klon aşamasını olduğu
 yerde dondur ve kartlara geç. Klon zaten "kontrol grubu"dur; mükemmel olması gerekmez,
 karşılaştırılabilir olması gerekir.
+
+> **Bu risk 2026-08-29'da arttı, azalmadı.** Sıralama değiştirildiğinde (önce solo çekirdek
+> döngü, sonra netcode) kart sistemi bir milestone daha geriye itildi: eskiden M2'ydi,
+> şimdi M-03. Yani bu bölümün anlattığı ölüm senaryosunun penceresi genişledi.
+>
+> Karar bilinçliydi ve gerekçesi sağlam — gri kutuda küp senkronlayarak oyunun eğlenceli
+> olduğu öğrenilemez. Ama bedeli burada yazılı olsun: **oyunu satacak parça artık daha
+> uzakta.** Erken uyarı işaretini bu yüzden gevşetme.
