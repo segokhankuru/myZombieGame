@@ -35,6 +35,7 @@
 *.uss           text eol=lf
 *.shadergraph   text eol=lf
 *.shadersubgraph text eol=lf
+.vsconfig      text eol=lf
 ProjectSettings/*.txt text eol=lf
 ProjectSettings/*.asset text eol=lf
 

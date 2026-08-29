@@ -79,13 +79,23 @@ okuyamam — hook zaten engelliyor.
 
 ---
 
-## 5. Henüz yapılmamış olanlar
+## 5. Durum
 
-- Unity projesi bağlanmadı — `Assets/`, `Packages/`, `ProjectSettings/` bekleniyor
+**Tamamlanan (2026-08-29):**
+
+- Unity 6000.3.23f1 projesi bağlandı; headless import ve derleme temiz (`return code 0`)
+- URP 17.3.0 · AI Navigation 2.0.14 · Test Framework 1.6.0 · Input System 1.20.0
+- Yedi assembly tanımı Unity tarafından tanındı
+- URP pipeline asset'leri `Assets/_Project/Settings/` altına taşındı; `GraphicsSettings`
+  ve `QualitySettings` referansları GUID üzerinden korundu
+- `unityyamlmerge` sürücüsü git'e kaydedildi
+
+**Bekleyen:**
+
 - FishNet kurulmadı; `Bunker.Net` ve `Bunker.Gameplay` referansları kurulumdan sonra eklenecek
-- `unityyamlmerge` sürücüsü git'e kaydedilmedi (Unity yolu gerekiyor)
-- Zombi toplu snapshot tasarımı — M0 çıktısı
+- Zombi toplu snapshot tasarımı — M0-07 çıktısı
 - `config/` şemaları — ilk denge sayıları çıkınca
+- `Bunker.Systems` içinde henüz kod yok (boş assembly uyarısı beklenen durumdur)
 
 ## 6. Klasör düzeni
 
