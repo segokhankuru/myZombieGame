@@ -1,12 +1,17 @@
 {
-  "project": "<tbd>",
-  "phase": "concept",
+  "project": "Bunker",
+  "phase": "preproduction",
   "reviewMode": "lean",
   "scale": "indie",
   "activeRoles": [],
-  "milestone": null,
+  "milestone": "M-00",
   "openGateConditions": 0,
-  "stack": { "unity": null, "pipeline": null, "netcode": null },
-  "counters": { "epics": 0, "stories": 0, "done": 0, "bugs": 0, "generations": 0 },
+  "stack": {
+    "unity": "6000.3 LTS",
+    "pipeline": "URP (Forward+)",
+    "netcode": "FishNet + Pro",
+    "transport": "FishySteamworks / FishyFacepunch"
+  },
+  "counters": { "epics": 0, "stories": 10, "done": 0, "bugs": 0, "generations": 0 },
   "lastUpdated": "2026-08-29"
 }

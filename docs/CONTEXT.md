@@ -7,7 +7,7 @@ Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı
 **Target player:** Tur bazlı zombi modunu bilen, arkadaş grubuyla oynayan, roguelite build
 sistemlerinden keyif alan oyuncu.
 **Platform:** PC / Steam. Hedef donanım `<tbd>`.
-**Stage:** concept
+**Stage:** preproduction
 **Milestone:** henüz planlanmadı
 **Review mode:** lean
 
@@ -56,7 +56,7 @@ bakılır, çözünürlüğe değil. Sayısal bütçe `<tbd>` — M0 ölçümü 
 `<kickoff sonrası belirlenecek>`
 
 ## Current work
-**Milestone:** yok — M0 planı sıradaki
+**Milestone:** M-00 Teknoloji Doğrulaması — planned
 **In progress:** tasarım temeli yazıldı (brief, pillars, SYS-01/02/03, draft UX, ADR-0001/2/3)
 **Blocked:** kapsam sayıları — silah/zombi/kart adedi bilinçli olarak ertelendi
 

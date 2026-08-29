@@ -39,3 +39,6 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | Bunker.Systems assembly'si noEngineReferences ile Unity'ye kapatıldı | ADR-0001 sonucu | Saf C# kuralını disiplin değil derleyici zorlasın | docs/architecture/ARCHITECTURE.md |
 | 2026-08-29 | Git deposu kuruldu, LFS açıldı, ilk commit atıldı | kullanıcı | — | .gitattributes |
 | 2026-08-29 | Kurulu Unity 6.5 reddedildi, 6000.3 LTS kurulacak | ADR-0002 (veriyle güncellendi) | LTS olmayan sürümler bir sonraki sürüm çıkınca yama almayı bırakıyor: 6.1 ve 6.2 dörder ay, 6.4 üç ay yaşadı. 6.5 için 6.6 Eylül'de bekleniyor | docs/architecture/adr/ADR-0002-unity-surumu.md |
+| 2026-08-29 | M-00 planlandı: 10 iş, 8 sayısal çıkış kriteri, 4 başarısızlık koşulu | producer | Netcode oyun kodundan önce doğrulanır; M0 kaybedebilmeli | design/milestones/M-00.md |
+| 2026-08-29 | M0'da naif NetworkTransform tabanı ölçülecek | analiz | Özel snapshot'ın işe yaradığını iddia edebilmek için karşılaştırma noktası şart | design/milestones/M-00.md |
+| 2026-08-29 | 40 küp NavMesh ile hareket edecek, basit hareketle değil | analiz | Host aynı zamanda oyuncu; CPU rekabeti ancak gerçekçi AI yüküyle ölçülür | design/milestones/M-00.md |
