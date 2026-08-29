@@ -42,3 +42,8 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | M-00 planlandı: 10 iş, 8 sayısal çıkış kriteri, 4 başarısızlık koşulu | producer | Netcode oyun kodundan önce doğrulanır; M0 kaybedebilmeli | design/milestones/M-00.md |
 | 2026-08-29 | M0'da naif NetworkTransform tabanı ölçülecek | analiz | Özel snapshot'ın işe yaradığını iddia edebilmek için karşılaştırma noktası şart | design/milestones/M-00.md |
 | 2026-08-29 | 40 küp NavMesh ile hareket edecek, basit hareketle değil | analiz | Host aynı zamanda oyuncu; CPU rekabeti ancak gerçekçi AI yüküyle ölçülür | design/milestones/M-00.md |
+| 2026-08-29 | DÜZELTME: Mirror'ın lag compensation'ı VAR (Beta, MIT) | araştırma | ADR-0001 Mirror'ı "lag compensation yok" diye elemişti, bilgi yanlıştı | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
+| 2026-08-29 | Netcode: Mirror (MIT). ADR-0001 supersede edildi | kullanıcı | Bu oyunda prediction atlanabilir (co-op'ta client-authoritative hareket), lag compensation atlanamaz. FishNet tersini ücretsiz veriyor | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
+| 2026-08-29 | Oyuncu hareketi client-authoritative olacak | ADR-0004 | Davetle girilen arkadaş co-op'unda hile toleransı yüksek; prediction makinesi gereksiz | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
+| 2026-08-29 | Kabul edilen taviz: liderlik tablosu ve meta ilerleme manipüle edilebilir | ADR-0004 | Client otoritesinin bedeli; arkadaş co-op'unda kabul edilebilir | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
+| 2026-08-29 | Bütçeden $60 FishNet Pro kalemi çıktı | ADR-0004 | Mirror MIT, hiçbir özellik ücretli katmanda değil | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |

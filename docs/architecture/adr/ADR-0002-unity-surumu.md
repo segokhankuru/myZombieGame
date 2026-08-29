@@ -33,7 +33,7 @@ doğru; ayrım kalitede değil, **yama alma süresinde**.
 | Unity 6.4 | Daha yeni | LTS değildi, **Haziran 2026'da EOL oldu** (3 ay yaşadı) | Elendi |
 | Unity 6.5 | Geliştiricinin makinesinde **zaten kurulu** — sıfır kurulum maliyeti, en güncel özellikler | LTS değil. 6000.6 çeyreklik kadansa göre Eylül 2026'da bekleniyor; o gün 6.5 yama almayı bırakır. 15+ aylık projede bu, her çeyrek bir sürüm yükseltmesi ve her seferinde bir haftalık regresyon testi demek — oyuncunun göreceği hiçbir şey kazandırmadan | Elendi. Kurulum tasarrufu, tekrarlayan yükseltme maliyetinin yanında önemsiz |
 | Unity 6.7 LTS (yıl sonu bekleniyor) | En uzun destek penceresi | Henüz yok. Beklemek M0'ı geciktirir; çıkınca yükseltmek LTS içi olduğu için ucuz | Ertelendi, elenmedi |
-| **Unity 6.3 LTS (6000.3.23f1)** | **Aralık 2027'ye kadar destekli** — projenin tamamını kapsıyor. Unity'nin "üretime kilitlenecek projeler" için kendi tavsiyesi. URP, NavMesh, Multiplayer Play Mode ve FishNet Unity 6 desteği hepsi mevcut | Yıl sonunda 6.7 LTS çıkınca bir sürüm geride kalır | **Seçildi** |
+| **Unity 6.3 LTS (6000.3.23f1)** | **Aralık 2027'ye kadar destekli** — projenin tamamını kapsıyor. Unity'nin "üretime kilitlenecek projeler" için kendi tavsiyesi. URP, NavMesh ve Multiplayer Play Mode mevcut | Yıl sonunda 6.7 LTS çıkınca bir sürüm geride kalır | **Seçildi** |
 
 ## Decision
 
@@ -42,7 +42,7 @@ doğru; ayrım kalitede değil, **yama alma süresinde**.
 ## Consequences
 
 **Positive:** Destek penceresi projenin tamamını kapsıyor. Unity Personal ücretsiz
-(yıllık gelir eşiğinin çok altındayız). FishNet ve Multiplayer Play Mode ile uyumlu.
+(yıllık gelir eşiğinin çok altındayız). Multiplayer Play Mode ile uyumlu. Mirror uyumluluğu M0-01'de doğrulanacak (belgesi 6000.1'e kadar yazıyor).
 
 **Cost we are accepting:** 6.7 LTS çıktığında bir LTS geride kalacağız. Bu bilinçli —
 LTS ortasında sürüm değiştirmek özellik kazandırmaz, hafta kaybettirir.

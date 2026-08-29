@@ -1,7 +1,7 @@
 # Mimari
 
 **Sahibi:** unity-architect · **Son güncelleme:** 2026-08-29
-**Kod adı:** Bunker · **Durum:** iskelet kuruldu, Unity projesi henüz bağlanmadı
+**Kod adı:** Bunker · **Durum:** Unity 6000.3.23f1 bağlandı, derleme temiz
 
 ---
 
@@ -14,7 +14,7 @@ MonoBehaviour'lara gömülürse:
 
 - Her denge değişikliği Unity açıp oynamayı gerektirir
 - Kart etkileşimleri test edilemez, sadece denenir
-- Netcode kütüphanesi değişirse (ADR-0001, geri dönüşü *high*) mantık da gider
+- Netcode kütüphanesi değişirse (ADR-0004, geri dönüşü *high*) mantık da gider
 
 Ve en önemlisi: `Bunker.Systems` derleyici tarafından Unity'ye kapatıldığı için bu kural
 **dilek değil, hata mesajı.**
@@ -27,18 +27,18 @@ Ve en önemlisi: `Bunker.Systems` derleyici tarafından Unity'ye kapatıldığı
 Assets/_Project/Code/
   Systems/   Bunker.Systems         saf C#, noEngineReferences: true
   Gameplay/  Bunker.Gameplay        MonoBehaviour, Systems'i cagirir
-  Net/       Bunker.Net             FishNet, Systems'i cagirir
+  Net/       Bunker.Net             Mirror, Systems'i cagirir
   AI/        Bunker.AI              NavMesh, zombi davranisi
   UI/        Bunker.UI              HUD, draft ekrani, sicil
   Editor/    Bunker.Editor          sadece editor araclari
   Tests/     Bunker.Systems.Tests   Systems icin EditMode testleri
 ```
 
-| Assembly | Unity'ye erişimi | FishNet'e erişimi | Neyi barındırır |
+| Assembly | Unity'ye erişimi | Mirror'a erişimi | Neyi barındırır |
 |---|---|---|---|
 | **Bunker.Systems** | **yok** | **yok** | Tur ölçekleme, ekonomi, kart havuzu ve draft mantığı, hasar hesabı (SYS-02 §3), drop tablosu, silah alışkanlık eşikleri, sicil metrikleri |
 | Bunker.Gameplay | var | (eklenecek) | Oyuncu, silah davranışı, barikat, kapı, tuzak |
-| Bunker.Net | var | (eklenecek) | Host otoritesi, zombi toplu snapshot, RPC yüzeyi |
+| Bunker.Net | var | (eklenecek) | Host otoritesi, zombi toplu snapshot, lag compensation, RPC yüzeyi |
 | Bunker.AI | var | yok | NavMesh agent'ları, zombi durum makinesi |
 | Bunker.UI | var | yok | HUD, draft ekranı, run sonu sicil |
 | Bunker.Editor | var (Editor) | — | Kart dengeleme penceresi, harita istatistiği |
@@ -54,7 +54,7 @@ Assets/_Project/Code/
 | Kural | Nasıl zorlanıyor |
 |---|---|
 | Oyun mantığı Unity'ye bağlanamaz | `Bunker.Systems.asmdef` → `noEngineReferences: true` |
-| Oyun mantığı FishNet'e bağlanamaz | `Bunker.Systems` referans listesi boş (ADR-0001) |
+| Oyun mantığı Mirror'a bağlanamaz | `Bunker.Systems` referans listesi boş (ADR-0004) |
 | AI ve UI birbirini çağıramaz | Karşılıklı referans yok |
 | Editör kodu build'e sızamaz | `Bunker.Editor` → `includePlatforms: ["Editor"]` |
 
@@ -92,7 +92,7 @@ okuyamam — hook zaten engelliyor.
 
 **Bekleyen:**
 
-- FishNet kurulmadı; `Bunker.Net` ve `Bunker.Gameplay` referansları kurulumdan sonra eklenecek
+- Mirror kurulmadı; `Bunker.Net` ve `Bunker.Gameplay` referansları kurulumdan sonra eklenecek
 - Zombi toplu snapshot tasarımı — M0-07 çıktısı
 - `config/` şemaları — ilk denge sayıları çıkınca
 - `Bunker.Systems` içinde henüz kod yok (boş assembly uyarısı beklenen durumdur)

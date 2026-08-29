@@ -1,6 +1,12 @@
 # ADR-0001: Netcode kütüphanesi
 
-**Status:** Accepted
+**Status:** Superseded (by ADR-0004)
+
+> **DÜZELTME (2026-08-29):** Bu ADR Mirror'ı "lag compensation yok" gerekçesiyle elemişti.
+> Bu bilgi **yanlıştı** — Mirror'ın lag compensation'ı var (Beta, MIT lisansı altında
+> ücretsiz). Karar bu düzeltmeyle yeniden verildi: **ADR-0004**. Bu belge, gerekçe zinciri
+> izlenebilir kalsın diye silinmedi.
+
 **Date:** 2026-08-29 | **Approval:** kullanıcı (technical-director rolü)
 **Reversal cost:** high
 

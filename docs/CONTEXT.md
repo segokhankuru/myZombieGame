@@ -41,8 +41,8 @@ ayrı bir çevrimdışı yol değildir; kart havuzu `soloValid` alanıyla filtre
 |---|---|---|
 | Engine | Unity 6.3 LTS (6000.3.x), Personal | ADR-0002 |
 | Render pipeline | URP (Forward+) | ADR-0003 |
-| Netcode | FishNet + Pro (~$60), host-otoriteli | ADR-0001 |
-| Transport | FishySteamworks veya FishyFacepunch (Steam relay) | ADR-0001 |
+| Netcode | Mirror (MIT, ücretsiz) — host otoriteli, hareket client-authoritative | ADR-0004 |
+| Transport | FizzySteamworks veya FizzyFacepunch (Steam relay) | ADR-0004 |
 
 ## Performance budget
 Hedef: **1080p / 60 FPS orta seviye genel donanımda**; kalite ayarları ve çözünürlük
