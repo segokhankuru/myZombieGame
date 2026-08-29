@@ -8,7 +8,7 @@ Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı
 sistemlerinden keyif alan oyuncu.
 **Platform:** PC / Steam. Hedef donanım `<tbd>`.
 **Stage:** preproduction
-**Milestone:** M-00 Teknoloji Doğrulaması (planned) — ~3-4 hafta part-time
+**Milestone:** M-00 Teknoloji Temeli (active, 1/4 bitti) → M-01 Solo Çekirdek Döngü
 **Review mode:** lean
 
 ## Pillars
@@ -56,13 +56,13 @@ bakılır, çözünürlüğe değil. Sayısal bütçe `<tbd>` — M0 ölçümü 
 `<kickoff sonrası belirlenecek>`
 
 ## Current work
-**Milestone:** M-00 Teknoloji Doğrulaması — planned
+**Milestone:** M-00 Teknoloji Temeli — active, M0-01 bitti
 **In progress:** tasarım temeli yazıldı (brief, pillars, SYS-01/02/03, draft UX, ADR-0001/2/3)
 **Blocked:** kapsam sayıları — silah/zombi/kart adedi bilinçli olarak ertelendi
 
 ## Known debt and risks
 - En büyük risk: klon aşaması uzar, farklılaştırıcı (kartlar) hiç inşa edilmez. Uyarı
   işareti M2 tarihinin ikinci kez kayması.
-- Netcode 40 zombide ölçeklenmeyebilir — M0'da, kod yazmadan önce doğrulanacak.
+- **Netcode doğrulaması M-02'ye ertelendi** (kullanıcı kararı). Bedeli: ölçüm kötü çıkarsa M-01'in üstünde değişiklik yapılır. İki korkuluk zorunlu: solo Mirror host modunda kurulur, zombi konum senkronu tek seam'den geçer.
 - IP sınırı: mekanik serbest, kimlik ve kat planı değil.
 - Ödül/tanınma sistemi tasarlandı ama henüz spec'e dökülmedi.

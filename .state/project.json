@@ -4,7 +4,7 @@
   "reviewMode": "lean",
   "scale": "indie",
   "activeRoles": [],
-  "milestone": "M-00",
+  "milestone": "M-00 -> M-01",
   "openGateConditions": 0,
   "stack": {
     "unity": "6000.3 LTS",
@@ -12,6 +12,6 @@
     "netcode": "Mirror (MIT)",
     "transport": "FizzySteamworks / FizzyFacepunch"
   },
-  "counters": { "epics": 0, "stories": 10, "done": 1, "bugs": 0, "generations": 0 },
+  "counters": { "epics": 0, "stories": 22, "done": 1, "bugs": 0, "generations": 0 },
   "lastUpdated": "2026-08-29"
 }

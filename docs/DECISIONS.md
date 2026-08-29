@@ -49,3 +49,8 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | Bütçeden $60 FishNet Pro kalemi çıktı | ADR-0004 | Mirror MIT, hiçbir özellik ücretli katmanda değil | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
 | 2026-08-29 | ÇK-9 karşılandı: Mirror, Unity 6000.3.23f1'de temiz derleniyor | M0-01 | ADR-0004'ün açık riski kapandı; Mirror Weaver çalıştı, LagCompensationSettings çözüldü | docs/qa/evidence/M0-01-mirror-unity63-uyumluluk.md |
 | 2026-08-29 | Mirror üçüncü parti olarak depoya commit edildi (30 MB) | analiz | Klonlayanın aynı sürümü alması ve .meta GUID'lerinin sabit kalması için | Assets/Mirror/ |
+| 2026-08-29 | Sıralama değişti: önce solo çekirdek döngü, sonra multiplayer | kullanıcı | Gri kutuda küp senkronlayarak oyunun eğlenceli olduğu öğrenilemez; motivasyon solo geliştiricide gerçek kaynak | design/milestones/M-01.md |
+| 2026-08-29 | M-00 küçültüldü; netcode doğrulaması M-02'ye taşındı | producer | M-00'da yalnızca solo'da bedavaya ölçülebilen kısım kaldı (40 NavMesh agent + host CPU) | design/milestones/M-00.md |
+| 2026-08-29 | ZORUNLU: solo, Mirror host modunda kurulur (ağsız prototip DEĞİL) | kullanıcı | Ağsız yazılırsa multiplayer geldiğinde oyuncu/silah/zombi/spawn yeniden yazılır — Unity'nin klasik pahalı hatası | design/milestones/M-01.md |
+| 2026-08-29 | ZORUNLU: zombi konum senkronu tek seam'den geçer, NetworkTransform yasak | ADR-0004 | Ölçüm ertelendiği için, kötü çıkarsa sadece o parça değişsin | design/milestones/M-00.md |
+| 2026-08-29 | Kabul edilen risk: PILLAR-02 M-01'de hiç sınanamaz | analiz | Solo build "dört oyuncu birbirine muhtaç" sütununu test edemez; ÇK-17 gerekli ama yeterli değil, ÇK-17b M-02'de | design/milestones/M-02.md |
