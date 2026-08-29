@@ -1,0 +1,35 @@
+{
+  "_comment": "Copy to project.json via /art-direction. project.json is THE lock - every generation merges it in, and changing it silently invalidates the consistency of everything generated before. Model names must come from 'comfy.ps1 caps', never from memory.",
+
+  "name": "unnamed-style",
+
+  "positive": "flat stylised game art, warm palette, soft ambient occlusion, clean readable silhouette, consistent light from upper left",
+  "negative": "photorealistic, text, watermark, signature, harsh shadows, busy detail, motion blur, depth of field",
+
+  "model": "",
+  "clip": "",
+  "clip2": "",
+  "clipType": "flux",
+  "vae": "",
+  "loras": [],
+
+  "steps": 20,
+  "cfg": 3.5,
+  "sampler": "euler",
+  "scheduler": "simple",
+
+  "size": {
+    "default":  [1024, 1024],
+    "sprite":   [768, 768],
+    "tileable": [1024, 1024]
+  },
+
+  "seedFamily": 88213000,
+
+  "_notes": {
+    "positive": "Style only. The caller supplies the subject; if the subject ends up in here, every asset starts looking like the same crate.",
+    "negative": "Keep it short. Long negatives cost steps and rarely help.",
+    "cfg": "On Flux this feeds FluxGuidance, not the sampler. 2.5-4.0 is the usable band.",
+    "seedFamily": "Base for the deterministic seed. Same slug always regenerates the same image, which is what makes re-rendering at a higher resolution possible two months later."
+  }
+}

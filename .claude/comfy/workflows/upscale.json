@@ -1,0 +1,19 @@
+{
+  "_comment": "TEMPLATE. Model upscale of an already-approved pick. No diffusion, so nothing about the image changes except resolution - which is exactly what you want after the art director has signed off.",
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{SOURCE}}", "upload": "image" }
+  },
+  "2": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": { "model_name": "{{UPSCALER}}" }
+  },
+  "3": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": { "upscale_model": ["2", 0], "image": ["1", 0] }
+  },
+  "4": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "{{PREFIX}}", "images": ["3", 0] }
+  }
+}

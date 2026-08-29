@@ -1,0 +1,50 @@
+{
+  "_comment": "TEMPLATE. Variation pass: keeps composition, re-rolls detail. DENOISE is the dial - 0.2 nudges, 0.6 reinvents.",
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "{{MODEL}}" }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{SOURCE}}", "upload": "image" }
+  },
+  "3": {
+    "class_type": "VAEEncode",
+    "inputs": { "pixels": ["2", 0], "vae": ["1", 2] }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{PROMPT}}", "clip": ["1", 1] }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{NEGATIVE}}", "clip": ["1", 1] }
+  },
+  "6": {
+    "class_type": "RepeatLatentBatch",
+    "inputs": { "samples": ["3", 0], "amount": {{BATCH}} }
+  },
+  "7": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": {{SEED}},
+      "steps": {{STEPS}},
+      "cfg": {{CFG}},
+      "sampler_name": "{{SAMPLER}}",
+      "scheduler": "{{SCHEDULER}}",
+      "denoise": {{DENOISE}},
+      "model": ["1", 0],
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "latent_image": ["6", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["7", 0], "vae": ["1", 2] }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "{{PREFIX}}", "images": ["8", 0] }
+  }
+}

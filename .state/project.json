@@ -1,0 +1,12 @@
+{
+  "project": "<tbd>",
+  "phase": "concept",
+  "reviewMode": "lean",
+  "scale": "indie",
+  "activeRoles": [],
+  "milestone": null,
+  "openGateConditions": 0,
+  "stack": { "unity": null, "pipeline": null, "netcode": null },
+  "counters": { "epics": 0, "stories": 0, "done": 0, "bugs": 0, "generations": 0 },
+  "lastUpdated": "2026-08-29"
+}

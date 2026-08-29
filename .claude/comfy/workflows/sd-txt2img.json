@@ -1,0 +1,42 @@
+{
+  "_comment": "TEMPLATE, not valid JSON until comfy.ps1 substitutes the {{...}} placeholders. Checkpoint path: SD 1.5 / SDXL / Pony / Illustrious.",
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "{{MODEL}}" }
+  },
+  "2": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{PROMPT}}", "clip": ["1", 1] }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{NEGATIVE}}", "clip": ["1", 1] }
+  },
+  "4": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": {{WIDTH}}, "height": {{HEIGHT}}, "batch_size": {{BATCH}} }
+  },
+  "5": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": {{SEED}},
+      "steps": {{STEPS}},
+      "cfg": {{CFG}},
+      "sampler_name": "{{SAMPLER}}",
+      "scheduler": "{{SCHEDULER}}",
+      "denoise": {{DENOISE}},
+      "model": ["1", 0],
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "latent_image": ["4", 0]
+    }
+  },
+  "6": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["5", 0], "vae": ["1", 2] }
+  },
+  "7": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "{{PREFIX}}", "images": ["6", 0] }
+  }
+}

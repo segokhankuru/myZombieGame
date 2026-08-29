@@ -1,0 +1,74 @@
+# ============================================================
+# Unity
+# ============================================================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+Recordings/
+
+# Asset Store araclari
+[Aa]ssets/AssetStoreTools*
+
+# Addressables uretilen ikili dosyalar
+/[Aa]ssets/[Aa]ddressableAssetsData/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ============================================================
+# IDE / editor
+# ============================================================
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.consulo/
+sysinfo.txt
+
+# ============================================================
+# Build ciktilari
+# ============================================================
+*.apk
+*.aab
+*.unitypackage
+*.app
+ExportedObj/
+crashlytics-build.properties
+
+# ============================================================
+# Sirlar - asla commit edilmez
+# ============================================================
+.env
+.env.*
+steam_appid.txt
+*.pem
+**/secrets/**
+
+# ============================================================
+# Claude Code Unity Studio
+# ============================================================
+.state/guid-map.json
+.state/comfy-caps.json
+Assets/_Project/Art/Generated/
+Assets/_Project/Art/Generated/*.meta
+docs/archive/
+
+# Kurulum kaynagi - .claude/ icine kopyalandi, tekrar commit etmeye gerek yok
+claude-code-unity-studio-master/

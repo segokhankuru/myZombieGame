@@ -1,0 +1,54 @@
+{
+  "_comment": "TEMPLATE, not valid JSON until comfy.ps1 substitutes the {{...}} placeholders. Diffusion-model path: Flux family, single text encoder. Flux ignores CFG, so guidance is carried by FluxGuidance and the sampler runs at cfg 1.",
+  "10": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "{{MODEL}}", "weight_dtype": "default" }
+  },
+  "11": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "{{CLIP}}", "type": "{{CLIPTYPE}}" }
+  },
+  "12": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "{{VAE}}" }
+  },
+  "20": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{PROMPT}}", "clip": ["11", 0] }
+  },
+  "21": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": { "conditioning": ["20", 0] }
+  },
+  "22": {
+    "class_type": "FluxGuidance",
+    "inputs": { "conditioning": ["20", 0], "guidance": {{CFG}} }
+  },
+  "30": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": { "width": {{WIDTH}}, "height": {{HEIGHT}}, "batch_size": {{BATCH}} }
+  },
+  "40": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": {{SEED}},
+      "steps": {{STEPS}},
+      "cfg": 1.0,
+      "sampler_name": "{{SAMPLER}}",
+      "scheduler": "{{SCHEDULER}}",
+      "denoise": {{DENOISE}},
+      "model": ["10", 0],
+      "positive": ["22", 0],
+      "negative": ["21", 0],
+      "latent_image": ["30", 0]
+    }
+  },
+  "50": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["40", 0], "vae": ["12", 0] }
+  },
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "{{PREFIX}}", "images": ["50", 0] }
+  }
+}

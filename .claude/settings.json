@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(design/**)",
+      "Edit(docs/**)",
+      "Edit(config/**)",
+      "Edit(Assets/_Project/Code/**)",
+      "Edit(Assets/_Project/Settings/**)",
+      "Edit(.claude/comfy/styles/**)",
+      "Write(design/**)",
+      "Write(docs/**)",
+      "Write(config/**)",
+      "Write(Assets/_Project/Code/**)",
+      "Write(.state/**)",
+      "Write(.claude/comfy/styles/**)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File .claude/tools/*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File .claude/comfy/comfy.ps1:*)"
+    ],
+    "deny": [
+      "Read(**/*.unity)",
+      "Read(**/*.prefab)",
+      "Read(**/*.meta)",
+      "Read(Library/**)",
+      "Read(Temp/**)",
+      "Read(Build/**)",
+      "Read(**/Editor.log)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/*.pem)",
+      "Write(**/*.unity)",
+      "Write(**/*.prefab)",
+      "Write(**/*.meta)",
+      "Write(Assets/_Project/Config/**)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)",
+      "Bash(*steamcmd*)",
+      "Bash(*ContentBuilder*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/session-start.ps1"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/guard-unity-yaml.ps1"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/validate-write.ps1"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/log-agent.ps1"
+          }
+        ]
+      }
+    ]
+  }
+}
