@@ -69,7 +69,7 @@ Geçicidir. Gerçek gri kutu harita M1-03'ün işi.
    |---|---|
    | **Character Controller** | Height `1.8`, Radius `0.3`, Center `0, 0.9, 0` |
    | **Network Identity** | (varsayılan) |
-   | **Network Transform Unreliable** | **Sync Direction → `Client To Server`** ⚠️ |
+   | **Network Transform (Unreliable)** | **Sync Direction → `Client To Server`** ⚠️ |
    | **Player Controller** *(Bunker)* | referanslar 4. adımda |
 
    ⚠️ **Sync Direction'ı `Client To Server` yapmayı unutma.** Varsayılan
@@ -94,9 +94,15 @@ Geçicidir. Gerçek gri kutu harita M1-03'ün işi.
    - **Player Camera** → `PlayerCamera` objesini sürükle
    - **Player Audio Listener** → aynı objeyi sürükle
 
-6. `Player` objesini **`Assets/_Project/Prefabs/Gameplay/`** klasörüne sürükleyip prefab yap
-7. Prefab olduktan sonra **sahnedeki `Player` objesini sil**
-   *Oyuncuyu Mirror spawn edecek; sahnede duran bir kopya ikinci bir oyuncu gibi davranır*
+6. `Player` objesini Hierarchy'den **`Assets/_Project/Prefabs/Gameplay/`** klasörüne sürükle.
+
+   **Sürüklemenin kendisi prefab'ı oluşturur** — ayrı bir "prefab yap" komutu yok.
+   Olduğunu şuradan anlarsın: Hierarchy'deki objenin adı **maviye** döner, Project
+   penceresinde mavi küp ikonlu bir `Player.prefab` belirir.
+
+7. Prefab oluştuktan sonra **sahnedeki `Player` objesini sil**.
+   *Oyuncuyu Mirror spawn edecek; sahnede duran bir kopya ikinci bir oyuncu gibi
+   davranır ve hangisini kontrol ettiğin karışır.*
 
 ## 5. Prefab'ı kaydet
 
