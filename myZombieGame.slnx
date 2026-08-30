@@ -15,4 +15,5 @@
   <Project Path="Bunker.Gameplay.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Bunker.UI.csproj" />
 </Solution>
