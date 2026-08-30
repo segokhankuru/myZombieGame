@@ -2,7 +2,8 @@
     "name": "Bunker.AI",
     "rootNamespace": "Bunker.AI",
     "references": [
-        "Bunker.Systems"
+        "Bunker.Systems",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

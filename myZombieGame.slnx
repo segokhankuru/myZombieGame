@@ -13,7 +13,9 @@
   <Project Path="Telepathy.csproj" />
   <Project Path="Bunker.Net.csproj" />
   <Project Path="Bunker.Gameplay.csproj" />
+  <Project Path="Bunker.AI.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Bunker.UI.csproj" />
+  <Project Path="Bunker.Systems.csproj" />
 </Solution>

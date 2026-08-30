@@ -21,7 +21,11 @@ namespace Bunker.UI
     public sealed class PerfHud : MonoBehaviour
     {
         private const int SampleCapacity = 256;      // canli p50/p99 penceresi
-        private const int SessionCapacity = 8192;    // olcum oturumu (~136 sn @ 60fps)
+
+        // Oturum tamponu da halka. Ilk surumde sabit kapasiteydi ve dolunca olcum
+        // duruyordu -- 60 FPS varsayimiyla boyutlandirilmisti, 585 FPS'te 14 saniyede
+        // doldu. Halka olarak son N ornegi tutar, hic dolmaz, uyari uretmez.
+        private const int SessionCapacity = 32768;
         private const float RefreshIntervalSeconds = 0.25f;
 
         // Tuslar sabittir: F1 goster/gizle, F2 olcum oturumu baslat/bitir.
@@ -34,10 +38,11 @@ namespace Bunker.UI
         [SerializeField] private float frameBudgetMilliseconds = 16f;
 
         /// <summary>
-        /// Ölçülen varlık sayısı. M0-04'te agent spawner bunu doldurur; başka bir şey
-        /// bilmesine gerek yok.
+        /// Ölçülen agent sayısı. `Bunker.AI` bunu `DiagnosticCounters`'a yazar, HUD
+        /// buradan okur — iki assembly birbirine referans vermeden, ortak zemin katı
+        /// üzerinden konuşur (ARCHITECTURE.md §2: hiçbir şey UI'ye bağımlı olamaz).
         /// </summary>
-        public int TrackedAgentCount { get; set; }
+        private static int TrackedAgentCount => Bunker.Systems.Diagnostics.DiagnosticCounters.ActiveAgents;
 
         private readonly float[] _samples = new float[SampleCapacity];
         private readonly float[] _sortBuffer = new float[SampleCapacity];
@@ -48,6 +53,9 @@ namespace Bunker.UI
         private int _sampleCount;
         private int _sampleCursor;
         private int _sessionCount;
+        private int _sessionCursor;
+        private long _sessionTotalFrames;
+        private float _sessionStartTime;
         private bool _sessionActive;
         private float _refreshTimer;
         private string _display = string.Empty;
@@ -70,14 +78,12 @@ namespace Bunker.UI
             _sampleCursor = (_sampleCursor + 1) % SampleCapacity;
             if (_sampleCount < SampleCapacity) _sampleCount++;
 
-            if (_sessionActive && _sessionCount < SessionCapacity)
+            if (_sessionActive)
             {
-                _sessionSamples[_sessionCount++] = frameMilliseconds;
-                if (_sessionCount == SessionCapacity)
-                {
-                    Debug.LogWarning("[PerfHud] Oturum tamponu doldu, olcum durduruldu.");
-                    StopSession();
-                }
+                _sessionSamples[_sessionCursor] = frameMilliseconds;
+                _sessionCursor = (_sessionCursor + 1) % SessionCapacity;
+                if (_sessionCount < SessionCapacity) _sessionCount++;
+                _sessionTotalFrames++;
             }
 
             ReadInput();
@@ -110,8 +116,11 @@ namespace Bunker.UI
         public void StartSession()
         {
             _sessionCount = 0;
+            _sessionCursor = 0;
+            _sessionTotalFrames = 0;
+            _sessionStartTime = Time.unscaledTime;
             _sessionActive = true;
-            Debug.Log($"[PerfHud] Olcum oturumu basladi. Agent: {TrackedAgentCount}");
+            Debug.Log($"[PerfHud] Olcum basladi. Agent: {TrackedAgentCount}");
         }
 
         /// <summary>Ölçüm oturumunu bitirir ve özeti konsola yazar.</summary>
@@ -124,23 +133,32 @@ namespace Bunker.UI
                 return;
             }
 
+            float durationSeconds = Time.unscaledTime - _sessionStartTime;
+
             // Oturum tamponunu yerinde sirala. Kopya uretmez.
             Array.Sort(_sessionSamples, 0, _sessionCount);
 
             float p50 = Percentile(_sessionSamples, _sessionCount, 0.50f);
+            float p95 = Percentile(_sessionSamples, _sessionCount, 0.95f);
             float p99 = Percentile(_sessionSamples, _sessionCount, 0.99f);
             float min = _sessionSamples[0];
             float max = _sessionSamples[_sessionCount - 1];
+            bool passed = p99 <= frameBudgetMilliseconds;
 
+            // Ilk satir tek basina okunabilir olmali: Unity konsolu cok satirli
+            // loglari katliyor ve sadece ilk satiri gosteriyor.
             Debug.Log(
-                "[PerfHud] OLCUM OZETI\n" +
-                $"  ornek      : {_sessionCount}\n" +
-                $"  agent      : {TrackedAgentCount}\n" +
+                $"[PerfHud] {TrackedAgentCount} agent | p50 {p50:F2}ms | p95 {p95:F2}ms | " +
+                $"p99 {p99:F2}ms | butce {frameBudgetMilliseconds:F0}ms -> " +
+                $"{(passed ? "GECTI" : "ASILDI")}\n" +
+                $"  sure       : {durationSeconds:F1} sn, {_sessionTotalFrames} kare " +
+                $"(ortalama {_sessionTotalFrames / Mathf.Max(durationSeconds, 0.001f):F0} FPS)\n" +
+                $"  ornek      : {_sessionCount}" +
+                (_sessionTotalFrames > SessionCapacity ? " (son N kare)" : "") + "\n" +
                 $"  p50        : {p50:F2} ms  ({1000f / Mathf.Max(p50, 0.001f):F0} FPS)\n" +
+                $"  p95        : {p95:F2} ms\n" +
                 $"  p99        : {p99:F2} ms  ({1000f / Mathf.Max(p99, 0.001f):F0} FPS)\n" +
-                $"  min / max  : {min:F2} / {max:F2} ms\n" +
-                $"  butce      : {frameBudgetMilliseconds:F1} ms -> " +
-                $"{(p99 <= frameBudgetMilliseconds ? "GECTI" : "ASILDI")}");
+                $"  min / max  : {min:F2} / {max:F2} ms");
         }
 
         private void Rebuild(float currentMilliseconds)
@@ -163,7 +181,7 @@ namespace Bunker.UI
             _text.Append("agent ").Append(TrackedAgentCount).Append('\n');
             _text.Append("heap  ").Append((managedBytes / 1048576f).ToString("F1")).Append(" MB\n");
             _text.Append(_sessionActive
-                ? $"OLCUM ACIK  ({_sessionCount} ornek)  F2=bitir"
+                ? $"OLCUM ACIK  {Time.unscaledTime - _sessionStartTime:F0} sn  F2=bitir"
                 : "F1=gizle  F2=olcum baslat");
 
             _display = _text.ToString();
