@@ -16,7 +16,7 @@
   <Project Path="Bunker.AI.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Bunker.Systems.csproj" />
   <Project Path="Bunker.UI.csproj" />
   <Project Path="Bunker.Systems.Tests.csproj" />
-  <Project Path="Bunker.Systems.csproj" />
 </Solution>

@@ -1,0 +1,32 @@
+{
+  "$schema": "../schema/economy.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-ekonomi",
+    "lastTuned": "2026-08-31"
+  },
+
+  "_note": "Klon tabani baslangic degerleri. Kapi fiyatlari LVL-01 bolge sirasi netlestiginde kalibre edilecek; su an bant olarak duruyorlar.",
+
+  "awards": {
+    "hit": 10,
+    "bodyKill": 60,
+    "headshotKill": 100,
+    "meleeKill": 130,
+    "barricadeBoardRepair": 10
+  },
+
+  "penalty": {
+    "downedSpendableFraction": 0.5
+  },
+
+  "prices": {
+    "doorCheap": 750,
+    "doorMid": 1250,
+    "doorExpensive": 2000,
+    "wallWeaponCheap": 500,
+    "wallWeaponMid": 1200,
+    "mysteryBox": 950
+  }
+}

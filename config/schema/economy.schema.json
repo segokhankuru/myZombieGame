@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/economy",
+  "title": "Ekonomi",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "awards", "penalty", "prices"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "awards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hit", "bodyKill", "headshotKill", "meleeKill", "barricadeBoardRepair"
+      ],
+      "properties": {
+        "hit": {
+          "type": "integer", "minimum": 1, "maximum": 50,
+          "description": "Oldurmeyen her isabet. Bu deger oyuncunun 'silahim ise yariyor' hissinin ekonomik karsiligi - sifira yakinsa gec turlarda kalin canli zombilere ates etmek bedava is gibi hissettirir."
+        },
+        "bodyKill": {
+          "type": "integer", "minimum": 10, "maximum": 300,
+          "description": "Govdeye oldurme. Ekonominin tabani; kapi fiyatlari bunun katlari olarak okunur."
+        },
+        "headshotKill": {
+          "type": "integer", "minimum": 10, "maximum": 400,
+          "description": "Kafadan oldurme. bodyKill'e cok yakinsa nisan almanin karsiligi yok olur ve oyuncu gelisigüzel ates eder; cok uzaksa nisan alamayan oyuncu ekonomik olarak cezalandirilir."
+        },
+        "meleeKill": {
+          "type": "integer", "minimum": 10, "maximum": 500,
+          "description": "Bicakla oldurme. En yuksegi olmali cunku en riskli ve mermi harcamaz - erken turlarda ekonomi kurmanin ana yolu budur. Dusukse bicak hic kullanilmaz."
+        },
+        "barricadeBoardRepair": {
+          "type": "integer", "minimum": 1, "maximum": 50,
+          "description": "Tamir edilen her tahta. Erken tur ekonomisinin ikinci ayagi. Sifirsa kimse barikat tamir etmez, zombiler serbestce girer ve turun ritmi coker (PILLAR-03)."
+        }
+      }
+    },
+
+    "penalty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["downedSpendableFraction"],
+      "properties": {
+        "downedSpendableFraction": {
+          "type": "number", "minimum": 0, "maximum": 1,
+          "description": "Dusup kaldirildiginda harcanabilir puanin kaybedilen orani. Skor kaybedilmez, yalnizca harcanabilir bakiye. 0 olursa dusmenin bedeli kalmaz ve risk anlamsizlasir; 1'e yakin olursa bir kez dusen oyuncu run'in geri kalaninda takima yuk olur - bu PILLAR-02'yi tersine cevirir."
+        }
+      }
+    },
+
+    "prices": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["doorCheap", "doorMid", "doorExpensive", "wallWeaponCheap", "wallWeaponMid", "mysteryBox"],
+      "description": "Fiyat bantlari. Belirli bir kapi ya da silah, config/content icinden bu bantlardan birini ismen secer - fiyat tek yerde durur.",
+      "properties": {
+        "doorCheap":       { "type": "integer", "minimum": 100, "maximum": 3000, "description": "Ilk genisleme. Tur 3-5 civarinda ulasilabilir olmali; daha gec olursa baslangic odasi bogar." },
+        "doorMid":         { "type": "integer", "minimum": 200, "maximum": 5000, "description": "Ikinci genisleme." },
+        "doorExpensive":   { "type": "integer", "minimum": 500, "maximum": 10000, "description": "Son genisleme ya da kestirme. Kosu dongusunu kapatan kapi buysa fiyati dongunun ne zaman acilacagini belirler." },
+        "wallWeaponCheap": { "type": "integer", "minimum": 100, "maximum": 2000, "description": "Baslangic silahindan ilk yukseltme." },
+        "wallWeaponMid":   { "type": "integer", "minimum": 300, "maximum": 4000, "description": "Orta sinif duvar silahi." },
+        "mysteryBox":      { "type": "integer", "minimum": 300, "maximum": 3000, "description": "Rastgele silah dagiticisi. Kumar oldugu icin duvar silahindan pahali olmali; ucuzsa duvar silahlari hic satin alinmaz." }
+      }
+    }
+  }
+}
