@@ -42,12 +42,29 @@ namespace Bunker.AI
                  "ayirmak icin: once acik olcup sonra kapali olcersin, fark cizimdir.")]
         [SerializeField] private bool showRenderers = true;
 
+        [Header("Otomatik tarama (F5)")]
+        [Tooltip("Taramanin sirayla olcecegi agent sayilari.")]
+        [SerializeField] private int[] sweepCounts = { 0, 40, 100, 200 };
+        [Tooltip("Sayi degistikten sonra yol bulmanin oturmasi icin beklenen sure.")]
+        [SerializeField] private float sweepSettleSeconds = 3f;
+        [Tooltip("Her adimda kac saniye olculur.")]
+        [SerializeField] private float sweepMeasureSeconds = 15f;
+
         private NavMeshAgent[] _agents;
         private GameObject[] _objects;
         private int _activeCount;
         private int _repathCursor;
         private float _repathBudgetPerFrame;
         private float _repathAccumulator;
+
+        private enum SweepPhase { Idle, Settling, Measuring }
+
+        private SweepPhase _sweepPhase = SweepPhase.Idle;
+        private int _sweepIndex;
+        private float _sweepTimer;
+        private FrameTimeRecorder _sweepRecorder;
+        private FrameStats[] _sweepResults;
+        private bool _sweepRenderersWereVisible;
 
         private void Start()
         {
@@ -135,6 +152,7 @@ namespace Bunker.AI
         private void Update()
         {
             ReadInput();
+            TickSweep();
 
             // Inspector'daki alan oynatilirsa calisma aninda uygulanir. Tus
             // kombinasyonu ile ugrasmak istemeyen icin en dogrudan yol.
@@ -195,6 +213,126 @@ namespace Bunker.AI
                 SetRenderers(showRenderers);
                 Debug.Log($"[AgentLoadTest] Cizim: {(showRenderers ? "acik" : "kapali")}");
             }
+            else if (keyboard.f5Key.wasPressedThisFrame)
+            {
+                if (_sweepPhase == SweepPhase.Idle) StartSweep();
+                else CancelSweep();
+            }
+        }
+
+        // ---------------------------------------------------------------- otomatik tarama
+
+        /// <summary>
+        /// Tum tarama adimlarini sirayla olcup tek bir tablo basar. Elle dort ayri
+        /// olcum koordine etmek hataya acik -- olcumu durdurmayi unutmak ya da sayiyi
+        /// olcum ortasinda degistirmek veriyi sessizce kullanilamaz hale getirir.
+        /// </summary>
+        public void StartSweep()
+        {
+            if (sweepCounts == null || sweepCounts.Length == 0)
+            {
+                Debug.LogWarning("[AgentLoadTest] Tarama listesi bos.");
+                return;
+            }
+
+            // Ornek sayisi: en yuksek makul FPS x en uzun adim. Halka tampon oldugu
+            // icin tasarsa da en son ornekleri tutar.
+            _sweepRecorder ??= new FrameTimeRecorder(32768);
+            _sweepResults = new FrameStats[sweepCounts.Length];
+            _sweepRenderersWereVisible = showRenderers;
+
+            _sweepIndex = 0;
+            BeginSweepStep();
+
+            Debug.Log($"[AgentLoadTest] TARAMA BASLADI - {sweepCounts.Length} adim, " +
+                      $"adim basina {sweepSettleSeconds:F0}+{sweepMeasureSeconds:F0} sn, " +
+                      $"cizim {(showRenderers ? "ACIK" : "KAPALI")}. Iptal icin F5.");
+        }
+
+        public void CancelSweep()
+        {
+            if (_sweepPhase == SweepPhase.Idle) return;
+            _sweepPhase = SweepPhase.Idle;
+            Debug.Log("[AgentLoadTest] Tarama iptal edildi.");
+        }
+
+        private void BeginSweepStep()
+        {
+            SetActiveCount(sweepCounts[_sweepIndex]);
+            _sweepRecorder.Reset();
+            _sweepTimer = 0f;
+            _sweepPhase = SweepPhase.Settling;
+        }
+
+        private void TickSweep()
+        {
+            if (_sweepPhase == SweepPhase.Idle) return;
+
+            float dt = Time.unscaledDeltaTime;
+            _sweepTimer += dt;
+
+            if (_sweepPhase == SweepPhase.Settling)
+            {
+                if (_sweepTimer >= sweepSettleSeconds)
+                {
+                    _sweepTimer = 0f;
+                    _sweepRecorder.Reset();
+                    _sweepPhase = SweepPhase.Measuring;
+                }
+                return;
+            }
+
+            _sweepRecorder.Add(dt * 1000f);
+
+            if (_sweepTimer < sweepMeasureSeconds) return;
+
+            _sweepResults[_sweepIndex] = _sweepRecorder.Snapshot();
+            _sweepIndex++;
+
+            if (_sweepIndex < sweepCounts.Length)
+            {
+                BeginSweepStep();
+            }
+            else
+            {
+                _sweepPhase = SweepPhase.Idle;
+                ReportSweep();
+            }
+        }
+
+        private void ReportSweep()
+        {
+            var report = new System.Text.StringBuilder(512);
+            report.Append("[AgentLoadTest] TARAMA SONUCU  (cizim ")
+                  .Append(_sweepRenderersWereVisible ? "ACIK" : "KAPALI")
+                  .Append(")\n");
+            report.Append("  agent |    p50 |    p95 |    p99 |    max |  agent basi (p50)\n");
+            report.Append("  ------+--------+--------+--------+--------+------------------\n");
+
+            float baseline = _sweepResults.Length > 0 && sweepCounts[0] == 0
+                ? _sweepResults[0].P50
+                : 0f;
+
+            for (int i = 0; i < sweepCounts.Length; i++)
+            {
+                FrameStats s = _sweepResults[i];
+                int count = sweepCounts[i];
+
+                string perAgent = count > 0 && baseline > 0f
+                    ? $"{(s.P50 - baseline) / count * 1000f:F1} us"
+                    : "-";
+
+                report.Append("  ")
+                      .Append(count.ToString().PadLeft(5)).Append(" | ")
+                      .Append(s.P50.ToString("F2").PadLeft(6)).Append(" | ")
+                      .Append(s.P95.ToString("F2").PadLeft(6)).Append(" | ")
+                      .Append(s.P99.ToString("F2").PadLeft(6)).Append(" | ")
+                      .Append(s.Max.ToString("F2").PadLeft(6)).Append(" | ")
+                      .Append(perAgent).Append('\n');
+            }
+
+            report.Append("  (butun degerler milisaniye)");
+            Debug.Log(report.ToString());
         }
 
         private bool TrySampleNavMeshPoint(out Vector3 point)
