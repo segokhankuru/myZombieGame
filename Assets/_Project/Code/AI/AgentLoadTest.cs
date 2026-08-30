@@ -24,7 +24,8 @@ namespace Bunker.AI
     public sealed class AgentLoadTest : MonoBehaviour
     {
         [Header("Yuk")]
-        [Tooltip("Hedef agent sayisi. Calisma aninda [ ve ] tuslariyla degistirilebilir.")]
+        [Tooltip("Hedef agent sayisi. Calisma aninda F3/F4 ile ya da bu alani " +
+                 "dogrudan degistirerek ayarlanabilir.")]
         [SerializeField] private int agentCount = 40;
         [SerializeField] private int stepSize = 10;
         [SerializeField] private int maxAgents = 200;
@@ -135,6 +136,14 @@ namespace Bunker.AI
         {
             ReadInput();
 
+            // Inspector'daki alan oynatilirsa calisma aninda uygulanir. Tus
+            // kombinasyonu ile ugrasmak istemeyen icin en dogrudan yol.
+            if (agentCount != _activeCount)
+            {
+                SetActiveCount(agentCount);
+                Debug.Log($"[AgentLoadTest] Agent: {_activeCount}");
+            }
+
             if (_activeCount == 0) return;
 
             // Kare basina yalnizca butce kadar agent yeni hedef ister.
@@ -164,15 +173,18 @@ namespace Bunker.AI
 
         private void ReadInput()
         {
+            // F3/F4 secildi cunku fonksiyon tuslari klavye duzeninden bagimsiz.
+            // Kose parantez Turkce Q'da AltGr gerektiriyor ve Input System fiziksel
+            // tus konumuna baktigi icin yanlis tusa denk geliyor.
             var keyboard = UnityEngine.InputSystem.Keyboard.current;
             if (keyboard == null) return;
 
-            if (keyboard.leftBracketKey.wasPressedThisFrame)
+            if (keyboard.f3Key.wasPressedThisFrame)
             {
                 SetActiveCount(_activeCount - stepSize);
                 Debug.Log($"[AgentLoadTest] Agent: {_activeCount}");
             }
-            else if (keyboard.rightBracketKey.wasPressedThisFrame)
+            else if (keyboard.f4Key.wasPressedThisFrame)
             {
                 SetActiveCount(_activeCount + stepSize);
                 Debug.Log($"[AgentLoadTest] Agent: {_activeCount}");
