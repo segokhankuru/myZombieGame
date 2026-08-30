@@ -1,0 +1,41 @@
+{
+  "$schema": "../schema/rounds.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-tur",
+    "lastTuned": "2026-08-31"
+  },
+
+  "_note": "Baslangic degerleri. Klon tabaninin amaci olcum referansi uretmek; bu sayilar M1'de arkadas testiyle kalibre edilecek. Hicbiri kanit degil, hepsi hipotez.",
+
+  "count": {
+    "perPlayerAtRoundOne": 6,
+    "linearAddPerPlayerPerRound": 1.5,
+    "linearPhaseUntilRound": 9,
+    "growthMultiplierAfterLinear": 1.10,
+    "maxConcurrent": 40
+  },
+
+  "health": {
+    "atRoundOne": 150,
+    "linearAddPerRound": 100,
+    "linearPhaseUntilRound": 9,
+    "growthMultiplierAfterLinear": 1.10,
+    "cap": 25000
+  },
+
+  "speed": {
+    "walkMetersPerSecond": 1.4,
+    "jogMetersPerSecond": 2.9,
+    "runMetersPerSecond": 4.6,
+    "walkUntilRound": 4,
+    "jogUntilRound": 8
+  },
+
+  "pacing": {
+    "breatherSeconds": 10,
+    "spawnIntervalSecondsAtRoundOne": 2.0,
+    "spawnIntervalFloorSeconds": 0.25
+  }
+}

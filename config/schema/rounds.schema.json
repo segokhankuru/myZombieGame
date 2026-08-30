@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/rounds",
+  "title": "Tur olcekleme",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "count", "health", "speed", "pacing"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "perPlayerAtRoundOne",
+        "linearAddPerPlayerPerRound",
+        "linearPhaseUntilRound",
+        "growthMultiplierAfterLinear",
+        "maxConcurrent"
+      ],
+      "properties": {
+        "perPlayerAtRoundOne": {
+          "type": "number", "minimum": 2, "maximum": 15,
+          "description": "Tur 1'de oyuncu basina zombi. Cok dusuk olursa ilk turlar bos ve sikici gecer, oyuncu daha kurallari ogrenmeden canı sikilir. Cok yuksek olursa oyuncu silah alacak puani biriktiremeden bogulur."
+        },
+        "linearAddPerPlayerPerRound": {
+          "type": "number", "minimum": 0.5, "maximum": 5,
+          "description": "Dogrusal fazda her tur oyuncu basina eklenen zombi. Dusuk deger ilk on turu tekduzelestirir; yuksek deger oyuncuyu haritayi acmadan kosmaya zorlar."
+        },
+        "linearPhaseUntilRound": {
+          "type": "integer", "minimum": 3, "maximum": 20,
+          "description": "Bu tura kadar buyume dogrusal, sonra carpimsal. Erken biterse zorluk aniden ziplar ve oyuncu hazirlanamaz; gec biterse orta turlar duz ve sikici olur."
+        },
+        "growthMultiplierAfterLinear": {
+          "type": "number", "minimum": 1.02, "maximum": 1.30,
+          "description": "Dogrusal faz bittikten sonra tur basina carpan. 1.0'a yaklasirsa oyun hic bitmez ve seans saatlerce surer; 1.3'e yaklasirsa 15. turdan sonra duvara toslanir."
+        },
+        "maxConcurrent": {
+          "type": "integer", "minimum": 10, "maximum": 60,
+          "description": "Ayni anda canli olabilecek maksimum zombi. Turun geri kalani sirada bekler. Bu bir denge degeri degil, PERF-BUDGET.md'den gelen performans tavanidir - artirmadan once olcum gerekir."
+        }
+      }
+    },
+
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "atRoundOne",
+        "linearAddPerRound",
+        "linearPhaseUntilRound",
+        "growthMultiplierAfterLinear",
+        "cap"
+      ],
+      "properties": {
+        "atRoundOne": {
+          "type": "number", "minimum": 50, "maximum": 300,
+          "description": "Tur 1 zombi cani. Baslangic silahinin kac isabetle oldurdugunu belirler. Cok dusukse silah guclu hissetmez cunku her sey tek vurusla olur; cok yuksekse baslangic silahi ise yaramaz gorunur."
+        },
+        "linearAddPerRound": {
+          "type": "number", "minimum": 20, "maximum": 300,
+          "description": "Dogrusal fazda tur basina eklenen can."
+        },
+        "linearPhaseUntilRound": {
+          "type": "integer", "minimum": 3, "maximum": 20,
+          "description": "Bu tura kadar can dogrusal artar."
+        },
+        "growthMultiplierAfterLinear": {
+          "type": "number", "minimum": 1.02, "maximum": 1.30,
+          "description": "Sonrasinda tur basina can carpani. Yuksek deger silahlari hizla ise yaramaz hale getirir ve oyuncuyu yalnizca kacmaya zorlar."
+        },
+        "cap": {
+          "type": "number", "minimum": 1000, "maximum": 100000,
+          "description": "Can tavani. Tavan olmazsa yeterince yuksek turda hicbir silah zombi olduremez ve oyun matematiksel olarak biter. Tavanla birlikte yuksek tur bir dayanma sinavina donusur."
+        }
+      }
+    },
+
+    "speed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "walkMetersPerSecond", "jogMetersPerSecond", "runMetersPerSecond",
+        "walkUntilRound", "jogUntilRound"
+      ],
+      "properties": {
+        "walkMetersPerSecond": {
+          "type": "number", "minimum": 0.8, "maximum": 2.5,
+          "description": "Erken tur hizi. Oyuncu yuruyus hizindan belirgin yavas olmali ki ilk turlar ogretici olsun."
+        },
+        "jogMetersPerSecond": {
+          "type": "number", "minimum": 2.0, "maximum": 4.5,
+          "description": "Orta tur hizi. Oyuncu hizina yakin - artik kacmak yetmez, rota gerekir."
+        },
+        "runMetersPerSecond": {
+          "type": "number", "minimum": 3.5, "maximum": 7.0,
+          "description": "Gec tur hizi. Oyuncudan hizli olmali; bu andan sonra hayatta kalmanin tek yolu kosu dongusudur (LVL-01)."
+        },
+        "walkUntilRound": {
+          "type": "integer", "minimum": 1, "maximum": 10,
+          "description": "Bu tura kadar zombiler yurur."
+        },
+        "jogUntilRound": {
+          "type": "integer", "minimum": 2, "maximum": 20,
+          "description": "Bu tura kadar tempolu, sonrasinda kosar. Erken gelirse oyuncu haritayi ogrenemeden panige girer."
+        }
+      }
+    },
+
+    "pacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["breatherSeconds", "spawnIntervalSecondsAtRoundOne", "spawnIntervalFloorSeconds"],
+      "properties": {
+        "breatherSeconds": {
+          "type": "number", "minimum": 3, "maximum": 20,
+          "description": "Turlar arasi nefes molasi. Cok kisa olursa PILLAR-03'un ritmi bozulur ve oyun yorucu olur; cok uzun olursa gerilim soguр."
+        },
+        "spawnIntervalSecondsAtRoundOne": {
+          "type": "number", "minimum": 0.5, "maximum": 5,
+          "description": "Tur 1'de iki zombi dogumu arasi sure. Turun ne kadar surdugunu bu belirler, zombi sayisi kadar."
+        },
+        "spawnIntervalFloorSeconds": {
+          "type": "number", "minimum": 0.05, "maximum": 1.5,
+          "description": "Dogum araligi bunun altina inmez. Taban olmazsa gec turlarda butun sure zombiler ayni anda belirir ve oyuncunun tepki verecek zamani kalmaz."
+        }
+      }
+    }
+  }
+}
