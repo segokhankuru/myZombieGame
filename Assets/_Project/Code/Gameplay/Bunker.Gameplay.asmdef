@@ -4,7 +4,8 @@
     "references": [
         "Bunker.Systems",
         "Mirror",
-        "Mirror.Components"
+        "Mirror.Components",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
