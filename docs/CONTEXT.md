@@ -8,7 +8,7 @@ Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı
 sistemlerinden keyif alan oyuncu.
 **Platform:** PC / Steam. Hedef donanım `<tbd>`.
 **Stage:** preproduction
-**Milestone:** M-00 Teknoloji Temeli (active, 1/4 bitti) → M-01 Solo Çekirdek Döngü
+**Milestone:** M-00 kapandı ✅ → **M-01 Solo Çekirdek Döngü**
 **Review mode:** lean
 
 ## Pillars
@@ -50,14 +50,14 @@ Hedef: **1080p / 60 FPS orta seviye genel donanımda**; kalite ayarları ve çö
 
 **Darboğaz GPU değil CPU.** Kapalı küçük harita URP'de ucuz; yükü ~40 NavMesh agent'ı,
 ~40 animator ve ağ senkronu üretiyor. Kare düşerse önce Profiler'da AI ve animator'a
-bakılır, çözünürlüğe değil. Sayısal bütçe `<tbd>` — M0 ölçümü üretecek.
+bakılır, çözünürlüğe değil. Ölçülen: 40 NavMesh agent ~0.2 ms (bütçenin %1.2si). Detay: `docs/architecture/PERF-BUDGET.md`. **Bulgu: darboğaz NavMesh değil; risk animator ve ağ serileştirmesinde.**
 
 ## Active roles
 `<kickoff sonrası belirlenecek>`
 
 ## Current work
-**Milestone:** M-00 Teknoloji Temeli — active, M0-01 bitti
-**In progress:** M-00 → M0-02 (Mirror host modu iskeleti). M0-01 bitti
+**Milestone:** M-01 Solo Çekirdek Döngü (M-00 kapandı: 4/4)
+**In progress:** M-01 planlanıyor
 **Blocked:** kapsam sayıları — silah/zombi/kart adedi bilinçli olarak ertelendi
 
 ## Known debt and risks

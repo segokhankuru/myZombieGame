@@ -54,7 +54,7 @@ namespace Bunker.AI
         private GameObject[] _objects;
         private int _activeCount;
         private int _repathCursor;
-        private float _repathBudgetPerFrame;
+        private float _repathsPerSecond;
         private float _repathAccumulator;
 
         private enum SweepPhase { Idle, Settling, Measuring }
@@ -131,10 +131,14 @@ namespace Bunker.AI
             agentCount = target;
             DiagnosticCounters.ActiveAgents = target;
 
-            // Yol istekleri kareler arasina yayilir. Ornek: 40 agent, 0.4 sn araliksa
-            // ve 60 FPS'te 24 kare varsa, kare basina ~1.7 agent yol ister.
-            _repathBudgetPerFrame = repathIntervalSeconds > 0f
-                ? target / (repathIntervalSeconds * 60f)
+            // Saniyede kac agent yol istemeli. Ornek: 40 agent, 0.4 sn aralik ->
+            // saniyede 100 yol istegi, yani her agent 0.4 saniyede bir.
+            //
+            // Bu deger SANIYE basinadir, kare basina degil. Ilk surumde 60 FPS
+            // varsayilarak kare basina hesaplaniyordu; 600 FPS'te agent'lar
+            // hedeflenenin on kati siklikta yol istedi. Kare hizindan bagimsiz olmali.
+            _repathsPerSecond = repathIntervalSeconds > 0f
+                ? target / repathIntervalSeconds
                 : target;
 
             SetRenderers(showRenderers);
@@ -167,7 +171,7 @@ namespace Bunker.AI
             // Kare basina yalnizca butce kadar agent yeni hedef ister.
             // Hepsini ayni karede tetiklemek, gercek oyunlardaki ani kare
             // dususlerinin ana sebebidir (ai-code.md).
-            _repathAccumulator += _repathBudgetPerFrame;
+            _repathAccumulator += _repathsPerSecond * Time.unscaledDeltaTime;
             int toProcess = Mathf.FloorToInt(_repathAccumulator);
             if (toProcess <= 0) return;
 
