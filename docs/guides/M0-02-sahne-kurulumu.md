@@ -39,9 +39,21 @@ Geçicidir. Gerçek gri kutu harita M1-03'ün işi.
 ## 3. NetworkManager
 
 1. **GameObject → Create Empty**, adı `NetworkManager`, position `0,0,0`
-2. **Add Component → Bunker → Bunker Network Manager**
-3. **Add Component → Kcp Transport**
-   *Mirror'ın `NetworkManager`'ı transport'u otomatik eklemez — bunu elle yapman gerekiyor.*
+2. **Add Component** → arama kutusuna **`Bunker`** yaz → **Bunker Network Manager**
+3. **Add Component** → arama kutusuna **`Kcp`** yaz → **Kcp Transport**
+   *Mirror'ın `NetworkManager`'ı transport'u otomatik eklemez — elle eklemen gerekiyor.*
+
+> **Add Component menüsü hakkında iki not:**
+>
+> **Kategoriye göz atma, arama kutusunu kullan.** Bizim script'lerimiz
+> `[AddComponentMenu("Bunker/...")]` taşıdığı için **Bunker** adlı kendi kategorilerinde
+> görünür — "Scripts" altında **görünmezler**. Mirror'ın transport'larında ise hiç
+> `AddComponentMenu` yok, dolayısıyla onlar **Scripts** altındadır. İki farklı yer;
+> arama kutusu ikisini de bulur.
+>
+> **Hiçbiri çıkmıyorsa** editör eski derlemeyi gösteriyordur: Unity penceresine tıkla,
+> **Assets → Refresh** (`Ctrl+R`). Son çare, ilgili `.cs` dosyasını Project penceresinden
+> doğrudan objenin üstüne sürüklemek — bu yol menüden bağımsız çalışır.
 4. `Bunker Network Manager` bileşeninde:
    - **Transport** alanına aynı objedeki **KcpTransport**'u sürükle
    - **Auto Start Solo** → ✅ işaretli kalsın
