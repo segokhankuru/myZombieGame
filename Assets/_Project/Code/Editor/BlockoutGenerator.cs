@@ -45,6 +45,28 @@ namespace Bunker.Editor
         private const float RampX = 12f;    // rampanin merkez ekseni
         private const float RampWidth = 2.5f;
 
+        // Rampa guneyden kuzeye yukselir ve UST KATIN ICINDE biter. Bitis noktasi
+        // bilerek acikligin kuzey kenarindadir: oyuncu rampadan cikinca ileri adim
+        // atip dogrudan zemine basar. Rampa duvarin dibinde bitseydi bosluga cikardi.
+        private const float RampStartZ = South + 0.5f;   // -4.5, y = 0
+        private const float RampEndZ = 2f;               // y = 3.5
+
+        // Ust kat zemininde rampanin cikacagi aciklik. Rampa yukselirken zeminin
+        // altindan gecer, sonra buradan yuzeye cikar.
+        private const float RampHoleMinX = 10.25f;
+        private const float RampHoleMaxX = 13.75f;
+        // Aciklik erken baslar: rampa zeminin altindan gecerken oyuncunun kafa payi
+        // 2 m'nin altina inmemeli. z = -3'te rampa 0.81 m'de, zemin alti 3.0 m'de,
+        // yani 2.19 m pay kaliyor. Daha gec baslarsa oyuncu duvara kafa atar.
+        private const float RampHoleMinZ = -3f;
+        private const float RampHoleMaxZ = RampEndZ;
+
+        // C'den A'ya inen delik: dongunun kapanma noktasi.
+        private const float DropHoleMinX = -4f;
+        private const float DropHoleMaxX = -1f;
+        private const float DropHoleMinZ = -2f;
+        private const float DropHoleMaxZ = 1f;
+
         [MenuItem("Bunker/Level/LVL-01 Gri Kutu Uret", false, 100)]
         public static void Generate()
         {
@@ -140,8 +162,8 @@ namespace Bunker.Editor
 
         private static void BuildRamp(Transform zone)
         {
-            float startZ = South + 0.5f;
-            float endZ = North - 0.5f;
+            float startZ = RampStartZ;
+            float endZ = RampEndZ;
             float run = endZ - startZ;
             float rise = UpperFloorY;
 
@@ -161,17 +183,25 @@ namespace Bunker.Editor
         {
             Transform zone = Group("Zone_C", parent);
 
-            // Ust kat zemini, A'nin uzerinde bir DELIK birakarak. Delik dongunun
-            // kapanma noktasi: oyuncu C'den A'ya asagi atlar.
-            const float holeMinX = -4f, holeMaxX = -1f;
-            const float holeMinZ = -2f, holeMaxZ = 1f;
             float slabY = UpperFloorY - FloorThickness / 2f;
 
-            // Delik cevresinde dort parca
-            Slab(zone, "Floor_C_West", West, holeMinX, South, North, slabY);
-            Slab(zone, "Floor_C_East", holeMaxX, East, South, North, slabY);
-            Slab(zone, "Floor_C_SouthStrip", holeMinX, holeMaxX, South, holeMinZ, slabY);
-            Slab(zone, "Floor_C_NorthStrip", holeMinX, holeMaxX, holeMaxZ, North, slabY);
+            // Ust kat zemini IKI aciklik birakir:
+            //   1) DUSME DELIGI  (A'nin uzerinde) -- dongunun kapanma noktasi
+            //   2) RAMPA AGZI    (B'nin uzerinde) -- rampanin yuzeye ciktigi yer
+            //
+            // Zemin X bantlarina bolunerek kuruluyor; her bantta o bandin icine
+            // dusen aciklik varsa serit ikiye ayriliyor.
+            Slab(zone, "Floor_C_Band1", West, DropHoleMinX, South, North, slabY);
+
+            Slab(zone, "Floor_C_Band2_South", DropHoleMinX, DropHoleMaxX, South, DropHoleMinZ, slabY);
+            Slab(zone, "Floor_C_Band2_North", DropHoleMinX, DropHoleMaxX, DropHoleMaxZ, North, slabY);
+
+            Slab(zone, "Floor_C_Band3", DropHoleMaxX, RampHoleMinX, South, North, slabY);
+
+            Slab(zone, "Floor_C_Band4_South", RampHoleMinX, RampHoleMaxX, South, RampHoleMinZ, slabY);
+            Slab(zone, "Floor_C_Band4_North", RampHoleMinX, RampHoleMaxX, RampHoleMaxZ, North, slabY);
+
+            Slab(zone, "Floor_C_Band5", RampHoleMaxX, East, South, North, slabY);
 
             // Ust kat dis duvarlari: uc pencere
             WallAlongZ(zone, "Wall_C_West", West, South, North, UpperFloorY,
@@ -185,14 +215,18 @@ namespace Bunker.Editor
 
             WallAlongX(zone, "Wall_C_South", South, West, East, UpperFloorY, gaps: null);
 
-            // Delik kenarina alcak korkuluk: oyuncunun kazara dusmesini engeller,
-            // atlamak bilincli bir hareket olsun.
-            Box(zone, "HoleLip_West",
-                new Vector3(holeMinX, UpperFloorY + 0.25f, (holeMinZ + holeMaxZ) / 2f),
-                new Vector3(0.2f, 0.5f, holeMaxZ - holeMinZ));
-            Box(zone, "HoleLip_East",
-                new Vector3(holeMaxX, UpperFloorY + 0.25f, (holeMinZ + holeMaxZ) / 2f),
-                new Vector3(0.2f, 0.5f, holeMaxZ - holeMinZ));
+            // Dusme deliginin kenarina alcak korkuluk: kazara dusmek yerine atlamak
+            // bilincli bir hareket olsun. Rampa agzina korkuluk KONMUYOR -- oradan
+            // yurunerek gecilmesi gerekiyor.
+            float dropMidZ = (DropHoleMinZ + DropHoleMaxZ) / 2f;
+            float dropLength = DropHoleMaxZ - DropHoleMinZ;
+
+            Box(zone, "DropLip_West",
+                new Vector3(DropHoleMinX, UpperFloorY + 0.25f, dropMidZ),
+                new Vector3(0.2f, 0.5f, dropLength));
+            Box(zone, "DropLip_East",
+                new Vector3(DropHoleMaxX, UpperFloorY + 0.25f, dropMidZ),
+                new Vector3(0.2f, 0.5f, dropLength));
         }
 
         // ---------------------------------------------------------------- isaretler
