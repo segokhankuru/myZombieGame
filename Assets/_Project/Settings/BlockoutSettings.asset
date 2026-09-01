@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 030338a91bc314746aceadca013e2b4a, type: 3}
+  m_Name: BlockoutSettings
+  m_EditorClassIdentifier: Bunker.Editor::Bunker.Editor.BlockoutSettings
+  West: -8
+  East: 22
+  South: -8
+  North: 8
+  Divider: 4
+  WallHeight: 4
+  UpperFloorY: 4.5
+  FloorThickness: 0.5
+  WallThickness: 0.3
+  DoorWidth: 1.8
+  DoorHeight: 2.6
+  WindowWidth: 1.5
+  WindowSill: 1
+  WindowTop: 2.3
+  WindowSpacingMeters: 8
+  Partitions:
+  - Axis: 0
+    Position: 12
+    From: -8
+    To: 8
+    GapCenter: -5
+    GapWidth: 2
+  - Axis: 1
+    Position: 0
+    From: 12
+    To: 22
+    GapCenter: 18
+    GapWidth: 2
+  - Axis: 1
+    Position: 3
+    From: -8
+    To: -2
+    GapCenter: -5
+    GapWidth: 2.5
+  RampX: 19
+  RampWidth: 2.5
+  RampStartZ: -7
+  RampEndZ: 3
+  RampHoleMargin: 0.6
+  RampHoleStartZ: -4
+  DropHoleMinX: -6
+  DropHoleMaxX: -2
+  DropHoleMinZ: -2
+  DropHoleMaxZ: 2
+  DropHoleLips: 1
