@@ -1,20 +1,22 @@
 # Project Context
 
-**Game:** Bunker *(kod adı — satış ismi `<tbd>`)* — 4 kişilik co-op, sonsuz tur bazlı zombi hayatta kalma FPS'i;
-klasik tur döngüsünün üstüne kart draft'ıyla kurulan build sistemi.
-**Genre / reference:** Call of Duty zombi modu · Killing Floor · Risk of Rain 2.
+**Game:** Bunker *(kod adı — satış ismi `<tbd>`)* — 4 kişilik co-op + solo, sonsuz tur
+bazlı zombi hayatta kalma FPS'i; klasik tur döngüsünün üstüne kart draft'ıyla kurulan
+build sistemi.
+**Genre / reference:** Call of Duty zombi modu · Killing Floor · Megabonk / Risk of Rain 2.
 Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı farklı kılar.
 **Target player:** Tur bazlı zombi modunu bilen, arkadaş grubuyla oynayan, roguelite build
 sistemlerinden keyif alan oyuncu.
-**Platform:** PC / Steam. Hedef donanım `<tbd>`.
+**Platform:** PC / Steam. 1080p/60, orta seviye genel donanım.
 **Stage:** preproduction
-**Milestone:** M-00 kapandı ✅ → **M-01 Solo Çekirdek Döngü**
+**Milestone:** **M-01 Solo Çekirdek Döngü** — 12 işten 2'si bitti, M1-03 ilk geçişi kurulu
 **Review mode:** lean
 
 ## Pillars
 - **PILLAR-01** Build kimliği silahtan önce gelir.
 - **PILLAR-02** Dört oyuncu birbirine muhtaç olmalı.
-- **PILLAR-03** Kesintisiz tur, birkaç turda bir dönüm noktası.
+- **PILLAR-03** Kesintisiz tur, birkaç turda bir dönüm noktası. *(Reddedilen: belirsiz
+  süreli bekleme — beklemenin kendisi değil)*
 - **PILLAR-04** Kaosta okunabilirlik.
 
 ## Core loop
@@ -25,44 +27,60 @@ sistemlerinden keyif alan oyuncu.
    olarak alışkanlık seviyesi kazanır.
 5. Turlar zorlaşır; ölene kadar devam. Ölüm = run sonu, sicil ekranı ve unvanlar.
 
-**Modlar:** 4 kişilik co-op (kurucu = host) ve solo. Solo aynı host kod yolunu kullanır,
-ayrı bir çevrimdışı yol değildir; kart havuzu `soloValid` alanıyla filtrelenir.
+**Modlar:** 4 kişilik co-op (kurucu = host) ve solo. **Solo ayrı bir kod yolu değildir** —
+uzak istemci sayısı sıfır olan bir Mirror host oturumudur. Bu kural M-02'nin doğrulama mı
+yeniden yazım mı olacağını belirler.
 
 ## Deliberately not in this game
-- Host göçü yok — host çıkarsa oyun biter
-- Yayında tek harita
-- PvP ve oyuncular arası skor yarışı yok
-- Bot desteği yok
-- Hikâye kampanyası / anlatı yok
-- Karakter kozmetik ekonomisi yok (v1)
+- Host göçü yok · Yayında tek harita · PvP ve oyuncular arası skor yarışı yok
+- Bot desteği yok · Hikâye kampanyası yok · Karakter kozmetik ekonomisi yok (v1)
+
+## Geliştirme yaklaşımı
+1. **Klon taban = kontrol grubu** (M-01) — klasik döngüyü sadık inşa et, ölçüm referansı üret
+2. **Kendi sistemleri** (M-03) — kart draft'ı, ödül yapısı. Hâlâ gri kutuda
+3. **Görsel makyaj** — asset, ışık, ses, dönem kimliği
+
+Mekanik kopyalanır, kimlik kopyalanmaz: isimler, sesler, görsel imzalar ve **kat planı**
+prototipte bile girmez.
 
 ## Technology
 | Area | Choice | ADR |
 |---|---|---|
-| Engine | Unity 6.3 LTS (6000.3.x), Personal | ADR-0002 |
+| Engine | Unity 6000.3.23f1 LTS, Personal | ADR-0002 |
 | Render pipeline | URP (Forward+) | ADR-0003 |
-| Netcode | Mirror (MIT, ücretsiz) — host otoriteli, hareket client-authoritative | ADR-0004 |
-| Transport | FizzySteamworks veya FizzyFacepunch (Steam relay) | ADR-0004 |
+| Netcode | Mirror (MIT), host otoriteli, hareket client-authoritative | ADR-0004 |
+| Transport | KCP (yerel) → FizzySteamworks (M-02) | ADR-0004 |
+
+**ADR-0001 supersede edildi** (FishNet). Gerekçe zinciri belgede duruyor.
 
 ## Performance budget
-Hedef: **1080p / 60 FPS orta seviye genel donanımda**; kalite ayarları ve çözünürlük
-ölçeğiyle üstü açık. Yerel geliştirme makinesi ölçüt değildir.
+Hedef **1080p / 60 FPS orta seviye donanımda** — yerel geliştirme makinesi ölçüt değildir.
+Ölçülen: 40 NavMesh agent ~0.2 ms (bütçenin %1.2'si), 200'e kadar diz yok.
+**Bulgu: darboğaz NavMesh değil; risk animator ve ağ serileştirmesinde.**
+Detay: `docs/architecture/PERF-BUDGET.md`
 
-**Darboğaz GPU değil CPU.** Kapalı küçük harita URP'de ucuz; yükü ~40 NavMesh agent'ı,
-~40 animator ve ağ senkronu üretiyor. Kare düşerse önce Profiler'da AI ve animator'a
-bakılır, çözünürlüğe değil. Ölçülen: 40 NavMesh agent ~0.2 ms (bütçenin %1.2si). Detay: `docs/architecture/PERF-BUDGET.md`. **Bulgu: darboğaz NavMesh değil; risk animator ve ağ serileştirmesinde.**
-
-## Active roles
-`<kickoff sonrası belirlenecek>`
+## Assembly haritası
+```
+Bunker.Systems   saf C#, Unity'ye ve Mirror'a KAPALI (noEngineReferences)
+Bunker.Gameplay  Bunker.Net  Bunker.AI  Bunker.UI  Bunker.Editor
+Bunker.Systems.Tests
+```
+Bağımlılık tek yönlü. Hiçbir şey `Bunker.UI`'ye bağımlı olamaz.
+Detay: `docs/architecture/ARCHITECTURE.md`
 
 ## Current work
-**Milestone:** M-01 Solo Çekirdek Döngü (M-00 kapandı: 4/4)
-**In progress:** M-01 planlanıyor
-**Blocked:** kapsam sayıları — silah/zombi/kart adedi bilinçli olarak ertelendi
+**Milestone:** M-01 Solo Çekirdek Döngü
+**Bitti:** M1-01 tur ölçekleme (12 test) · M1-02 ekonomi (18 test)
+**Sürüyor:** M1-03 gri kutu harita — üreteç yazıldı, ölçü ayarı geliştiricide
+**Sıradaki:** M1-04 zombi (NavMesh, pencereden giriş, kovalama, ölüm)
+**Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
 
 ## Known debt and risks
-- En büyük risk: klon aşaması uzar, farklılaştırıcı (kartlar) hiç inşa edilmez. Uyarı
-  işareti M-03 tarihinin ikinci kez kayması. Sıralama değişikliği bu riski **artırdı** — kartlar bir milestone geriye itildi.
-- **Netcode doğrulaması M-02'ye ertelendi** (kullanıcı kararı). Bedeli: ölçüm kötü çıkarsa M-01'in üstünde değişiklik yapılır. İki korkuluk zorunlu: solo Mirror host modunda kurulur, zombi konum senkronu tek seam'den geçer.
+- **En büyük risk:** klon aşaması uzar, farklılaştırıcı (kartlar) hiç inşa edilmez. Uyarı
+  işareti **M-03 tarihinin ikinci kez kayması**. Sıralama değişikliği bu riski artırdı.
+- **Config borcu:** `config/balance/*.json` henüz oyuna bağlı değil; sayılar C#
+  varsayılanlarında da duruyor. Tetikleyici: 3. config dosyası ya da ilk denge turu.
+- Netcode doğrulaması M-02'ye ertelendi. İki korkuluk zorunlu: solo Mirror host modunda,
+  zombi konum senkronu tek seam'den (`NetworkTransform` zombide yasak).
+- **PILLAR-02 M-01'de hiç sınanamaz** — solo build takım muhtaçlığını test edemez.
 - IP sınırı: mekanik serbest, kimlik ve kat planı değil.
-- Ödül/tanınma sistemi tasarlandı ama henüz spec'e dökülmedi.
