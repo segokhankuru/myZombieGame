@@ -172,3 +172,19 @@ eşik ve içerideki iniş noktası oradan türer. Barikat sistemi (M1-08) aynı 
 > **Uyarı:** üreteç kökü her seferinde silip yeniden kurar, yani **NavMesh bake'i her
 > üretimden sonra geçersizdir.** `Bunker/Zombi/Test Alanini Kur` üretim + bake'i birlikte
 > yapar; sadece üretirsen `Bunker/Zombi/NavMesh Bake` ile tamamla.
+
+## Ek: rampa ile iç bölmelerin çakışması — 2026-09-02
+
+Rampa eğik olduğu için bir iç bölmeyi **3 metre yükseklikte** kesiyordu: kapı boşluğunun
+çok üstünde, plandan bakınca görünmeyen bir tıkaç. Sonuç oyunda "zombiler üst kata
+çıkmıyor, alt katta oyuncunun altında dizildi" olarak göründü — NavMesh kopuktu, ajanlar
+ulaşabildikleri en yakın noktaya gidiyordu.
+
+Üreteç artık bunu kendi çözüyor: bir bölme rampanın bandını kesiyorsa o hizada **tavana
+kadar** bir açıklık açılır, kapı boşluğuyla çakışıyorsa ikisi tek açıklıkta birleştirilir.
+Konsola bir satır düşer, çünkü o bölmenin darboğaz görevi zayıflar — istenmiyorsa rampa
+ya da bölme kaydırılmalı.
+
+**Doğrulama göz kararı değil:** `Bunker/Level/NavMesh Baglanti Kontrolu` zeminden üst kata,
+üst kattan zemine ve her pencerenin içinden oyuncuya yol hesaplar. Ölçüler her
+değiştiğinde çalıştırılmalı — bake sonrası tek geçerli kanıt budur.

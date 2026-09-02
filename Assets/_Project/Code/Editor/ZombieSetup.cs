@@ -63,6 +63,11 @@ namespace Bunker.Editor
             //    olmazsa gelistirici bos bir hiyerarsi ile karsilasir.
             EnsureSceneInBuildSettings(scene.path);
 
+            // 7) Silinmis betiklerden kalan bos bilesenleri temizle. M0-04'un yuk testi
+            //    (AgentLoadTest) kaldirildi; onun gibi her silinen betik sahnede
+            //    "Missing script" birakir ve o uyari zamanla gercek hatalari gizler.
+            int stripped = StripMissingScripts(scene);
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
@@ -72,6 +77,7 @@ namespace Bunker.Editor
                 $"  prefab      : {ZombiePrefabPath}\n" +
                 $"  pencere      : {UnityEngine.Object.FindObjectsByType<WindowEntry>(FindObjectsSortMode.None).Length} giris noktasi\n" +
                 $"  NavMesh      : {(baked ? "bake edildi" : "BAKE EDILEMEDI - asagidaki uyariya bak")}\n" +
+                $"  temizlik     : {stripped} bos bilesen kaldirildi\n" +
                 "  SIRADAKI ADIM: Play'e bas. F6 dogum, F7/F8 tur, F9 hepsini oldur, sol tik ates.");
         }
 
@@ -315,6 +321,28 @@ namespace Bunker.Editor
 
             EditorBuildSettings.scenes = list.ToArray();
             Debug.Log($"[Zombi] Build Settings'e eklendi (ilk sahne): {scenePath}");
+        }
+
+        /// <summary>
+        /// Sahnedeki "Missing script" bileşenlerini temizler ve kaç tane olduğunu döner.
+        /// Bir betik silindiğinde sahnede kalan boş kabuk, Console'u kalıcı bir uyarıyla
+        /// doldurur; birikince gerçek hataları gizler.
+        /// </summary>
+        private static int StripMissingScripts(Scene scene)
+        {
+            int removed = 0;
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                Transform[] all = root.GetComponentsInChildren<Transform>(true);
+
+                for (int i = 0; i < all.Length; i++)
+                {
+                    removed += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(all[i].gameObject);
+                }
+            }
+
+            return removed;
         }
 
         // ---------------------------------------------------------------- navmesh

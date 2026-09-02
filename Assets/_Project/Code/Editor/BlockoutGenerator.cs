@@ -298,17 +298,89 @@ namespace Bunker.Editor
                 Partition p = s.Partitions[i];
                 var gap = new Gap(p.GapCenter, p.GapWidth, 0f, s.DoorHeight, false);
 
+                Gap[] gaps = WithRampOpening(s, p, gap, i);
+
                 if (p.Axis == PartitionAxis.AlongZ)
                 {
                     WallAlongZ(zone, $"Partition_{i}", s, p.Position, p.From, p.To, 0f,
-                        Vector3.zero, new[] { gap });
+                        Vector3.zero, gaps);
                 }
                 else
                 {
                     WallAlongX(zone, $"Partition_{i}", s, p.Position, p.From, p.To, 0f,
-                        Vector3.zero, new[] { gap });
+                        Vector3.zero, gaps);
                 }
             }
+        }
+
+        /// <summary>
+        /// Bir iç bölme rampanın üstünden geçiyorsa, rampa hizasında <b>tavana kadar</b>
+        /// bir açıklık açar.
+        ///
+        /// <para><b>Neden otomatik:</b> rampa eğik olduğu için duvarı 3 metre yükseklikte
+        /// keser — kapı boşluğunun çok üstünde. Sonuç, oyuncunun haritaya bakınca fark
+        /// etmediği ama zombilerin tam olarak takıldığı bir tıkaç olur. Ölçüler
+        /// Inspector'dan denenerek bulunuyor; her denemede "rampa duvara giriyor mu"
+        /// diye kontrol etmeyi insana bırakmak, er geç unutulacak bir kontroldür.
+        /// Üreteç biliyorsa hiç unutulmaz.</para>
+        /// </summary>
+        private static Gap[] WithRampOpening(BlockoutSettings s, Partition p, Gap designerGap, int index)
+        {
+            if (s.RampRun <= 0.1f) return new[] { designerGap };
+
+            float rampMinX = s.RampX - s.RampWidth / 2f - s.RampHoleMargin;
+            float rampMaxX = s.RampX + s.RampWidth / 2f + s.RampHoleMargin;
+
+            float openingCenter;
+            float openingWidth;
+
+            if (p.Axis == PartitionAxis.AlongX)
+            {
+                // Duvar sabit Z'de, X boyunca uzaniyor. Rampa bu Z'yi kesiyor mu?
+                if (p.Position < s.RampStartZ || p.Position > s.RampEndZ) return new[] { designerGap };
+                if (p.To <= rampMinX || p.From >= rampMaxX) return new[] { designerGap };
+
+                openingCenter = s.RampX;
+                openingWidth = rampMaxX - rampMinX;
+            }
+            else
+            {
+                // Duvar sabit X'te, Z boyunca uzaniyor. Rampanin bandinda mi?
+                if (p.Position < rampMinX || p.Position > rampMaxX) return new[] { designerGap };
+                if (p.To <= s.RampStartZ || p.From >= s.RampEndZ) return new[] { designerGap };
+
+                float from = Mathf.Max(p.From, s.RampStartZ);
+                float to = Mathf.Min(p.To, s.RampEndZ);
+                openingCenter = (from + to) / 2f;
+                openingWidth = to - from;
+            }
+
+            Debug.Log($"[Blockout] Bolme {index} rampanin ustunden geciyor; rampa hizasinda " +
+                      $"tavana kadar {openingWidth:F1} m aciklik acildi. Bu bolmenin " +
+                      "darbogaz gorevi zayifladi - istemiyorsan rampayi veya bolmeyi kaydir.");
+
+            float openMin = openingCenter - openingWidth / 2f;
+            float openMax = openingCenter + openingWidth / 2f;
+            float doorMin = designerGap.Center - designerGap.Width / 2f;
+            float doorMax = designerGap.Center + designerGap.Width / 2f;
+
+            // Kapi boslugu rampa acikligiyla cakisiyorsa TEK bir aciklikta birlestirilir.
+            // Ayri birakilirsa kapinin lentosu (2.6 m ustu) rampanin tam gectigi
+            // yukseklikte durur ve tikac aynen yerinde kalir - gozle gorunmeyen cinsten.
+            if (doorMin < openMax && doorMax > openMin)
+            {
+                float min = Mathf.Min(doorMin, openMin);
+                float max = Mathf.Max(doorMax, openMax);
+                return new[] { new Gap((min + max) / 2f, max - min, 0f, s.WallHeight, false) };
+            }
+
+            var opening = new Gap(openingCenter, openingWidth, 0f, s.WallHeight, false);
+
+            // Duvar parcalari soldan saga tek geciste kuruluyor; bosluklar sirali olmali,
+            // yoksa aralarindaki parca ters uzunlukta cikar.
+            return designerGap.Center <= opening.Center
+                ? new[] { designerGap, opening }
+                : new[] { opening, designerGap };
         }
 
         // ---------------------------------------------------------------- isaretler
