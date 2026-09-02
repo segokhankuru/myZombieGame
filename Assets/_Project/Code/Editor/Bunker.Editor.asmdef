@@ -7,7 +7,9 @@
         "Bunker.Gameplay",
         "Bunker.Net",
         "Bunker.AI",
-        "Bunker.UI"
+        "Bunker.UI",
+        "Mirror",
+        "Mirror.Components"
     ],
     "includePlatforms": [
         "Editor"

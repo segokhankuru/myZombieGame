@@ -67,10 +67,21 @@ namespace Bunker.AI
         private bool _simulated = true;
         private bool _initialized;
 
+        private Vector3 _netTargetPosition;
+        private float _netTargetYaw;
+        private bool _hasNetTarget;
+
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         /// <summary>Zombi öldüğünde bir kez tetiklenir. Ekonomi ve spawn sayacı buna bağlanır.</summary>
         public event Action<ZombieAgent, DamageKind, bool> Killed;
+
+        /// <summary>
+        /// Ağdaki kimliği. <b>Nesne referansı değil id gönderilir</b> — istemci
+        /// tarafı hangi vekilin hangi zombi olduğunu bununla bilir (ADR-0004 seam'i).
+        /// 0 "kimlik verilmemiş" demektir.
+        /// </summary>
+        public ushort NetId { get; set; }
 
         public ZombieState State => _brain?.State ?? ZombieState.Dead;
         public bool IsAlive => _initialized && _health.IsAlive;
@@ -121,6 +132,7 @@ namespace Bunker.AI
             _repathTimer = 0f;
             _vaultTimer = 0f;
             _target = null;
+            _hasNetTarget = false;
 
             SetCollidersEnabled(true);
 
@@ -156,9 +168,54 @@ namespace Bunker.AI
 
         // ---------------------------------------------------------------- kare dongusu
 
+        /// <summary>
+        /// İstemci tarafı: host'un yayınladığı konumu uygular. <b>Anında atamaz,
+        /// yumuşatır</b> — 10 Hz gelen bir konuma kare kare zıplamak, gecikmenin
+        /// kendisinden daha kötü görünür (netcode.md).
+        /// </summary>
+        public void ApplyNetworkState(Vector3 position, float yawDegrees)
+        {
+            _netTargetPosition = position;
+            _netTargetYaw = yawDegrees;
+            _hasNetTarget = true;
+        }
+
+        private void TickNetworkProxy(float dt)
+        {
+            if (!_hasNetTarget) return;
+
+            // Isinlanma esigi: cok uzaktaki bir duzeltmeyi yumusatmak, zombiyi
+            // haritanin icinden gecirerek suruklemek demek olurdu.
+            const float snapDistanceMeters = 4f;
+            const float followSpeed = 12f;
+
+            Vector3 current = _transform.position;
+
+            if ((current - _netTargetPosition).sqrMagnitude > snapDistanceMeters * snapDistanceMeters)
+            {
+                _transform.position = _netTargetPosition;
+            }
+            else
+            {
+                _transform.position = Vector3.Lerp(current, _netTargetPosition, followSpeed * dt);
+            }
+
+            _transform.rotation = Quaternion.RotateTowards(
+                _transform.rotation, Quaternion.Euler(0f, _netTargetYaw, 0f), 720f * dt);
+        }
+
         private void Update()
         {
-            if (!_initialized || !_simulated) return;
+            if (!_initialized) return;
+
+            if (!_simulated)
+            {
+                // Vekil dusunmez, yol bulmaz, saldirmaz. Yalnizca host'un soyledigi
+                // yere gider - tek seam kurali budur.
+                TickNetworkProxy(Time.deltaTime);
+                return;
+            }
+
             if (_brain.State == ZombieState.Dead) return;
 
             float dt = Time.deltaTime;

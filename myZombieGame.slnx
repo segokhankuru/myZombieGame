@@ -5,6 +5,7 @@
   <Project Path="Mirror.Editor.csproj" />
   <Project Path="Mirror.Examples.csproj" />
   <Project Path="kcp2k.csproj" />
+  <Project Path="Bunker.Systems.csproj" />
   <Project Path="Mirror.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
   <Project Path="Bunker.Editor.csproj" />
@@ -13,7 +14,6 @@
   <Project Path="Mirror.Transports.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
   <Project Path="Bunker.Config.csproj" />
-  <Project Path="Bunker.Systems.csproj" />
   <Project Path="Telepathy.csproj" />
   <Project Path="Bunker.Net.csproj" />
   <Project Path="Bunker.Systems.Tests.csproj" />

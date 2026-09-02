@@ -1,6 +1,8 @@
 using System;
 using System.Reflection;
 using Bunker.AI;
+using Bunker.Net;
+using Mirror;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -28,6 +30,7 @@ namespace Bunker.Editor
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Gameplay/Player.prefab";
         private const string MaterialPath = "Assets/_Project/Art/Materials/mat_zombie_greybox.mat";
         private const string SandboxObjectName = "_ZombieSandbox";
+        private const string DirectorObjectName = "_ZombieDirector";
 
         // ---------------------------------------------------------------- menu
 
@@ -78,7 +81,7 @@ namespace Bunker.Editor
                 $"  pencere      : {UnityEngine.Object.FindObjectsByType<WindowEntry>(FindObjectsSortMode.None).Length} giris noktasi\n" +
                 $"  NavMesh      : {(baked ? "bake edildi" : "BAKE EDILEMEDI - asagidaki uyariya bak")}\n" +
                 $"  temizlik     : {stripped} bos bilesen kaldirildi\n" +
-                "  SIRADAKI ADIM: Play'e bas. F6 dogum, F7/F8 tur, F9 hepsini oldur, sol tik ates.");
+                "  SIRADAKI ADIM: Play'e bas. Tur akisi kendiliginden isler; F7/F8 tur, F9 sahayi temizle, sol tik ates.");
         }
 
         /// <summary>
@@ -281,25 +284,52 @@ namespace Bunker.Editor
 
         private static void InstallSandbox(GameObject zombiePrefab)
         {
-            GameObject host = GameObject.Find(SandboxObjectName);
+            ZombieAgent agent = zombiePrefab != null ? zombiePrefab.GetComponent<ZombieAgent>() : null;
 
-            if (host == null)
+            // --- yonetmen: dogum, havuz, tur akisi (M1-05)
+            GameObject directorHost = GameObject.Find(DirectorObjectName);
+
+            if (directorHost == null)
             {
-                host = new GameObject(SandboxObjectName);
-                Undo.RegisterCreatedObjectUndo(host, "Zombi test alani");
+                directorHost = new GameObject(DirectorObjectName);
+                Undo.RegisterCreatedObjectUndo(directorHost, "Zombi yonetmeni");
             }
 
-            var sandbox = host.GetComponent<ZombieSandbox>();
-            if (sandbox == null) sandbox = host.AddComponent<ZombieSandbox>();
+            var director = directorHost.GetComponent<ZombieDirector>();
+            if (director == null) director = directorHost.AddComponent<ZombieDirector>();
 
-            ZombieAgent agent = zombiePrefab != null ? zombiePrefab.GetComponent<ZombieAgent>() : null;
-            SetPrivateField(sandbox, "zombiePrefab", agent);
+            SetPrivateField(director, "zombiePrefab", agent);
 
             // Ayarlar enjekte edilir, statikten cekilmez (config-protocol.md). Varlik
-            // yoksa uyari: sessiz varsayilanla calisan bir tezgah, yanlis sayilarla
+            // yoksa uyari: sessiz varsayilanla calisan bir yonetmen, yanlis sayilarla
             // yapilmis bir oyun testi demektir.
-            SetPrivateField(sandbox, "roundsConfig", LoadConfigAsset("rounds"));
-            SetPrivateField(sandbox, "zombieConfig", LoadConfigAsset("zombie"));
+            SetPrivateField(director, "roundsConfig", LoadConfigAsset("rounds"));
+            SetPrivateField(director, "zombieConfig", LoadConfigAsset("zombie"));
+
+            // --- ag seam'i: zombi konumlarinin TEK gecidi (ADR-0004)
+            if (directorHost.GetComponent<NetworkIdentity>() == null)
+            {
+                directorHost.AddComponent<NetworkIdentity>();
+            }
+
+            var relay = directorHost.GetComponent<ZombieNetworkRelay>();
+            if (relay == null) relay = directorHost.AddComponent<ZombieNetworkRelay>();
+
+            SetPrivateField(relay, "director", director);
+
+            // --- tezgah: gecici silah ve ekran (M1-06 ve M1-11 silecek)
+            GameObject sandboxHost = GameObject.Find(SandboxObjectName);
+
+            if (sandboxHost == null)
+            {
+                sandboxHost = new GameObject(SandboxObjectName);
+                Undo.RegisterCreatedObjectUndo(sandboxHost, "Zombi test alani");
+            }
+
+            var sandbox = sandboxHost.GetComponent<ZombieSandbox>();
+            if (sandbox == null) sandbox = sandboxHost.AddComponent<ZombieSandbox>();
+
+            SetPrivateField(sandbox, "director", director);
         }
 
         private static UnityEngine.Object LoadConfigAsset(string domain)

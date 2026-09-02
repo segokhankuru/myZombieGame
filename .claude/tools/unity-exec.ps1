@@ -29,10 +29,9 @@ $ErrorActionPreference = 'Stop'
 
 $root = (Resolve-Path $ProjectRoot).Path
 
-if (Test-Path (Join-Path $root "Temp\UnityLockfile")) {
-    Write-Output "UNITY EXEC: project is locked - the Editor is open. Close Unity and retry."
-    exit 2
-}
+. (Join-Path $PSScriptRoot "unity-lock.ps1")
+
+if (-not (Assert-UnityUnlocked -Root $root -Label "UNITY EXEC")) { exit 2 }
 
 $verFile = Join-Path $root "ProjectSettings\ProjectVersion.txt"
 if (-not (Test-Path $verFile)) { Write-Output "ERROR: not a Unity project: $root"; exit 2 }

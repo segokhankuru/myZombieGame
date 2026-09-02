@@ -3,6 +3,7 @@
     "rootNamespace": "Bunker.Net",
     "references": [
         "Bunker.Systems",
+        "Bunker.AI",
         "Mirror",
         "Mirror.Components"
     ],

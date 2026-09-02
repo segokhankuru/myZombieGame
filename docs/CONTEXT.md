@@ -9,7 +9,7 @@ Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı
 sistemlerinden keyif alan oyuncu.
 **Platform:** PC / Steam. 1080p/60, orta seviye genel donanım.
 **Stage:** preproduction
-**Milestone:** **M-01 Solo Çekirdek Döngü** — 12 işten 2'si bitti, M1-03 ilk geçişi kurulu
+**Milestone:** **M-01 Solo Çekirdek Döngü** — 12 işten 2'si kapandı, 3'ü oyun testi bekliyor
 **Review mode:** lean
 
 ## Pillars
@@ -70,15 +70,16 @@ Bağımlılık tek yönlü. Hiçbir şey `Bunker.UI`'ye bağımlı olamaz.
 Detay: `docs/architecture/ARCHITECTURE.md`
 
 ## Current work
-**Milestone:** M-01 Solo Çekirdek Döngü — 12 işten 2'si kapandı, 2'si oyun testi bekliyor
+**Milestone:** M-01 Solo Çekirdek Döngü — 12 işten 2'si kapandı, 3'ü oyun testi bekliyor
 **Bitti:** M1-01 tur ölçekleme (12 test) · M1-02 ekonomi (18 test)
-**Sürüyor:** M1-03 gri kutu harita (ölçü ayarı) · M1-04 zombi — kod, prefab, sahne ve
-NavMesh kurulu, 32 test yeşil; **kalan tek şey oynayıp hissiyata bakmak**
-**Sıradaki:** M1-05 zombi spawn/havuzlama + ağ seam'i
-**Altyapı:** config importer yazıldı (ADR-0005) — denge sayıları artık tek kaynakta
+**Sürüyor:** M1-03 gri kutu harita (ölçü ayarı) · M1-04 zombi · M1-05 doğum, havuzlama
+ve tur akışı — hepsinin kodu ve kurulumu bitti, **kalan tek şey oynayıp hissiyata bakmak**
+**Sıradaki:** M1-06 silah (bu milestone'un en kritik işi)
+**Altyapı:** config importer (ADR-0005) — denge sayıları tek kaynakta ·
+zombi konum seam'i kilitlendi: tek paket, 12 bayt/zombi, 10 Hz
 **Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
 
-**Toplam 84 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
+**Toplam 114 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
 `.claude/tools/unity-test.ps1`, `.claude/tools/unity-exec.ps1`.
 
 ## Known debt and risks

@@ -1,0 +1,264 @@
+using Bunker.Systems.Config;
+using Bunker.Systems.Rounds;
+using NUnit.Framework;
+
+namespace Bunker.Systems.Tests
+{
+    /// <summary>
+    /// M1-05 tur akışı. Burada test edilen şey <b>oyunun temposu</b>: turun ne zaman
+    /// başladığı, ne zaman bittiği, doğumun ne zaman durduğu.
+    /// </summary>
+    public sealed class RoundRunnerTests
+    {
+        private static RoundRunner Runner(
+            float breather = 10f,
+            int maxConcurrent = 40,
+            float perPlayerAtRoundOne = 6f,
+            float spawnIntervalAtRoundOne = 2f)
+        {
+            var scaling = new RoundScaling(new RoundsConfig(
+                countPerPlayerAtRoundOne: perPlayerAtRoundOne,
+                countMaxConcurrent: maxConcurrent,
+                pacingBreatherSeconds: breather,
+                pacingSpawnIntervalSecondsAtRoundOne: spawnIntervalAtRoundOne));
+
+            return new RoundRunner(scaling);
+        }
+
+        /// <summary>Molayı geçip 1. turu açar.</summary>
+        private static RoundRunner Started(RoundRunner runner, float breather = 10f)
+        {
+            runner.Tick(breather + 0.01f, 0);
+            Assert.AreEqual(RoundPhase.Active, runner.Phase, "kurulum: tur acilmaliydi");
+            return runner;
+        }
+
+        // ---------------------------------------------------------------- mola ve baslangic
+
+        [Test]
+        public void AC1_RunMolaIleBaslar_HemenZombiDogmaz()
+        {
+            RoundRunner runner = Runner(breather: 10f);
+
+            int budget = runner.Tick(1f, 0);
+
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase);
+            Assert.AreEqual(0, budget, "molada zombi dogmaz");
+            Assert.AreEqual(0, runner.Round, "mola bitmeden tur numarasi verilmez");
+        }
+
+        [Test]
+        public void AC1_MolaBitince_Tur1Acilir()
+        {
+            RoundRunner runner = Runner(breather: 10f);
+
+            runner.Tick(10.5f, 0);
+
+            Assert.AreEqual(RoundPhase.Active, runner.Phase);
+            Assert.AreEqual(1, runner.Round);
+            Assert.IsTrue(runner.RoundStartedThisTick);
+            Assert.AreEqual(6, runner.TotalForRound, "tur 1'de tek oyuncuya 6 zombi");
+        }
+
+        [Test]
+        public void AC1_TurunIlkZombisi_MolaBitiminde_BeklemedenDogar()
+        {
+            // Her turun basina bir dogum araligi kadar sessizlik eklemek,
+            // PILLAR-03'un "kesintisiz tur" sozunu her turda bir kez cigner.
+            RoundRunner runner = Started(Runner(breather: 10f));
+
+            int budget = runner.Tick(0.01f, 0);
+
+            Assert.GreaterOrEqual(budget, 1, "tur acildiktan hemen sonra ilk zombi gelmeli");
+        }
+
+        [Test]
+        public void AC1_MolaGeriSayimi_Okunabilir()
+        {
+            RoundRunner runner = Runner(breather: 10f);
+
+            runner.Tick(4f, 0);
+
+            Assert.AreEqual(6f, runner.BreatherRemainingSeconds, 0.01f);
+        }
+
+        // ---------------------------------------------------------------- dogum temposu
+
+        [Test]
+        public void AC2_DogumAraligiBeklenir_HerTickteZombiCikmaz()
+        {
+            RoundRunner runner = Started(Runner(spawnIntervalAtRoundOne: 2f));
+            runner.ReportSpawned(runner.Tick(0.01f, 0));   // ilk zombi
+
+            int budget = runner.Tick(0.5f, 1);
+
+            Assert.AreEqual(0, budget, "aralik dolmadan ikinci zombi dogmaz");
+        }
+
+        [Test]
+        public void AC2_UzunKare_KacirilanDogumlariTelafiEder()
+        {
+            // Yukleme ya da takilma yuzunden uzun bir kare, turu yavaslatmamali.
+            RoundRunner runner = Started(Runner(spawnIntervalAtRoundOne: 2f));
+            runner.ReportSpawned(runner.Tick(0.01f, 0));
+
+            int budget = runner.Tick(6.5f, 1);
+
+            Assert.AreEqual(3, budget, "6.5 saniyede 2 saniyelik araliktan 3 dogum gecti");
+        }
+
+        [Test]
+        public void AC2_ToplamSayiyaUlasilinca_DogumDurur()
+        {
+            RoundRunner runner = Started(Runner(perPlayerAtRoundOne: 3f, spawnIntervalAtRoundOne: 1f));
+
+            for (int i = 0; i < 20; i++) runner.ReportSpawned(runner.Tick(1f, 1));
+
+            Assert.AreEqual(3, runner.SpawnedThisRound);
+            Assert.AreEqual(0, runner.RemainingToSpawn);
+            Assert.AreEqual(0, runner.Tick(5f, 1), "tur kotasi dolduysa daha fazla dogmaz");
+        }
+
+        [Test]
+        public void AC2_EsZamanliTavan_Asilmaz()
+        {
+            // maxConcurrent bir denge degeri degil, PERF-BUDGET tavani.
+            RoundRunner runner = Started(Runner(maxConcurrent: 10, perPlayerAtRoundOne: 15f,
+                                                spawnIntervalAtRoundOne: 0.1f));
+
+            int budget = runner.Tick(5f, 10);
+
+            Assert.AreEqual(0, budget, "tavan doluyken hic dogmaz");
+        }
+
+        [Test]
+        public void AC2_TavanaYerAcilinca_YalnizcaOKadarDogar()
+        {
+            RoundRunner runner = Started(Runner(maxConcurrent: 10, perPlayerAtRoundOne: 15f,
+                                                spawnIntervalAtRoundOne: 0.1f));
+
+            int budget = runner.Tick(5f, 7);
+
+            Assert.AreEqual(3, budget, "tavana 3 kisilik yer var, 3 dogar");
+        }
+
+        // ---------------------------------------------------------------- turun bitmesi
+
+        [Test]
+        public void AC3_HepsiDogduAmaCanliVar_TurBitmez()
+        {
+            RoundRunner runner = Started(Runner(perPlayerAtRoundOne: 2f, spawnIntervalAtRoundOne: 0.5f));
+            for (int i = 0; i < 10; i++) runner.ReportSpawned(runner.Tick(0.5f, 1));
+
+            runner.Tick(5f, 1);
+
+            Assert.AreEqual(RoundPhase.Active, runner.Phase,
+                "sahayi temizlemek turun kendisidir - 'hepsi dogdu' yetmez");
+        }
+
+        [Test]
+        public void AC3_SonZombiOlunce_TurBiterVeMolaBaslar()
+        {
+            RoundRunner runner = Started(Runner(perPlayerAtRoundOne: 2f, spawnIntervalAtRoundOne: 0.5f));
+            for (int i = 0; i < 10; i++) runner.ReportSpawned(runner.Tick(0.5f, 1));
+
+            runner.Tick(0.1f, 0);
+
+            Assert.IsTrue(runner.RoundClearedThisTick);
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase);
+        }
+
+        [Test]
+        public void AC3_MolaSonrasi_SonrakiTurAcilir_VeDahaKalabalik()
+        {
+            RoundRunner runner = Started(Runner(breather: 10f, perPlayerAtRoundOne: 2f,
+                                                spawnIntervalAtRoundOne: 0.5f));
+            int firstTotal = runner.TotalForRound;
+
+            for (int i = 0; i < 10; i++) runner.ReportSpawned(runner.Tick(0.5f, 1));
+            runner.Tick(0.1f, 0);         // tur temizlendi
+            runner.Tick(10.5f, 0);        // mola bitti
+
+            Assert.AreEqual(2, runner.Round);
+            Assert.Greater(runner.TotalForRound, firstTotal, "her tur bir oncekinden kalabalik");
+        }
+
+        [Test]
+        public void AC3_TurBittiIsareti_TekTickDogrudur()
+        {
+            RoundRunner runner = Started(Runner(perPlayerAtRoundOne: 2f, spawnIntervalAtRoundOne: 0.5f));
+            for (int i = 0; i < 10; i++) runner.ReportSpawned(runner.Tick(0.5f, 1));
+
+            runner.Tick(0.1f, 0);
+            Assert.IsTrue(runner.RoundClearedThisTick);
+
+            runner.Tick(0.1f, 0);
+            Assert.IsFalse(runner.RoundClearedThisTick, "ayni tur iki kez bitemez");
+        }
+
+        // ---------------------------------------------------------------- gerceklesen vs niyet
+
+        [Test]
+        public void AC4_DogurulamayanZombi_SayilmazVeTurKilitlenmez()
+        {
+            // Dogum noktasi kapaliysa butcenin tamami kullanilamaz. Sayac niyete gore
+            // ilerleseydi tur, hic dogmamis zombileri bekleyerek sonsuza kadar acik
+            // kalirdi.
+            RoundRunner runner = Started(Runner(perPlayerAtRoundOne: 3f, spawnIntervalAtRoundOne: 1f));
+
+            int budget = runner.Tick(0.01f, 0);
+            Assert.GreaterOrEqual(budget, 1);
+            runner.ReportSpawned(0);      // hicbiri dogurulamadi
+
+            Assert.AreEqual(0, runner.SpawnedThisRound);
+            Assert.AreEqual(3, runner.RemainingToSpawn);
+        }
+
+        [Test]
+        public void AC4_FazlaBildirim_ToplamiAsmaz()
+        {
+            RoundRunner runner = Started(Runner(perPlayerAtRoundOne: 3f));
+
+            runner.ReportSpawned(99);
+
+            Assert.AreEqual(3, runner.SpawnedThisRound);
+            Assert.AreEqual(0, runner.RemainingToSpawn);
+        }
+
+        // ---------------------------------------------------------------- kenar durumlar
+
+        [Test]
+        public void NegatifSureVeNegatifCanliSayisi_Cokmez()
+        {
+            RoundRunner runner = Started(Runner());
+
+            Assert.DoesNotThrow(() => runner.Tick(-5f, -3));
+        }
+
+        [Test]
+        public void JumpToRound_DogrudanOTuruAcar()
+        {
+            RoundRunner runner = Runner();
+
+            runner.JumpToRound(12);
+
+            Assert.AreEqual(12, runner.Round);
+            Assert.AreEqual(RoundPhase.Active, runner.Phase);
+            Assert.AreEqual(0, runner.SpawnedThisRound);
+            Assert.Greater(runner.TotalForRound, 6);
+        }
+
+        [Test]
+        public void Reset_RunuBastanBaslatir()
+        {
+            RoundRunner runner = Started(Runner());
+            runner.ReportSpawned(3);
+
+            runner.Reset();
+
+            Assert.AreEqual(0, runner.Round);
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase);
+            Assert.AreEqual(0, runner.SpawnedThisRound);
+        }
+    }
+}
