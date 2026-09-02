@@ -1,4 +1,21 @@
-# Handoff — 2026-09-02
+# Handoff — 2026-09-02 (2. oturum)
+
+## Bu oturumda ek olarak
+
+- **Rampayı kesen iç bölme düzeltildi** — zombiler artık üst kata çıkıyor.
+  `Bunker/Level/NavMesh Baglanti Kontrolu` bunu ölçerek doğruluyor (45 m tam yol).
+- **M0-04 yük testi kaldırıldı** (dummy ajanlar).
+- **Config importer yazıldı (ADR-0005).** Denge sayıları artık yalnızca `config/`
+  içinde; C# sınıfları ve `.asset` dosyaları oradan üretiliyor. Bir sayıyı nasıl
+  değiştireceğin: `docs/guides/config-nasil-degistirilir.md`.
+- Test sayısı 84.
+
+**Sıradaki:** M1-05 — zombi doğumu ve havuzlama, tur akışına bağlı, ağ seam'iyle.
+`ZombieSandbox` o zaman silinecek.
+
+---
+
+# Önceki handoff — 2026-09-02
 
 Bir sonraki oturumun ilk okuyacağı özet.
 
