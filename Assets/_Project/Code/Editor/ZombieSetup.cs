@@ -58,6 +58,11 @@ namespace Bunker.Editor
             // 5) NavMesh bake - apron eklendigi icin eski bake gecersiz
             bool baked = BakeNavMesh();
 
+            // 6) Sahne Build Settings'te olsun. Unity, Library klasoru sifirlandiginda
+            //    (klonlama, temizlik, baska makine) listedeki ILK sahneyi acar - bu
+            //    olmazsa gelistirici bos bir hiyerarsi ile karsilasir.
+            EnsureSceneInBuildSettings(scene.path);
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
@@ -283,6 +288,33 @@ namespace Bunker.Editor
 
             ZombieAgent agent = zombiePrefab != null ? zombiePrefab.GetComponent<ZombieAgent>() : null;
             SetPrivateField(sandbox, "zombiePrefab", agent);
+        }
+
+        /// <summary>
+        /// Sahneyi Build Settings listesinin <b>başına</b> koyar. Zaten baştaysa
+        /// dokunmaz — gereksiz yere ProjectSettings dosyasını kirletmek diff üretir.
+        /// </summary>
+        private static void EnsureSceneInBuildSettings(string scenePath)
+        {
+            if (string.IsNullOrEmpty(scenePath)) return;
+
+            EditorBuildSettingsScene[] current = EditorBuildSettings.scenes;
+
+            if (current.Length > 0 && current[0].path == scenePath && current[0].enabled) return;
+
+            var list = new System.Collections.Generic.List<EditorBuildSettingsScene>(current.Length + 1)
+            {
+                new EditorBuildSettingsScene(scenePath, true)
+            };
+
+            for (int i = 0; i < current.Length; i++)
+            {
+                if (current[i].path == scenePath) continue;
+                list.Add(current[i]);
+            }
+
+            EditorBuildSettings.scenes = list.ToArray();
+            Debug.Log($"[Zombi] Build Settings'e eklendi (ilk sahne): {scenePath}");
         }
 
         // ---------------------------------------------------------------- navmesh

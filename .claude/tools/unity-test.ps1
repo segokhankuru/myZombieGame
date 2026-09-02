@@ -83,6 +83,15 @@ $unityArgs = @(
 )
 if ($Filter) { $unityArgs += @('-testFilter', $Filter) }
 
+# See unity-exec.ps1: batchmode empties the Editor's last-opened-scene record, which
+# leaves the developer staring at an empty hierarchy. Restore it afterwards.
+$sceneSetup = Join-Path $root "Library\LastSceneManagerSetup.txt"
+$sceneSetupBackup = $null
+if (Test-Path $sceneSetup) {
+    $content = Get-Content -LiteralPath $sceneSetup -Raw
+    if ($content -and $content.Trim() -ne 'sceneSetups: []') { $sceneSetupBackup = $content }
+}
+
 Write-Output "UNITY TEST: $Platform, editor $version. This takes a few minutes..."
 
 $proc = Start-Process -FilePath $editor -ArgumentList $unityArgs -PassThru -NoNewWindow
@@ -90,6 +99,10 @@ if (-not $proc.WaitForExit($TimeoutMinutes * 60 * 1000)) {
     $proc.Kill()
     Write-Output "UNITY TEST: timed out after $TimeoutMinutes minutes. See $log"
     exit 2
+}
+
+if ($sceneSetupBackup) {
+    Set-Content -LiteralPath $sceneSetup -Value $sceneSetupBackup -NoNewline
 }
 
 # ------------------------------------------------------------- compile errors first

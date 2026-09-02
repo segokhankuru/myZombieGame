@@ -59,6 +59,16 @@ $logDir = Join-Path $root "Logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
 $log = Join-Path $logDir "exec.log"
 
+# Batchmode overwrites Library/LastSceneManagerSetup.txt with an empty setup, so the
+# next time the developer opens Unity the hierarchy is empty and their scene looks lost.
+# Snapshot it and put it back - a tool must not change what the Editor opens with.
+$sceneSetup = Join-Path $root "Library\LastSceneManagerSetup.txt"
+$sceneSetupBackup = $null
+if (Test-Path $sceneSetup) {
+    $content = Get-Content -LiteralPath $sceneSetup -Raw
+    if ($content -and $content.Trim() -ne 'sceneSetups: []') { $sceneSetupBackup = $content }
+}
+
 Write-Output "UNITY EXEC: $Method (editor $version). This takes a minute or two..."
 
 $proc = Start-Process -FilePath $editor -PassThru -NoNewWindow -ArgumentList @(
@@ -73,6 +83,10 @@ if (-not $proc.WaitForExit($TimeoutMinutes * 60 * 1000)) {
 }
 
 $exit = $proc.ExitCode
+
+if ($sceneSetupBackup) {
+    Set-Content -LiteralPath $sceneSetup -Value $sceneSetupBackup -NoNewline
+}
 
 if (-not (Test-Path $log)) {
     Write-Output "UNITY EXEC: no log produced (exit $exit)."
