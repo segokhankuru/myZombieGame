@@ -1,66 +1,78 @@
-# Handoff — 2026-08-31
+# Handoff — 2026-09-02
 
-Oturum kapatılıyor. Bir sonraki oturumun ilk okuyacağı özet.
+Bir sonraki oturumun ilk okuyacağı özet.
 
 ---
 
 ## Nerede kaldık
 
-**M-00 kapandı** (4/4 iş, 4/4 çıkış kriteri). **M-01'de 12 işten 2'si bitti.**
+**M-01'de 12 işten 2'si kapandı, M1-03 ve M1-04 oyun testi bekliyor.**
 
 | İş | Durum |
 |---|---|
-| M1-01 Tur ölçekleme | ✅ 12 test yeşil |
-| M1-02 Ekonomi | ✅ 18 test yeşil |
-| M1-03 Gri kutu harita | 🔧 üreteç yazıldı, sahne kuruldu, NavMesh bake edildi. **Ölçü ayarı geliştiricide** |
-| M1-04 Zombi | ⬅ **sıradaki** |
+| M1-01 Tur ölçekleme | ✅ 12 test |
+| M1-02 Ekonomi | ✅ 18 test |
+| M1-03 Gri kutu harita | 🔧 üretildi + apron eklendi, ölçü ayarı geliştiricide |
+| M1-04 Zombi | 🔧 **kod, prefab, sahne, NavMesh hazır — 32 test.** Oynanmadı |
+| M1-05 Zombi spawn ve havuzlama | ⬅ sıradaki adaylardan |
 
-Toplam 37 EditMode testi, hepsi yeşil. Çalışma ağacı temiz.
+**69 EditMode testi yeşil.** Derleme + test Unity açmadan koşuyor.
 
-## Sıradaki iş — M1-04 zombi
+## M1-04'te ne yapıldı
 
-`Bunker.AI` içinde: NavMesh ile kovalama, pencereden içeri tırmanma, can, ölüm,
-zaman dilimli düşünme.
+- `ZombieBrain` (saf C#): belirme → pencereye yürüme → tırmanma → kovalama →
+  **telegraf** → vuruş → açıklık → sıkışma kurtarması → ölüm. Sahnesiz test edilir.
+- `ZombieAgent` (`Bunker.AI`): NavMesh sürüşü, zaman dilimli düşünme (8 Hz, fazları
+  kaydırılmış), pencere tırmanışı, sıkışma kurtarması, animatör uzaklık kesmesi,
+  gri kutuda **durumu renkle** gösterme.
+- `HealthPool` + `IDamageable`: ölüm bir kez olur (ekonomi çift puan yazmasın).
+- Kurulum **araç**: `Bunker/Zombi/Test Alanini Kur` prefab'ı üretir, oyuncuyu hedef
+  olarak işaretler, tezgâhı sahneye koyar ve NavMesh'i bake eder. Zaten çalıştırıldı.
+- Gri kutuya **apron** eklendi (bina çevresinde 6 m yürünecek şerit) — zombiler
+  pencereye dışarıdan yürüyor.
 
-**M0-04 ölçümünün doğrudan sonucu:** 15 m üstündeki zombilerde
-`Animator.cullingMode = CullCompletely` **baştan** konulacak. Ölçüm riskin NavMesh'te
-değil animatörde olduğunu söyledi; sonradan eklemek her prefab'a dokunmak demek.
+## Sıradaki iş — oynamak
 
-Zombi prefab'ını sahneye bağlamak geliştiriciye kalacak — `Player.prefab`'da yaptığımız
-gibi adım adım anlatılmalı.
+Unity'yi aç, `M0-Sandbox` sahnesinde **Play**'e bas. Kurulum gerekmiyor.
+
+```
+F6 dogum ac/kapa    F7/F8 tur -/+    F9 hepsini oldur    sol tik hata ayiklama atisi
+```
+
+Bakılacak sorular, sırayla:
+
+1. Zombi pencereden girerken **okunabiliyor mu** — geldiğini görüyor musun?
+2. Telegraf (turuncuya dönme) yeterli mi, yoksa vuruş habersiz mi geliyor?
+3. Tur 5–8 civarında zombiler ne zaman ürkütücü olmaya başlıyor?
+4. Sıkışan zombi var mı (mavi renk = sıkışma), nerede?
+
+Bulguları `config/balance/zombie.json` içinde ayarla — kod değişmeden. Her sayının
+açıklaması `config/schema/zombie.schema.json` içinde, "dışına çıkarsan oyuncu ne
+hisseder" cümlesiyle birlikte.
+
+## Açık kararlar
+
+1. **Sıradaki iş hangisi:** M1-05 (spawn + ağ seam'i) mi, config importer mı?
+   Importer'ın tetikleyicisi **karşılandı** — üçüncü config dosyası eklendi. Sayılar üç
+   dosyada iki yerde duruyor; ne kadar beklerse sapma o kadar büyür.
+2. Ceset davranışı: şu an zombi anında yok oluyor. Havuzlama M1-05'te, ceset/ragdoll
+   kararı sanat aşamasında.
+3. Harita ölçüleri hâlâ açık (M1-03) — zombilerle koşunca cevabı netleşir.
 
 ## Geliştiriciyle çalışma biçimi
 
-- **Unity'yi ilk kez kullanıyor.** Editör adımları tıklama düzeyinde anlatılmalı:
-  hangi menü, hangi düğme, hangi pencere. "Prefab yap" gibi kısaltmalar kafa karıştırdı.
-- **Türkçe.**
-- Elle yapılacak mekanik iş yerine **araç yazmak** çok daha iyi işledi. Harita elle
-  kurulacaktı; üreteç + Inspector ayar paneli yazınca iş açıldı. Aynı yaklaşım
-  ölçüm protokolünde de işe yaradı (elle dört ölçüm başarısız oldu, F5 taraması çalıştı).
-- Unity Editor açıkken **headless derleme yapılamıyor** (proje kilidi). Editor açıksa
-  `.claude/tools/unity-log.ps1 -Errors` ile Console kontrol edilir.
+- **Unity'yi ilk kez kullanıyor, Türkçe.** Editör adımı istemiyor: "şunu tıkla" yerine
+  **araç yaz ve kendin çalıştır**. Bu oturumda kurulumun tamamı `-executeMethod` ile
+  başsız koştu, geliştiricinin tek yapacağı Play'e basmak.
+- Unity Editor açıkken başsız derleme yapılamaz (proje kilidi). Açıksa
+  `.claude/tools/unity-log.ps1 -Errors`.
 
-## Bu oturumda kurulan kararlar
+## Yeni araçlar
 
-Tamamı `docs/DECISIONS.md`'de. En çok etkileyenler:
-
-- **ADR-0004** Mirror seçildi, ADR-0001 (FishNet) supersede edildi. Gerekçe: bu oyunda
-  prediction atlanabilir (co-op'ta client-authoritative hareket), lag compensation
-  atlanamaz — Mirror ikincisini ücretsiz veriyor.
-- **Sıralama değişti:** önce solo çekirdek döngü, sonra netcode. M-00 küçültüldü,
-  netcode doğrulaması M-02'ye taşındı. İki korkuluk zorunlu kılındı.
-- **Puan iki ayrı sayı:** harcanabilir bakiye + kazanılan toplam. Tek sayı olsaydı kapı
-  açan oyuncu skor kaybederdi.
-- **Ödül sistemi:** yarış yok, tanıma var. Kıyaslanamaz unvanlar, meta para kart havuzu
-  açar (güç vermez).
-
-## Açık sorular
-
-1. **Harita ölçüleri oturdu mu?** Son hâli 30×16 m, 4 m tavan, 3 iç bölme. Geliştirici
-   koşup geri bildirim verecekti.
-2. **Sıradaki iş hangisi:** zombi mi, haritayı bitirmek mi, config importer mı?
-   Öneri zombiydi — ÇK-17'ye giden en kısa yol kovalayan zombi + öldüren silah.
-3. Config importer ne zaman? Tetikleyici tanımlı: 3. config dosyası ya da ilk denge turu.
+| Araç | Ne yapar |
+|---|---|
+| `.claude/tools/unity-test.ps1` | Derler + EditMode testlerini koşar, kısa özet döner |
+| `.claude/tools/unity-exec.ps1` | Herhangi bir editör metodunu başsız çalıştırır |
 
 ## Nereye bakılır
 
@@ -68,10 +80,9 @@ Tamamı `docs/DECISIONS.md`'de. En çok etkileyenler:
 |---|---|
 | Proje özeti | `docs/CONTEXT.md` ← **önce burası** |
 | Kararlar | `docs/DECISIONS.md` |
-| Mimari | `docs/architecture/ARCHITECTURE.md`, `adr/` |
-| Performans | `docs/architecture/PERF-BUDGET.md` |
-| Milestone | `design/milestones/M-00.md`, `M-01.md`, `M-02.md` |
-| Sistemler | `design/systems/SYS-01/02/03`, `design/ux/draft-ekrani.md` |
+| Zombi kararı | `Assets/_Project/Code/Systems/Ai/ZombieBrain.cs` |
+| Zombi motoru | `Assets/_Project/Code/AI/ZombieAgent.cs` |
+| Zombi ayarları | `config/balance/zombie.json` + `config/schema/zombie.schema.json` |
+| Kurulum aracı | `Assets/_Project/Code/Editor/ZombieSetup.cs` |
+| Milestone | `design/milestones/M-01.md` |
 | Harita | `design/levels/LVL-01-greybox.md` |
-| Unity rehberi | `docs/guides/unity-baslangic.md` |
-| Sahne kurulumu | `docs/guides/M0-02-sahne-kurulumu.md` |

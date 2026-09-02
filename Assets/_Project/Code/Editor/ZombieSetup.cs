@@ -1,0 +1,421 @@
+using System;
+using System.Reflection;
+using Bunker.AI;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
+
+namespace Bunker.Editor
+{
+    /// <summary>
+    /// M1-04 zombisini <b>çalışır hâlde kurar</b>: prefab'ı üretir, oyuncuyu hedef
+    /// olarak işaretler, deneme tezgâhını sahneye koyar ve NavMesh'i bake eder.
+    ///
+    /// <para><b>Neden bir araç, tarif değil:</b> bu projede elle yapılan mekanik iş
+    /// (sahne kurulumu, prefab bağlama, dört ayrı ölçüm) tekrar tekrar hataya düştü;
+    /// araca dönüşünce iş açıldı. Prefab'ı elle kurmak yirmi tıklama ve her tıklamada
+    /// bir unutma ihtimalidir — burada tek menü, tekrar çalıştırılabilir.</para>
+    ///
+    /// <para><b>Idempotent</b> (editor-tools.md): iki kez çalıştırmak bir kez
+    /// çalıştırmakla aynı sonucu verir. Prefab yerinde güncellenir, sahnedeki tezgâh
+    /// nesnesi çoğaltılmaz.</para>
+    /// </summary>
+    public static class ZombieSetup
+    {
+        private const string ZombiePrefabPath = "Assets/_Project/Prefabs/Gameplay/Zombie.prefab";
+        private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Gameplay/Player.prefab";
+        private const string MaterialPath = "Assets/_Project/Art/Materials/mat_zombie_greybox.mat";
+        private const string SandboxObjectName = "_ZombieSandbox";
+
+        // ---------------------------------------------------------------- menu
+
+        [MenuItem("Bunker/Zombi/Test Alanini Kur", false, 200)]
+        public static void SetupTestbed()
+        {
+            Scene scene = EditorSceneManager.GetActiveScene();
+            if (!scene.IsValid())
+            {
+                Debug.LogError("[Zombi] Acik bir sahne yok. Once bir sahne ac.");
+                return;
+            }
+
+            // 1) Gri kutuyu yeniden uret: pencerelere WindowEntry ve binanin cevresine
+            //    disarida yurunecek serit bu adimda geliyor.
+            BlockoutSettings settings = BlockoutGenerator.LoadOrCreateSettings();
+            BlockoutGenerator.Generate(settings);
+
+            // 2) Zombi prefab'i
+            GameObject zombiePrefab = BuildZombiePrefab();
+
+            // 3) Oyuncu hedef olarak isaretlensin (zombiler yalnizca isaretliyi kovalar)
+            PatchPlayerPrefab();
+
+            // 4) Deneme tezgahi sahnede
+            InstallSandbox(zombiePrefab);
+
+            // 5) NavMesh bake - apron eklendigi icin eski bake gecersiz
+            bool baked = BakeNavMesh();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log(
+                "[Zombi] Test alani hazir.\n" +
+                $"  prefab      : {ZombiePrefabPath}\n" +
+                $"  pencere      : {UnityEngine.Object.FindObjectsByType<WindowEntry>(FindObjectsSortMode.None).Length} giris noktasi\n" +
+                $"  NavMesh      : {(baked ? "bake edildi" : "BAKE EDILEMEDI - asagidaki uyariya bak")}\n" +
+                "  SIRADAKI ADIM: Play'e bas. F6 dogum, F7/F8 tur, F9 hepsini oldur, sol tik ates.");
+        }
+
+        /// <summary>
+        /// Komut satırı girişi: sandbox sahnesini açar, kurulumu çalıştırır, kaydeder.
+        ///
+        /// <para>CI'ın ve bu projede geliştiricinin ihtiyacı olan her şey
+        /// <c>-executeMethod</c> ile çağrılabilir olmalı ve <b>hiçbir editör penceresinin
+        /// açık olmasına bağlı olmamalı</b> (editor-tools.md). Kurulumun Unity açmadan
+        /// koşabilmesinin sebebi bu: "şu menüye tıkla" bir adım değil, bir borçtur.</para>
+        /// </summary>
+        public static void SetupTestbedBatch()
+        {
+            const string scenePath = "Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity";
+
+            try
+            {
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                SetupTestbed();
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Zombi] Toplu kurulum basarisiz: {e}");
+                EditorApplication.Exit(1);
+            }
+        }
+
+        [MenuItem("Bunker/Zombi/Sadece Prefab Uret", false, 201)]
+        public static void RebuildPrefabOnly()
+        {
+            BuildZombiePrefab();
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Zombi] Prefab guncellendi: {ZombiePrefabPath}");
+        }
+
+        [MenuItem("Bunker/Zombi/NavMesh Bake", false, 202)]
+        public static void BakeNavMeshMenu()
+        {
+            if (BakeNavMesh())
+            {
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                AssetDatabase.SaveAssets();
+            }
+        }
+
+        // ---------------------------------------------------------------- prefab
+
+        /// <summary>
+        /// Zombi prefab'ını sıfırdan kurar ve diske yazar. Var olanı <b>yerinde</b>
+        /// günceller — GUID korunur, sahnedeki ve prefab'a bakan her referans yaşamaya
+        /// devam eder.
+        /// </summary>
+        public static GameObject BuildZombiePrefab()
+        {
+            Material material = LoadOrCreateMaterial();
+
+            var root = new GameObject("Zombie");
+
+            try
+            {
+                // --- govde carpismasi: isinlarin isabet ettigi yer
+                var body = root.AddComponent<CapsuleCollider>();
+                body.height = 1.8f;
+                body.radius = 0.35f;
+                body.center = new Vector3(0f, 0.9f, 0f);
+
+                // --- navigasyon
+                var agent = root.AddComponent<NavMeshAgent>();
+                agent.radius = 0.35f;
+                agent.height = 1.8f;
+                agent.baseOffset = 0f;
+                agent.speed = 1.4f;              // dogumda turdan gelen degerle degisir
+                agent.angularSpeed = 720f;
+                agent.acceleration = 20f;
+                agent.stoppingDistance = 1.2f;   // saldiri menzilinin biraz altinda
+                agent.autoBraking = false;
+
+                // Pencere tirmanisi elle surulur (ZombieAgent), ama bake'in kendi
+                // urettigi baglantilar (ust kattan atlama) otomatik gecilsin - kapatmak
+                // zombiyi orada dondurur.
+                agent.autoTraverseOffMeshLink = true;
+
+                // Kalabalik onlemesi zombide ORTA: yuksek kalite 40 ajanda pahali,
+                // kapali olursa sürü ust uste biner ve tek bir zombi gorunur
+                // (PILLAR-04, kaosta okunabilirlik).
+                agent.obstacleAvoidanceType = ObstacleAvoidanceType.MedQualityObstacleAvoidance;
+
+                // --- gorsel (gri kutu)
+                GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                visual.name = "Visual";
+                visual.transform.SetParent(root.transform, false);
+                visual.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+                visual.transform.localScale = new Vector3(0.7f, 0.9f, 0.7f);
+                UnityEngine.Object.DestroyImmediate(visual.GetComponent<Collider>());
+
+                var visualRenderer = visual.GetComponent<Renderer>();
+                visualRenderer.sharedMaterial = material;
+
+                // --- kafa: hem gorsel yon ipucu hem kafa vurusu kutusu
+                GameObject head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                head.name = "Head";
+                head.transform.SetParent(root.transform, false);
+                head.transform.localPosition = new Vector3(0f, 1.72f, 0f);
+                head.transform.localScale = new Vector3(0.36f, 0.36f, 0.36f);
+                head.GetComponent<Renderer>().sharedMaterial = material;
+
+                // --- burun: gri kapsul hangi yone baktigini soylemez. Zombinin
+                //     nereye dondugu telegrafin yarisidir.
+                GameObject nose = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                nose.name = "FacingMarker";
+                nose.transform.SetParent(root.transform, false);
+                nose.transform.localPosition = new Vector3(0f, 1.72f, 0.22f);
+                nose.transform.localScale = new Vector3(0.12f, 0.12f, 0.18f);
+                UnityEngine.Object.DestroyImmediate(nose.GetComponent<Collider>());
+                nose.GetComponent<Renderer>().sharedMaterial = material;
+
+                // --- beyin
+                var zombie = root.AddComponent<ZombieAgent>();
+                SetPrivateField(zombie, "bodyRenderer", visualRenderer);
+                SetPrivateField(zombie, "debugVisuals", true);
+
+                // --- vurus kutulari
+                var bodyHitbox = root.AddComponent<ZombieHitbox>();
+                SetPrivateField(bodyHitbox, "head", false);
+                SetPrivateField(bodyHitbox, "owner", zombie);
+
+                var headHitbox = head.AddComponent<ZombieHitbox>();
+                SetPrivateField(headHitbox, "head", true);
+                SetPrivateField(headHitbox, "owner", zombie);
+
+                return PrefabUtility.SaveAsPrefabAsset(root, ZombiePrefabPath);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        private static Material LoadOrCreateMaterial()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
+            if (existing != null) return existing;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            var material = new Material(shader) { name = "mat_zombie_greybox" };
+            material.SetColor("_BaseColor", new Color(0.45f, 0.20f, 0.20f));
+
+            // MaterialPropertyBlock ile renk degistirebilmek icin materyal PAYLASILIR
+            // kalir: her zombiye ayri materyal ornegi vermek zombi basina bir cizim
+            // cagrisi demektir (shader-graphics.md).
+            AssetDatabase.CreateAsset(material, MaterialPath);
+            return material;
+        }
+
+        // ---------------------------------------------------------------- oyuncu
+
+        /// <summary>
+        /// Oyuncu prefab'ına hedef işaretini ve geçici canı ekler. Zaten varsa
+        /// dokunmaz — prefab'ı gereksiz yere kirletmek diff'i ve sürüm geçmişini bozar.
+        /// </summary>
+        private static void PatchPlayerPrefab()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath) == null)
+            {
+                Debug.LogWarning($"[Zombi] Oyuncu prefab'i bulunamadi: {PlayerPrefabPath}. " +
+                                 "Zombiler kovalayacak hedef bulamaz.");
+                return;
+            }
+
+            GameObject contents = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
+
+            try
+            {
+                bool changed = false;
+
+                if (contents.GetComponent<ZombieTargetBeacon>() == null)
+                {
+                    contents.AddComponent<ZombieTargetBeacon>();
+                    changed = true;
+                }
+
+                if (contents.GetComponent<DebugPlayerHealth>() == null)
+                {
+                    contents.AddComponent<DebugPlayerHealth>();
+                    changed = true;
+                }
+
+                if (!changed) return;
+
+                PrefabUtility.SaveAsPrefabAsset(contents, PlayerPrefabPath);
+                Debug.Log("[Zombi] Oyuncu prefab'ina hedef isareti ve gecici can eklendi.");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        // ---------------------------------------------------------------- sahne
+
+        private static void InstallSandbox(GameObject zombiePrefab)
+        {
+            GameObject host = GameObject.Find(SandboxObjectName);
+
+            if (host == null)
+            {
+                host = new GameObject(SandboxObjectName);
+                Undo.RegisterCreatedObjectUndo(host, "Zombi test alani");
+            }
+
+            var sandbox = host.GetComponent<ZombieSandbox>();
+            if (sandbox == null) sandbox = host.AddComponent<ZombieSandbox>();
+
+            ZombieAgent agent = zombiePrefab != null ? zombiePrefab.GetComponent<ZombieAgent>() : null;
+            SetPrivateField(sandbox, "zombiePrefab", agent);
+        }
+
+        // ---------------------------------------------------------------- navmesh
+
+        /// <summary>
+        /// Sahnedeki <c>NavMeshSurface</c>'i bulur ve bake eder.
+        ///
+        /// <para><b>Neden yansıma (reflection):</b> <c>NavMeshSurface</c> bir paket
+        /// tipidir (<c>com.unity.ai.navigation</c>). Doğrudan referans vermek
+        /// <c>Bunker.Editor</c>'ün asmdef'ine paket bağımlılığı eklemek demek; adı bir
+        /// gün değişirse <b>bütün editör derlemesi</b> derlenmez ve proje kilitlenir.
+        /// Bake bir kolaylıktır, o riski hak etmiyor: burada başarısız olursa yalnızca
+        /// bu satır uyarı verir, gerisi çalışmaya devam eder.</para>
+        /// </summary>
+        private static bool BakeNavMesh()
+        {
+            Type surfaceType = FindType("Unity.AI.Navigation.NavMeshSurface");
+
+            if (surfaceType == null)
+            {
+                Debug.LogWarning("[Zombi] NavMeshSurface tipi bulunamadi (AI Navigation " +
+                                 "paketi yuklu mu?). NavMesh elle bake edilmeli.");
+                return false;
+            }
+
+            UnityEngine.Object[] surfaces =
+                UnityEngine.Object.FindObjectsByType(surfaceType, FindObjectsSortMode.None);
+
+            if (surfaces.Length == 0)
+            {
+                GameObject root = GameObject.Find("LVL-01_Blockout");
+                if (root == null)
+                {
+                    Debug.LogWarning("[Zombi] Sahnede NavMeshSurface yok ve " +
+                                     "'LVL-01_Blockout' bulunamadi; bake atlandi.");
+                    return false;
+                }
+
+                Component added = root.AddComponent(surfaceType);
+                surfaces = new UnityEngine.Object[] { added };
+                Debug.Log("[Zombi] NavMeshSurface bulunamadi, koke eklendi.");
+            }
+
+            MethodInfo build = surfaceType.GetMethod("BuildNavMesh",
+                BindingFlags.Public | BindingFlags.Instance);
+
+            if (build == null)
+            {
+                Debug.LogWarning("[Zombi] NavMeshSurface.BuildNavMesh bulunamadi; " +
+                                 "NavMesh elle bake edilmeli.");
+                return false;
+            }
+
+            PropertyInfo dataProperty = surfaceType.GetProperty("navMeshData",
+                BindingFlags.Public | BindingFlags.Instance);
+
+            for (int i = 0; i < surfaces.Length; i++)
+            {
+                build.Invoke(surfaces[i], null);
+                PersistNavMeshData(surfaces[i], dataProperty, i);
+                EditorUtility.SetDirty(surfaces[i]);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Bake sonucu bellekte durur; varlık olarak kaydedilmezse sahne kapanınca
+        /// kaybolur ve oyun NavMesh'siz açılır.
+        /// </summary>
+        private static void PersistNavMeshData(UnityEngine.Object surface, PropertyInfo dataProperty, int index)
+        {
+            if (dataProperty?.GetValue(surface) is not NavMeshData data) return;
+            if (AssetDatabase.Contains(data)) return;
+
+            Scene scene = EditorSceneManager.GetActiveScene();
+            string folder = System.IO.Path.GetDirectoryName(scene.path)?.Replace('\\', '/');
+            string sceneName = System.IO.Path.GetFileNameWithoutExtension(scene.path);
+
+            if (string.IsNullOrEmpty(folder))
+            {
+                Debug.LogWarning("[Zombi] Sahne kaydedilmemis; NavMesh varligi yazilamadi.");
+                return;
+            }
+
+            string dataFolder = $"{folder}/{sceneName}";
+            if (!AssetDatabase.IsValidFolder(dataFolder))
+            {
+                AssetDatabase.CreateFolder(folder, sceneName);
+            }
+
+            string path = AssetDatabase.GenerateUniqueAssetPath(
+                $"{dataFolder}/NavMesh-{sceneName}-{index}.asset");
+
+            AssetDatabase.CreateAsset(data, path);
+        }
+
+        // ---------------------------------------------------------------- yardimcilar
+
+        private static Type FindType(string fullName)
+        {
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+            for (int i = 0; i < assemblies.Length; i++)
+            {
+                Type t = assemblies[i].GetType(fullName, false);
+                if (t != null) return t;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// <c>[SerializeField] private</c> bir alanı doldurur. Alanları <c>public</c>
+        /// yapmak yerine bu yol seçildi: bir alanı yalnızca kurulum aracı doldurabiliyor
+        /// diye herkese açmak, tasarlanmamış bir API üretir (csharp-code.md).
+        /// </summary>
+        private static void SetPrivateField(UnityEngine.Object target, string fieldName, object value)
+        {
+            var serialized = new SerializedObject(target);
+            SerializedProperty property = serialized.FindProperty(fieldName);
+
+            if (property == null)
+            {
+                Debug.LogError($"[Zombi] '{target.GetType().Name}' uzerinde '{fieldName}' " +
+                               "alani yok. Alan adi degistiyse bu araci da guncelle.");
+                return;
+            }
+
+            if (value is bool b) property.boolValue = b;
+            else property.objectReferenceValue = value as UnityEngine.Object;
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+}

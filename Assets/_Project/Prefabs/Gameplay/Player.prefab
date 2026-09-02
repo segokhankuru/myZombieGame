@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 7875062705266583648}
   - component: {fileID: 8708549400669588576}
   - component: {fileID: 2021654381381428347}
+  - component: {fileID: 3117965439112840657}
+  - component: {fileID: 3567607291165251803}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -135,6 +137,33 @@ MonoBehaviour:
   maxPitchDegrees: 85
   playerCamera: {fileID: 714375003496467534}
   playerAudioListener: {fileID: 1603762921593217159}
+--- !u!114 &3117965439112840657
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 537e06409ebb699459a614fe03ac34c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieTargetBeacon
+  aimHeightMeters: 1
+--- !u!114 &3567607291165251803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd92cf3429fedcd40a2fb887827ff173, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.DebugPlayerHealth
+  referenceMaxHealth: 100
+  respawnOnDeath: 1
 --- !u!1 &4229883192584380925
 GameObject:
   m_ObjectHideFlags: 0

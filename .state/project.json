@@ -1,4 +1,4 @@
-{
+﻿{
   "project": "Bunker",
   "phase": "preproduction",
   "reviewMode": "lean",
@@ -13,5 +13,6 @@
     "transport": "FizzySteamworks / FizzyFacepunch"
   },
   "counters": { "epics": 0, "stories": 22, "done": 6, "bugs": 0, "generations": 0 },
-  "lastUpdated": "2026-08-29"
+  "lastUpdated": "2026-09-02"
 }
+

@@ -1,0 +1,40 @@
+{
+  "$schema": "../schema/zombie.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "ai-programmer",
+    "system": "SYS-zombi",
+    "lastTuned": "2026-09-02"
+  },
+
+  "_note": "M1-04 baslangic degerleri. Zombinin tura gore degisen ozellikleri (can, hiz, adet) rounds.json'da; burasi tur numarasindan bagimsiz karakteri: ne kadar once telefonu belli eder, pencereyi kac saniyede asar, kac vurur. Hicbiri kanit degil, hepsi hipotez - ilk oyun testinde kalibre edilecek.",
+
+  "spawn": {
+    "emergeDelaySeconds": 0.6
+  },
+
+  "windowEntry": {
+    "triggerDistanceMeters": 1.8,
+    "vaultSeconds": 1.4
+  },
+
+  "attack": {
+    "rangeMeters": 1.6,
+    "rangeToleranceMeters": 0.6,
+    "windupSeconds": 0.55,
+    "recoverySeconds": 0.9,
+    "damage": 30
+  },
+
+  "navigation": {
+    "repathIntervalSeconds": 0.35,
+    "stuckSpeedMetersPerSecond": 0.15,
+    "stuckAfterSeconds": 1.5,
+    "stuckRecoverySeconds": 0.6
+  },
+
+  "budget": {
+    "thinkHz": 8,
+    "animatorCullDistanceMeters": 15
+  }
+}

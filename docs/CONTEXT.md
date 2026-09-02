@@ -69,17 +69,22 @@ Bağımlılık tek yönlü. Hiçbir şey `Bunker.UI`'ye bağımlı olamaz.
 Detay: `docs/architecture/ARCHITECTURE.md`
 
 ## Current work
-**Milestone:** M-01 Solo Çekirdek Döngü
+**Milestone:** M-01 Solo Çekirdek Döngü — 12 işten 2'si kapandı, 2'si oyun testi bekliyor
 **Bitti:** M1-01 tur ölçekleme (12 test) · M1-02 ekonomi (18 test)
-**Sürüyor:** M1-03 gri kutu harita — üreteç yazıldı, ölçü ayarı geliştiricide
-**Sıradaki:** M1-04 zombi (NavMesh, pencereden giriş, kovalama, ölüm)
+**Sürüyor:** M1-03 gri kutu harita (ölçü ayarı) · M1-04 zombi — kod, prefab, sahne ve
+NavMesh kurulu, 32 test yeşil; **kalan tek şey oynayıp hissiyata bakmak**
+**Sıradaki:** M1-05 zombi spawn/havuzlama + ağ seam'i, ya da config importer (tetiklendi)
 **Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
+
+**Toplam 69 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
+`.claude/tools/unity-test.ps1`, `.claude/tools/unity-exec.ps1`.
 
 ## Known debt and risks
 - **En büyük risk:** klon aşaması uzar, farklılaştırıcı (kartlar) hiç inşa edilmez. Uyarı
   işareti **M-03 tarihinin ikinci kez kayması**. Sıralama değişikliği bu riski artırdı.
-- **Config borcu:** `config/balance/*.json` henüz oyuna bağlı değil; sayılar C#
-  varsayılanlarında da duruyor. Tetikleyici: 3. config dosyası ya da ilk denge turu.
+- **Config borcu TETİKLENDİ (2026-09-02):** `zombie.json` üçüncü config dosyası oldu ve
+  tetikleyici karşılandı. Üç dosyanın sayıları hâlâ C# varsayılanlarında da duruyor —
+  sapma riski artık üç kat. Importer (`/data-schema`) sıradaki altyapı işi.
 - Netcode doğrulaması M-02'ye ertelendi. İki korkuluk zorunlu: solo Mirror host modunda,
   zombi konum senkronu tek seam'den (`NetworkTransform` zombide yasak).
 - **PILLAR-02 M-01'de hiç sınanamaz** — solo build takım muhtaçlığını test edemez.

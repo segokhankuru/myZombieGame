@@ -173,7 +173,9 @@ namespace Bunker.Editor
                 $"  rampa       : {s.RampAngleDegrees:F1} derece, kafa payi {s.RampHeadroom:F2} m\n" +
                 $"  pencere     : {Windows.Count} adet\n" +
                 $"  ic bolme    : {(s.Partitions?.Length ?? 0)} adet\n" +
-                $"  SIRADAKI ADIM: koke 'NavMesh Surface' ekleyip Bake'e bas.");
+                $"  disarida serit: {s.ApronWidth:F0} m (zombiler pencereye buradan yurur)\n" +
+                $"  SIRADAKI ADIM: 'Bunker/Zombi/NavMesh Bake' - uretec kokun tamamini " +
+                $"yeniden kurdugu icin eski bake gecersizdir.");
         }
 
         private static void BuildGroundFloor(Transform parent, BlockoutSettings s)
@@ -181,6 +183,8 @@ namespace Bunker.Editor
             Transform zone = Group("GroundFloor", parent);
 
             Slab(zone, "Floor_Ground", s, s.West, s.East, s.South, s.North, -s.FloorThickness / 2f);
+
+            BuildApron(zone, s);
 
             WallAlongZ(zone, "Wall_West", s, s.West, s.South, s.North, 0f, Vector3.left,
                 EvenWindows(s, s.South, s.North));
@@ -206,6 +210,29 @@ namespace Bunker.Editor
                 new[] { new Gap(midZ, s.DoorWidth, 0f, s.DoorHeight, false) });
 
             BuildRamp(zone, s);
+        }
+
+        /// <summary>
+        /// Binanın çevresindeki dış zemin. <b>Zombiler pencereden girer</b> (M1-04) ve
+        /// bunun için önce dışarıda yürüyebilecekleri bir NavMesh olmalı. Zemin plakası
+        /// duvarların tam altında bittiği için dışarısı bake'te boşluktu; bu şerit onu
+        /// kapatır.
+        ///
+        /// <para>Dört ayrı bant olarak kuruluyor, tek büyük plaka olarak değil: tek
+        /// plaka iç zeminle üst üste biner ve z-fighting üretir.</para>
+        /// </summary>
+        private static void BuildApron(Transform zone, BlockoutSettings s)
+        {
+            if (s.ApronWidth <= 0.1f) return;
+
+            Transform apron = Group("Apron_Outside", zone);
+            float y = -s.FloorThickness / 2f;
+            float w = s.ApronWidth;
+
+            Slab(apron, "Apron_South", s, s.West - w, s.East + w, s.South - w, s.South, y);
+            Slab(apron, "Apron_North", s, s.West - w, s.East + w, s.North, s.North + w, y);
+            Slab(apron, "Apron_West", s, s.West - w, s.West, s.South, s.North, y);
+            Slab(apron, "Apron_East", s, s.East, s.East + w, s.South, s.North, y);
         }
 
         private static void BuildRamp(Transform zone, BlockoutSettings s)
@@ -302,12 +329,26 @@ namespace Bunker.Editor
             for (int i = 0; i < Windows.Count; i++)
             {
                 WindowRecord w = Windows[i];
-                Marker(windows, $"Window_{i:D2}", w.Position);
+                GameObject marker = Marker(windows, $"Window_{i:D2}", w.Position);
+
+                // Isaretin forward'i binanin DISINI gosterir - WindowEntry'nin yon
+                // sozlesmesi bu. Ic ve dis bekleme noktalari buradan turer, o yuzden
+                // yonu burada kurmak zorundayiz: pencere kendi yonunu bilmeli.
+                if (w.Outward.sqrMagnitude > 0.0001f)
+                {
+                    marker.transform.rotation = Quaternion.LookRotation(w.Outward);
+                }
 
                 // Zombi dogum noktalari pencerelerin DISINDA: zombinin gorunur sekilde
                 // hiclikten belirmesi PILLAR-04'u cigner. Yalnizca zemin kat
                 // pencereleri icin - ust kata disaridan tirmanmak yok.
                 if (!w.GroundFloor) continue;
+
+                // Zemin kat penceresi = zombi girisi (M1-04). Duvar kalinliginin
+                // yarisindan buyuk bir standoff sart, yoksa bekleme noktasi duvarin
+                // icinde kalir ve NavMesh orada yoktur.
+                var entry = marker.AddComponent<Bunker.AI.WindowEntry>();
+                entry.Configure(s.WindowSill, Mathf.Max(1f, s.WallThickness * 2f + 0.8f));
 
                 Vector3 outside = w.Position + w.Outward * 3f;
                 outside.y = 0.1f;
@@ -469,11 +510,12 @@ namespace Bunker.Editor
             }
         }
 
-        private static void Marker(Transform parent, string name, Vector3 position)
+        private static GameObject Marker(Transform parent, string name, Vector3 position)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.position = position;
+            return go;
         }
     }
 

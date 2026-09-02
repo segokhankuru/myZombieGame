@@ -58,6 +58,12 @@ namespace Bunker.Editor
         [Tooltip("A ile B'yi ayiran kapili duvar. Sola cekersen A kucuk B buyuk olur.")]
         public float Divider = 4f;
 
+        [Tooltip("Binanin cevresindeki disarida yurunecek serit (metre). Zombiler " +
+                 "burada dogar ve pencereye buradan yurur - NavMesh binanin disinda da " +
+                 "olmak zorunda. Sifir yaparsan zombilerin duracagi zemin kalmaz. " +
+                 "Cok genis yapmak bake suresini ve NavMesh boyutunu bosuna buyutur.")]
+        public float ApronWidth = 6f;
+
         [Header("Yukseklikler")]
         [Tooltip("Zemin kat tavan yuksekligi. 3 m basik hissettirir; 4 m nefes aldirir.")]
         public float WallHeight = 4f;

@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/zombie",
+  "title": "Zombi davranisi",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "spawn", "windowEntry", "attack", "navigation", "budget"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "spawn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emergeDelaySeconds"],
+      "properties": {
+        "emergeDelaySeconds": {
+          "type": "number", "minimum": 0, "maximum": 3,
+          "description": "Zombi dogduktan sonra hareket etmeden once bekledigi sure. Sifir olursa zombiler dogar dogmaz kosar ve oyuncu belirme anini goremez - PILLAR-04 (kaosta okunabilirlik) burada kirilir. Cok uzun olursa surunun temposu duser ve pencere savunmasi kolaylasir."
+        }
+      }
+    },
+
+    "windowEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["triggerDistanceMeters", "vaultSeconds"],
+      "properties": {
+        "triggerDistanceMeters": {
+          "type": "number", "minimum": 0.5, "maximum": 3,
+          "description": "Zombinin tirmanisa baslamak icin pencereye ne kadar yaklasmasi gerektigi. Buyutursen zombiler pencereden uzakta havada tirmanmaya baslar ve sahte gorunur; kucultursen duvara surtunup tirmanisa hic gecemezler."
+        },
+        "vaultSeconds": {
+          "type": "number", "minimum": 0.4, "maximum": 4,
+          "description": "Pencereden tirmanma suresi. Bu, oyuncunun 'pencereyi tutma' taktiginin butun ekonomisidir: zombi bu sure boyunca yavas ve acik hedeftir. Kisaltirsan pencere savunmasi anlamsizlasir ve zombiler icerideki oyuncuyu bogar; uzatirsan pencere ucretsiz oldurme makinesine doner ve turlar surunur."
+        }
+      }
+    },
+
+    "attack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rangeMeters", "rangeToleranceMeters", "windupSeconds", "recoverySeconds", "damage"],
+      "properties": {
+        "rangeMeters": {
+          "type": "number", "minimum": 0.8, "maximum": 3,
+          "description": "Zombinin vurus icin yaklasmasi gereken mesafe. Buyutursen zombi degmeden vurur ve oyuncu haksizliga ugradigini hisseder; kucultursen zombi icine girip vuramaz."
+        },
+        "rangeToleranceMeters": {
+          "type": "number", "minimum": 0, "maximum": 2,
+          "description": "Telegraf sirasinda oyuncu bu kadar uzaklasirsa vurus HALA isabet eder. Sifir yaparsan geri geri yuruyerek hasar almadan sonsuza kadar oynanir; cok buyutursen telegrafi okumanin odulu kalmaz ve geri cekilme hissi olur."
+        },
+        "windupSeconds": {
+          "type": "number", "minimum": 0.15, "maximum": 1.5,
+          "description": "Vurus hazirligi - oyuncunun goreceği telegraf. Kisaltirsan vurus habersiz gelir, oyuncu 'nereden yedim' der ve oyun adaletsiz hissettirir (ai-code.md). Uzatirsan zombiler zararsizlasir ve gerilim biter."
+        },
+        "recoverySeconds": {
+          "type": "number", "minimum": 0.2, "maximum": 3,
+          "description": "Vurustan sonraki aciklik - oyuncunun kacma penceresi. Kisaltirsan bir zombiye yakalanmak olum demektir ve kalabalik icinde kacis imkansizlasir; uzatirsan zombiler tek tek zararsiz olur."
+        },
+        "damage": {
+          "type": "number", "minimum": 5, "maximum": 100,
+          "description": "Bir vurusun hasari. Oyuncu cani 100 kabul edilir; 30 demek uc vurusta olum demektir. Buyutursen tek hata olumcul olur ve oyuncu riskten kacinir, oyun korkakca oynanir; kucultursen sürünün icinde durmak bedava olur ve haritayi kullanma sebebi kalmaz."
+        }
+      }
+    },
+
+    "navigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repathIntervalSeconds",
+        "stuckSpeedMetersPerSecond",
+        "stuckAfterSeconds",
+        "stuckRecoverySeconds"
+      ],
+      "properties": {
+        "repathIntervalSeconds": {
+          "type": "number", "minimum": 0.1, "maximum": 2,
+          "description": "Zombinin yeni yol istemeler arasi sure. Kucultursen zombiler oyuncuyu daha yakin takip eder ama yol bulma maliyeti dogrusal artar (PERF-BUDGET); buyutursen zombiler oyuncunun eski konumuna kosar ve kandirilmis gorunur. Bu bir denge degeri kadar performans degeridir."
+        },
+        "stuckSpeedMetersPerSecond": {
+          "type": "number", "minimum": 0.01, "maximum": 1,
+          "description": "Bu hizin altinda hareket eden, hareket etmek isteyen zombi sikismis sayilir. Buyutursen yavas yuruyen zombiler bosuna sikismis ilan edilir; kucultursen gercekten sikisan zombi kurtarilmaz ve haritada dikilir."
+        },
+        "stuckAfterSeconds": {
+          "type": "number", "minimum": 0.3, "maximum": 5,
+          "description": "Kac saniye kipirdayamayinca sikismis sayilir. Kisa deger kalabalikta birbirini iten zombileri yanlislikla kurtarma moduna sokar; uzun deger oyuncuya dikilen zombi gosterir."
+        },
+        "stuckRecoverySeconds": {
+          "type": "number", "minimum": 0.1, "maximum": 3,
+          "description": "Kurtarma denemesinin suresi (yeniden yol, gerekirse NavMesh'e geri isinlama). Kisa olursa kurtarma tutmadan biter ve zombi tekrar sikisir; uzun olursa zombi acikta bekler."
+        }
+      }
+    },
+
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["thinkHz", "animatorCullDistanceMeters"],
+      "properties": {
+        "thinkHz": {
+          "type": "number", "minimum": 2, "maximum": 30,
+          "description": "Bir zombinin saniyede kac kez dusundugu. Kare basina degil - kare hizindan bagimsizdir. Buyutursen zombiler daha tepkisel olur ve islemci maliyeti dogrusal artar; kucultursen zombiler gec tepki verir ve oyuncu yanlarindan yururken uyuyor gorunur. Bu bir performans tavanidir, artirmadan once olcum gerekir (PERF-BUDGET.md)."
+        },
+        "animatorCullDistanceMeters": {
+          "type": "number", "minimum": 5, "maximum": 60,
+          "description": "Bu mesafenin otesindeki zombilerin animatoru tamamen kapatilir. M0-04 olcumunun dogrudan sonucu: darbogaz NavMesh degil animatordur. Buyutursen kare butcesi animasyona gider; cok kucultursen oyuncunun goz ucuyla gordugu zombiler donmus gorunur."
+        }
+      }
+    }
+  }
+}

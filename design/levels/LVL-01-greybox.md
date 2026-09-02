@@ -149,3 +149,26 @@ Zombinin görünür şekilde "hiçlikten belirmesi" PILLAR-04'ü çiğner.
 - Kapı fiyatları — ekonomi (M1-02) kalibre edildikten sonra
 - Pencere başına barikat tahtası sayısı — `config/balance/` içine girecek
 - Tur 1 zombi spawn oranının bölgelere dağılımı — M1-05
+
+---
+
+## Ek: bina çevresindeki şerit (apron) — 2026-09-02
+
+Zombiler pencereden girer (M1-04) ve bunun için **binanın dışında yürüyebilecekleri bir
+zemin** olmak zorunda. Zemin plakası duvarların tam altında bittiği için dışarısı
+NavMesh bake'inde boşluktu; zombiler doğdukları yerde kalıyordu.
+
+`BlockoutSettings.ApronWidth` (varsayılan 6 m) binanın dört yanına ayrı bantlar hâlinde
+bir şerit üretir. Tek büyük plaka değil, çünkü iç zeminle üst üste binerdi.
+
+Bu şerit **oyuncu için tasarlanmış bir alan değildir** — dışarıya çıkılmaz, dışarıda
+oynanmaz. Sadece sürünün pencereye yürüyeceği kadar var. Genişletmek bake süresini ve
+NavMesh boyutunu bedavaya büyütür.
+
+Her zemin kat penceresinde bir `WindowEntry` bileşeni durur: dışarıdaki bekleme noktası,
+eşik ve içerideki iniş noktası oradan türer. Barikat sistemi (M1-08) aynı bileşenin
+`IsOpen` alanına bağlanacak.
+
+> **Uyarı:** üreteç kökü her seferinde silip yeniden kurar, yani **NavMesh bake'i her
+> üretimden sonra geçersizdir.** `Bunker/Zombi/Test Alanini Kur` üretim + bake'i birlikte
+> yapar; sadece üretirsen `Bunker/Zombi/NavMesh Bake` ile tamamla.
