@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Text;
 using Bunker.Systems.Ai;
+using Bunker.Systems.Config;
 using Bunker.Systems.Combat;
+using Bunker.Config;
 using Bunker.Systems.Rounds;
 using UnityEngine;
 using UnityEngine.AI;
@@ -29,8 +31,15 @@ namespace Bunker.AI
     [AddComponentMenu("Bunker/Zombie Sandbox (gecici)")]
     public sealed class ZombieSandbox : MonoBehaviour
     {
-        [Header("Prefab")]
+        [Header("Prefab ve ayarlar")]
         [SerializeField] private ZombieAgent zombiePrefab;
+
+        [Tooltip("config/balance/rounds.json'dan uretilen varlik. " +
+                 "'Bunker/Config/Ice Aktar' uretir, kurulum araci baglar.")]
+        [SerializeField] private RoundsConfigAsset roundsConfig;
+
+        [Tooltip("config/balance/zombie.json'dan uretilen varlik.")]
+        [SerializeField] private ZombieConfigAsset zombieConfig;
 
         [Header("Tur")]
         [Tooltip("Baslangic turu. F7/F8 ile calisma aninda degistirilir.")]
@@ -64,11 +73,22 @@ namespace Bunker.AI
 
         private void Awake()
         {
-            // Config degerleri su an C# varsayilanlarindan geliyor ve
-            // config/balance/*.json ile ELLE eslesiyor. Config importer yazilinca
-            // (bkz. docs/DECISIONS.md - importer tetikleyicisi) buradan uretilecek.
-            _scaling = new RoundScaling(new RoundConfig());
-            _zombieConfig = new ZombieConfig();
+            // Ayarlar uretilen varliklardan gelir, C# varsayilanindan degil. Eksikse
+            // BOOT'TA SESSIZ VARSAYILAN YOK: eksik ayar haftalarca gorunmeyen denge
+            // hatalarinin kaynagidir (config-protocol.md), o yuzden yuksek sesle durur.
+            if (roundsConfig == null || zombieConfig == null)
+            {
+                Debug.LogError("[Zombie/Sandbox] Config varliklari atanmamis " +
+                               "(Assets/_Project/Config/rounds.asset, zombie.asset). " +
+                               "'Bunker/Config/Ice Aktar' ile uret, sonra " +
+                               "'Bunker/Zombi/Test Alanini Kur' ile bagla.", this);
+                enabled = false;
+                return;
+            }
+
+            // Bir kez cozulup asagi verilir; hicbir sistem config'i statikten cekmez.
+            _scaling = new RoundScaling(roundsConfig.ToRuntime());
+            _zombieConfig = zombieConfig.ToRuntime();
 
             // Boot'ta bir kez arama serbest; kare basina yasak (csharp-code.md).
             _windows.AddRange(FindObjectsByType<WindowEntry>(FindObjectsSortMode.None));

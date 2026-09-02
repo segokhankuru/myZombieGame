@@ -1,4 +1,5 @@
 using System;
+using Bunker.Systems.Config;
 
 namespace Bunker.Systems.Rounds
 {
@@ -18,18 +19,18 @@ namespace Bunker.Systems.Rounds
     /// </summary>
     public sealed class RoundScaling
     {
-        private readonly RoundConfig _config;
+        private readonly RoundsConfig _config;
 
-        public RoundScaling(RoundConfig config)
+        public RoundScaling(RoundsConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
         /// <summary>Aynı anda canlı olabilecek maksimum zombi (PERF-BUDGET tavanı).</summary>
-        public int MaxConcurrent => _config.MaxConcurrent;
+        public int MaxConcurrent => _config.CountMaxConcurrent;
 
         /// <summary>Turlar arası nefes molası.</summary>
-        public float BreatherSeconds => _config.BreatherSeconds;
+        public float BreatherSeconds => _config.PacingBreatherSeconds;
 
         /// <summary>
         /// Turun toplam zombi sayısı. Hepsi aynı anda canlı olmaz —
@@ -42,8 +43,8 @@ namespace Bunker.Systems.Rounds
 
             float perPlayer = GrowCurve(
                 round,
-                _config.PerPlayerAtRoundOne,
-                _config.LinearAddPerPlayerPerRound,
+                _config.CountPerPlayerAtRoundOne,
+                _config.CountLinearAddPerPlayerPerRound,
                 _config.CountLinearPhaseUntilRound,
                 _config.CountGrowthMultiplierAfterLinear,
                 float.MaxValue);
@@ -71,8 +72,8 @@ namespace Bunker.Systems.Rounds
         {
             round = ClampRound(round);
 
-            if (round <= _config.WalkUntilRound) return ZombieSpeedTier.Walk;
-            if (round <= _config.JogUntilRound) return ZombieSpeedTier.Jog;
+            if (round <= _config.SpeedWalkUntilRound) return ZombieSpeedTier.Walk;
+            if (round <= _config.SpeedJogUntilRound) return ZombieSpeedTier.Jog;
             return ZombieSpeedTier.Run;
         }
 
@@ -81,9 +82,9 @@ namespace Bunker.Systems.Rounds
         {
             return SpeedTierForRound(round) switch
             {
-                ZombieSpeedTier.Walk => _config.WalkMetersPerSecond,
-                ZombieSpeedTier.Jog => _config.JogMetersPerSecond,
-                _ => _config.RunMetersPerSecond
+                ZombieSpeedTier.Walk => _config.SpeedWalkMetersPerSecond,
+                ZombieSpeedTier.Jog => _config.SpeedJogMetersPerSecond,
+                _ => _config.SpeedRunMetersPerSecond
             };
         }
 
@@ -98,20 +99,20 @@ namespace Bunker.Systems.Rounds
 
             // Sayı büyüdükçe aralık aynı oranda kısalır: turun toplam süresi
             // makul bir bantta kalsin, zombi sayisiyla dogrusal uzamasin.
-            float countAtOne = _config.PerPlayerAtRoundOne;
+            float countAtOne = _config.CountPerPlayerAtRoundOne;
             float countNow = GrowCurve(
                 round,
-                _config.PerPlayerAtRoundOne,
-                _config.LinearAddPerPlayerPerRound,
+                _config.CountPerPlayerAtRoundOne,
+                _config.CountLinearAddPerPlayerPerRound,
                 _config.CountLinearPhaseUntilRound,
                 _config.CountGrowthMultiplierAfterLinear,
                 float.MaxValue);
 
             float ratio = countAtOne / countNow;
-            float interval = _config.SpawnIntervalSecondsAtRoundOne * ratio;
+            float interval = _config.PacingSpawnIntervalSecondsAtRoundOne * ratio;
 
-            return interval < _config.SpawnIntervalFloorSeconds
-                ? _config.SpawnIntervalFloorSeconds
+            return interval < _config.PacingSpawnIntervalFloorSeconds
+                ? _config.PacingSpawnIntervalFloorSeconds
                 : interval;
         }
 

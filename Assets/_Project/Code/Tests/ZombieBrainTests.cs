@@ -1,4 +1,5 @@
 using Bunker.Systems.Ai;
+using Bunker.Systems.Config;
 using NUnit.Framework;
 
 namespace Bunker.Systems.Tests
@@ -21,15 +22,15 @@ namespace Bunker.Systems.Tests
             float stuckSpeed = 0.1f)
         {
             return new ZombieConfig(
-                emergeDelaySeconds: emerge,
-                vaultSeconds: vault,
+                spawnEmergeDelaySeconds: emerge,
+                windowEntryVaultSeconds: vault,
                 attackRangeMeters: range,
                 attackRangeToleranceMeters: tolerance,
-                windupSeconds: windup,
-                recoverySeconds: recovery,
-                stuckSpeedMetersPerSecond: stuckSpeed,
-                stuckAfterSeconds: stuckAfter,
-                stuckRecoverySeconds: stuckRecovery);
+                attackWindupSeconds: windup,
+                attackRecoverySeconds: recovery,
+                navigationStuckSpeedMetersPerSecond: stuckSpeed,
+                navigationStuckAfterSeconds: stuckAfter,
+                navigationStuckRecoverySeconds: stuckRecovery);
         }
 
         private static ZombieSenses Far => new ZombieSenses(true, 20f, actualSpeedMetersPerSecond: 2f);
@@ -39,7 +40,7 @@ namespace Bunker.Systems.Tests
         private static ZombieBrain Chasing(ZombieConfig config)
         {
             var brain = new ZombieBrain(config);
-            brain.Tick(config.EmergeDelaySeconds + 0.01f, Far);
+            brain.Tick(config.SpawnEmergeDelaySeconds + 0.01f, Far);
             Assert.AreEqual(ZombieState.Chasing, brain.State, "kurulum: kovalamaya gecmeliydi");
             return brain;
         }

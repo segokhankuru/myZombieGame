@@ -62,6 +62,7 @@ Detay: `docs/architecture/PERF-BUDGET.md`
 ## Assembly haritası
 ```
 Bunker.Systems   saf C#, Unity'ye ve Mirror'a KAPALI (noEngineReferences)
+Bunker.Config    config/*.json dosyalarindan URETILEN ayar siniflari (ADR-0005)
 Bunker.Gameplay  Bunker.Net  Bunker.AI  Bunker.UI  Bunker.Editor
 Bunker.Systems.Tests
 ```
@@ -73,18 +74,19 @@ Detay: `docs/architecture/ARCHITECTURE.md`
 **Bitti:** M1-01 tur ölçekleme (12 test) · M1-02 ekonomi (18 test)
 **Sürüyor:** M1-03 gri kutu harita (ölçü ayarı) · M1-04 zombi — kod, prefab, sahne ve
 NavMesh kurulu, 32 test yeşil; **kalan tek şey oynayıp hissiyata bakmak**
-**Sıradaki:** M1-05 zombi spawn/havuzlama + ağ seam'i, ya da config importer (tetiklendi)
+**Sıradaki:** M1-05 zombi spawn/havuzlama + ağ seam'i
+**Altyapı:** config importer yazıldı (ADR-0005) — denge sayıları artık tek kaynakta
 **Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
 
-**Toplam 69 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
+**Toplam 84 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
 `.claude/tools/unity-test.ps1`, `.claude/tools/unity-exec.ps1`.
 
 ## Known debt and risks
 - **En büyük risk:** klon aşaması uzar, farklılaştırıcı (kartlar) hiç inşa edilmez. Uyarı
   işareti **M-03 tarihinin ikinci kez kayması**. Sıralama değişikliği bu riski artırdı.
-- **Config borcu TETİKLENDİ (2026-09-02):** `zombie.json` üçüncü config dosyası oldu ve
-  tetikleyici karşılandı. Üç dosyanın sayıları hâlâ C# varsayılanlarında da duruyor —
-  sapma riski artık üç kat. Importer (`/data-schema`) sıradaki altyapı işi.
+- ~~Config borcu~~ **KAPANDI (2026-09-02):** importer yazıldı. Sayılar yalnızca
+  `config/` içinde; C# sınıfları ve `.asset` dosyaları oradan üretiliyor (ADR-0005).
+  Yeni tunable **serialized field olarak eklenmez** — şemaya anahtar eklenir.
 - Netcode doğrulaması M-02'ye ertelendi. İki korkuluk zorunlu: solo Mirror host modunda,
   zombi konum senkronu tek seam'den (`NetworkTransform` zombide yasak).
 - **PILLAR-02 M-01'de hiç sınanamaz** — solo build takım muhtaçlığını test edemez.

@@ -1,5 +1,6 @@
 using System;
 using Bunker.Systems.Ai;
+using Bunker.Systems.Config;
 using Bunker.Systems.Combat;
 using UnityEngine;
 using UnityEngine.AI;
@@ -175,12 +176,12 @@ namespace Bunker.AI
 
         private void TickThinking(float dt)
         {
-            float interval = _config.ThinkHz <= 0f ? 0.125f : 1f / _config.ThinkHz;
+            float interval = _config.BudgetThinkHz <= 0f ? 0.125f : 1f / _config.BudgetThinkHz;
 
             // Uzaktaki zombi daha seyrek dusunur ve animatoru tamamen kapanir.
             bool far = _target != null &&
                        (_target.GroundPosition - _transform.position).sqrMagnitude >
-                       _config.AnimatorCullDistanceMeters * _config.AnimatorCullDistanceMeters;
+                       _config.BudgetAnimatorCullDistanceMeters * _config.BudgetAnimatorCullDistanceMeters;
 
             if (far) interval *= 4f;
             ApplyAnimatorCulling(far);
@@ -266,7 +267,7 @@ namespace Bunker.AI
             }
 
             _repathTimer += thinkDelta;
-            if (_repathTimer < _config.RepathIntervalSeconds) return;
+            if (_repathTimer < _config.NavigationRepathIntervalSeconds) return;
             _repathTimer = 0f;
 
             Vector3 destination = _brain.MoveIntent switch
@@ -313,7 +314,7 @@ namespace Bunker.AI
             if (_window == null) return;
 
             _vaultTimer += dt;
-            float t = _config.VaultSeconds <= 0f ? 1f : Mathf.Clamp01(_vaultTimer / _config.VaultSeconds);
+            float t = _config.WindowEntryVaultSeconds <= 0f ? 1f : Mathf.Clamp01(_vaultTimer / _config.WindowEntryVaultSeconds);
 
             // Ikinci dereceden Bezier: disaridan pencere esigine, oradan iceriye.
             // Duz cizgi zombinin duvarin icinden gecmesi demek olurdu.

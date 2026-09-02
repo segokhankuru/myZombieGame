@@ -1,4 +1,5 @@
 using System;
+using Bunker.Systems.Config;
 
 namespace Bunker.Systems.Economy
 {
@@ -91,7 +92,7 @@ namespace Bunker.Systems.Economy
         {
             if (SpendablePoints <= 0) return 0;
 
-            float fraction = _config.DownedSpendableFraction;
+            float fraction = _config.PenaltyDownedSpendableFraction;
             if (fraction <= 0f) return 0;
             if (fraction > 1f) fraction = 1f;
 

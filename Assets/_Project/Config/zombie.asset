@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03903ef60bfd0444694626f88d81934e, type: 3}
+  m_Name: zombie
+  m_EditorClassIdentifier: Bunker.Config::Bunker.Config.ZombieConfigAsset
+  version: 1
+  spawnEmergeDelaySeconds: 0.6
+  windowEntryTriggerDistanceMeters: 1.8
+  windowEntryVaultSeconds: 1.4
+  attackRangeMeters: 1.6
+  attackRangeToleranceMeters: 0.6
+  attackWindupSeconds: 0.55
+  attackRecoverySeconds: 0.9
+  attackDamage: 30
+  navigationRepathIntervalSeconds: 0.35
+  navigationStuckSpeedMetersPerSecond: 0.15
+  navigationStuckAfterSeconds: 1.5
+  navigationStuckRecoverySeconds: 0.6
+  budgetThinkHz: 8
+  budgetAnimatorCullDistanceMeters: 15

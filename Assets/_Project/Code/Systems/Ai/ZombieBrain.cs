@@ -1,4 +1,5 @@
 using System;
+using Bunker.Systems.Config;
 
 namespace Bunker.Systems.Ai
 {
@@ -102,15 +103,15 @@ namespace Bunker.Systems.Ai
 
         /// <summary>Telegrafın tamamlanma oranı (0..1). Görsel/işitsel geri bildirim için.</summary>
         public float WindupProgress01 =>
-            State != ZombieState.WindingUp || _config.WindupSeconds <= 0f
+            State != ZombieState.WindingUp || _config.AttackWindupSeconds <= 0f
                 ? 0f
-                : Clamp01(StateTimeSeconds / _config.WindupSeconds);
+                : Clamp01(StateTimeSeconds / _config.AttackWindupSeconds);
 
         /// <summary>Tırmanışın tamamlanma oranı (0..1). Motor tarafı konumu buna göre sürer.</summary>
         public float VaultProgress01 =>
-            State != ZombieState.Vaulting || _config.VaultSeconds <= 0f
+            State != ZombieState.Vaulting || _config.WindowEntryVaultSeconds <= 0f
                 ? 0f
-                : Clamp01(StateTimeSeconds / _config.VaultSeconds);
+                : Clamp01(StateTimeSeconds / _config.WindowEntryVaultSeconds);
 
         public bool IsAlive => State != ZombieState.Dead;
 
@@ -169,7 +170,7 @@ namespace Bunker.Systems.Ai
             switch (State)
             {
                 case ZombieState.Emerging:
-                    if (StateTimeSeconds >= _config.EmergeDelaySeconds)
+                    if (StateTimeSeconds >= _config.SpawnEmergeDelaySeconds)
                     {
                         Enter(senses.NeedsWindowEntry
                             ? ZombieState.ApproachingWindow
@@ -184,7 +185,7 @@ namespace Bunker.Systems.Ai
                     {
                         Enter(ZombieState.Chasing);
                     }
-                    else if (senses.DistanceToWindowMeters <= _config.WindowTriggerDistanceMeters)
+                    else if (senses.DistanceToWindowMeters <= _config.WindowEntryTriggerDistanceMeters)
                     {
                         Enter(ZombieState.Vaulting);
                     }
@@ -195,7 +196,7 @@ namespace Bunker.Systems.Ai
                     break;
 
                 case ZombieState.Vaulting:
-                    if (StateTimeSeconds >= _config.VaultSeconds) Enter(ZombieState.Chasing);
+                    if (StateTimeSeconds >= _config.WindowEntryVaultSeconds) Enter(ZombieState.Chasing);
                     break;
 
                 case ZombieState.Chasing:
@@ -210,7 +211,7 @@ namespace Bunker.Systems.Ai
                     break;
 
                 case ZombieState.WindingUp:
-                    if (StateTimeSeconds < _config.WindupSeconds) break;
+                    if (StateTimeSeconds < _config.AttackWindupSeconds) break;
 
                     // Telegrafin bedeli: oyuncu geri cekildiyse vurus iskalar.
                     bool inReach = senses.HasTarget &&
@@ -236,13 +237,13 @@ namespace Bunker.Systems.Ai
                     break;
 
                 case ZombieState.Recovering:
-                    if (StateTimeSeconds >= _config.RecoverySeconds) Enter(ZombieState.Chasing);
+                    if (StateTimeSeconds >= _config.AttackRecoverySeconds) Enter(ZombieState.Chasing);
                     break;
 
                 case ZombieState.Stuck:
                     // Kurtarma hareketini motor tarafi yapar (yeniden yol, warp).
                     // Beyin yalnizca ne kadar surecegini soyler.
-                    if (StateTimeSeconds >= _config.StuckRecoverySeconds)
+                    if (StateTimeSeconds >= _config.NavigationStuckRecoverySeconds)
                     {
                         _stuckTimerSeconds = 0f;
                         Enter(ZombieState.Chasing);
@@ -258,14 +259,14 @@ namespace Bunker.Systems.Ai
         /// </summary>
         private void TickStuck(float deltaTime, in ZombieSenses senses)
         {
-            if (senses.ActualSpeedMetersPerSecond > _config.StuckSpeedMetersPerSecond)
+            if (senses.ActualSpeedMetersPerSecond > _config.NavigationStuckSpeedMetersPerSecond)
             {
                 _stuckTimerSeconds = 0f;
                 return;
             }
 
             _stuckTimerSeconds += deltaTime;
-            if (_stuckTimerSeconds < _config.StuckAfterSeconds) return;
+            if (_stuckTimerSeconds < _config.NavigationStuckAfterSeconds) return;
 
             _stuckTimerSeconds = 0f;
             Enter(ZombieState.Stuck);

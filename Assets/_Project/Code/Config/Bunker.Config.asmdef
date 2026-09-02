@@ -1,17 +1,10 @@
 {
-    "name": "Bunker.Editor",
-    "rootNamespace": "Bunker.Editor",
+    "name": "Bunker.Config",
+    "rootNamespace": "Bunker.Config",
     "references": [
-        "Bunker.Systems",
-        "Bunker.Config",
-        "Bunker.Gameplay",
-        "Bunker.Net",
-        "Bunker.AI",
-        "Bunker.UI"
+        "Bunker.Systems"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

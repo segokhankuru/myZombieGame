@@ -1,4 +1,5 @@
-# Mimari
+| **Bunker.Config** | var | yok | `config/schema` ve `config/balance` dosyalarindan URETILEN ScriptableObject siniflari. Elle kod yazilmaz; herkes bagimli olabilir, kendisi yalnizca `Bunker.Systems`e bagimlidir (ADR-0005) |
+| Bunker.Gameplay | var | (eklenecek) |# Mimari
 
 **Sahibi:** unity-architect · **Son güncelleme:** 2026-08-29
 **Kod adı:** Bunker · **Durum:** Unity 6000.3.23f1 bağlandı, derleme temiz
@@ -26,6 +27,7 @@ Ve en önemlisi: `Bunker.Systems` derleyici tarafından Unity'ye kapatıldığı
 ```
 Assets/_Project/Code/
   Systems/   Bunker.Systems         saf C#, noEngineReferences: true
+  Config/    Bunker.Config          uretilen ScriptableObject ayar siniflari
   Gameplay/  Bunker.Gameplay        MonoBehaviour, Systems'i cagirir
   Net/       Bunker.Net             Mirror, Systems'i cagirir
   AI/        Bunker.AI              NavMesh, zombi davranisi
@@ -37,6 +39,7 @@ Assets/_Project/Code/
 | Assembly | Unity'ye erişimi | Mirror'a erişimi | Neyi barındırır |
 |---|---|---|---|
 | **Bunker.Systems** | **yok** | **yok** | Tur ölçekleme, ekonomi, kart havuzu ve draft mantığı, hasar hesabı (SYS-02 §3), drop tablosu, silah alışkanlık eşikleri, sicil metrikleri |
+| **Bunker.Config** | var | yok | `config/schema` ve `config/balance` dosyalarından **üretilen** ScriptableObject ayar sınıfları. Elle kod yazılmaz. Herkes ona bağımlı olabilir; kendisi yalnızca `Bunker.Systems`'e bağımlıdır (ADR-0005) |
 | Bunker.Gameplay | var | (eklenecek) | Oyuncu, silah davranışı, barikat, kapı, tuzak |
 | Bunker.Net | var | (eklenecek) | Host otoritesi, zombi toplu snapshot, lag compensation, RPC yüzeyi |
 | Bunker.AI | var | yok | NavMesh agent'ları, zombi durum makinesi |

@@ -1,4 +1,5 @@
 using Bunker.Systems.Rounds;
+using Bunker.Systems.Config;
 using NUnit.Framework;
 
 namespace Bunker.Systems.Tests
@@ -13,14 +14,14 @@ namespace Bunker.Systems.Tests
     /// </summary>
     public sealed class RoundScalingTests
     {
-        private static RoundScaling Default() => new RoundScaling(new RoundConfig());
+        private static RoundScaling Default() => new RoundScaling(new RoundsConfig());
 
         // ---------------------------------------------------------------- zombi sayisi
 
         [Test]
         public void TurBir_OyuncuBasinaYapilandirilanSayi()
         {
-            var scaling = new RoundScaling(new RoundConfig(perPlayerAtRoundOne: 6f));
+            var scaling = new RoundScaling(new RoundsConfig(countPerPlayerAtRoundOne: 6f));
 
             Assert.AreEqual(6, scaling.TotalZombiesForRound(1, 1));
             Assert.AreEqual(24, scaling.TotalZombiesForRound(1, 4));
@@ -78,7 +79,7 @@ namespace Bunker.Systems.Tests
         {
             // Tavan bir performans siniri; turun toplam sayisini kisitlamaz,
             // yalnizca ayni anda kacinin canli olacagini belirler.
-            var scaling = new RoundScaling(new RoundConfig(maxConcurrent: 40));
+            var scaling = new RoundScaling(new RoundsConfig(countMaxConcurrent: 40));
 
             Assert.Greater(scaling.TotalZombiesForRound(30, 4), 40,
                 "Gec turda toplam sayi tavandan buyuk olmali; fazlasi sirada bekler.");
@@ -104,7 +105,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void Can_TavaniAsmaz()
         {
-            var scaling = new RoundScaling(new RoundConfig(healthCap: 5000f));
+            var scaling = new RoundScaling(new RoundsConfig(healthCap: 5000f));
 
             Assert.AreEqual(5000f, scaling.HealthForRound(200), 0.01f,
                 "Yeterince yuksek turda can tavanda sabitlenmeli.");
@@ -113,7 +114,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void Can_TavanOlmadanUstelBuyur_AmaTavanlaDurur()
         {
-            var withCap = new RoundScaling(new RoundConfig(healthCap: 2000f));
+            var withCap = new RoundScaling(new RoundsConfig(healthCap: 2000f));
 
             // Tavana ulasildiktan sonra iki ardisik tur ayni degeri vermeli.
             Assert.AreEqual(withCap.HealthForRound(40), withCap.HealthForRound(41), 0.01f);
@@ -124,7 +125,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void HizKademeleri_YapilandirilanTurlardaDegisir()
         {
-            var scaling = new RoundScaling(new RoundConfig(walkUntilRound: 4, jogUntilRound: 8));
+            var scaling = new RoundScaling(new RoundsConfig(speedWalkUntilRound: 4, speedJogUntilRound: 8));
 
             Assert.AreEqual(ZombieSpeedTier.Walk, scaling.SpeedTierForRound(1));
             Assert.AreEqual(ZombieSpeedTier.Walk, scaling.SpeedTierForRound(4));
@@ -148,7 +149,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void DogumAraligi_TabaninAltinaInmez()
         {
-            var scaling = new RoundScaling(new RoundConfig(spawnIntervalFloorSeconds: 0.25f));
+            var scaling = new RoundScaling(new RoundsConfig(pacingSpawnIntervalFloorSeconds: 0.25f));
 
             Assert.AreEqual(0.25f, scaling.SpawnIntervalForRound(50), 0.0001f,
                 "Gec turda aralik tabana oturmali; yoksa sürü aynı anda belirir.");

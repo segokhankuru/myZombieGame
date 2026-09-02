@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d27346ced8afa84e9897f29a8032a65, type: 3}
+  m_Name: rounds
+  m_EditorClassIdentifier: Bunker.Config::Bunker.Config.RoundsConfigAsset
+  version: 1
+  countPerPlayerAtRoundOne: 6
+  countLinearAddPerPlayerPerRound: 1.5
+  countLinearPhaseUntilRound: 9
+  countGrowthMultiplierAfterLinear: 1.1
+  countMaxConcurrent: 40
+  healthAtRoundOne: 150
+  healthLinearAddPerRound: 100
+  healthLinearPhaseUntilRound: 9
+  healthGrowthMultiplierAfterLinear: 1.1
+  healthCap: 25000
+  speedWalkMetersPerSecond: 1.4
+  speedJogMetersPerSecond: 2.9
+  speedRunMetersPerSecond: 4.6
+  speedWalkUntilRound: 4
+  speedJogUntilRound: 8
+  pacingBreatherSeconds: 10
+  pacingSpawnIntervalSecondsAtRoundOne: 2
+  pacingSpawnIntervalFloorSeconds: 0.25

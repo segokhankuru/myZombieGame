@@ -294,6 +294,26 @@ namespace Bunker.Editor
 
             ZombieAgent agent = zombiePrefab != null ? zombiePrefab.GetComponent<ZombieAgent>() : null;
             SetPrivateField(sandbox, "zombiePrefab", agent);
+
+            // Ayarlar enjekte edilir, statikten cekilmez (config-protocol.md). Varlik
+            // yoksa uyari: sessiz varsayilanla calisan bir tezgah, yanlis sayilarla
+            // yapilmis bir oyun testi demektir.
+            SetPrivateField(sandbox, "roundsConfig", LoadConfigAsset("rounds"));
+            SetPrivateField(sandbox, "zombieConfig", LoadConfigAsset("zombie"));
+        }
+
+        private static UnityEngine.Object LoadConfigAsset(string domain)
+        {
+            string path = $"Assets/_Project/Config/{domain}.asset";
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+
+            if (asset == null)
+            {
+                Debug.LogWarning($"[Zombi] Config varligi yok: {path}. " +
+                                 "'Bunker/Config/Ice Aktar' calistirilmali.");
+            }
+
+            return asset;
         }
 
         /// <summary>

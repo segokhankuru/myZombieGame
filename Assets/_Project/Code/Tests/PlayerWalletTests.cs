@@ -1,5 +1,6 @@
 using System;
 using Bunker.Systems.Economy;
+using Bunker.Systems.Config;
 using NUnit.Framework;
 
 namespace Bunker.Systems.Tests
@@ -34,8 +35,8 @@ namespace Bunker.Systems.Tests
         public void OlayTurleri_YapilandirilanDegerleriVerir()
         {
             var config = new EconomyConfig(
-                hit: 10, bodyKill: 60, headshotKill: 100,
-                meleeKill: 130, barricadeBoardRepair: 10);
+                awardsHit: 10, awardsBodyKill: 60, awardsHeadshotKill: 100,
+                awardsMeleeKill: 130, awardsBarricadeBoardRepair: 10);
             var wallet = new PlayerWallet(config);
 
             Assert.AreEqual(10, wallet.Award(PointEvent.Hit));
@@ -53,9 +54,9 @@ namespace Bunker.Systems.Tests
             // ve mermi harcamayan yontem. Ucuzlarsa erken tur ekonomisi coker.
             var config = new EconomyConfig();
 
-            Assert.Greater(config.MeleeKill, config.HeadshotKill);
-            Assert.Greater(config.HeadshotKill, config.BodyKill);
-            Assert.Greater(config.BodyKill, config.Hit);
+            Assert.Greater(config.AwardsMeleeKill, config.AwardsHeadshotKill);
+            Assert.Greater(config.AwardsHeadshotKill, config.AwardsBodyKill);
+            Assert.Greater(config.AwardsBodyKill, config.AwardsHit);
         }
 
         [Test]
@@ -133,7 +134,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void DusmeCezasi_BakiyeyiYariyaIndirir_SkoruBirakmaz()
         {
-            var wallet = new PlayerWallet(new EconomyConfig(downedSpendableFraction: 0.5f));
+            var wallet = new PlayerWallet(new EconomyConfig(penaltyDownedSpendableFraction: 0.5f));
             wallet.Award(PointEvent.BodyKill, 10);   // 600
 
             int lost = wallet.ApplyDownedPenalty();
@@ -155,7 +156,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void DusmeCezasi_AsagiYuvarlar()
         {
-            var wallet = new PlayerWallet(new EconomyConfig(downedSpendableFraction: 0.5f), 101);
+            var wallet = new PlayerWallet(new EconomyConfig(penaltyDownedSpendableFraction: 0.5f), 101);
 
             int lost = wallet.ApplyDownedPenalty();
 
@@ -166,7 +167,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void DusmeCezasi_SifirOran_HicbirSeyAlmaz()
         {
-            var wallet = new PlayerWallet(new EconomyConfig(downedSpendableFraction: 0f), 500);
+            var wallet = new PlayerWallet(new EconomyConfig(penaltyDownedSpendableFraction: 0f), 500);
 
             Assert.AreEqual(0, wallet.ApplyDownedPenalty());
             Assert.AreEqual(500, wallet.SpendablePoints);
@@ -175,7 +176,7 @@ namespace Bunker.Systems.Tests
         [Test]
         public void DusmeCezasi_TekrarUygulanabilir()
         {
-            var wallet = new PlayerWallet(new EconomyConfig(downedSpendableFraction: 0.5f), 800);
+            var wallet = new PlayerWallet(new EconomyConfig(penaltyDownedSpendableFraction: 0.5f), 800);
 
             wallet.ApplyDownedPenalty();   // 400
             wallet.ApplyDownedPenalty();   // 200
@@ -204,7 +205,7 @@ namespace Bunker.Systems.Tests
         {
             // Uzun bir run'da sessizce negatife donen bir skor, bulunmasi en zor
             // hata turudur. Tavan davranisi acikca test ediliyor.
-            var wallet = new PlayerWallet(new EconomyConfig(bodyKill: int.MaxValue / 2));
+            var wallet = new PlayerWallet(new EconomyConfig(awardsBodyKill: int.MaxValue / 2));
 
             wallet.Award(PointEvent.BodyKill);
             wallet.Award(PointEvent.BodyKill);
