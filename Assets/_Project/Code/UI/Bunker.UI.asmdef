@@ -3,7 +3,10 @@
     "rootNamespace": "Bunker.UI",
     "references": [
         "Bunker.Systems",
-        "Unity.InputSystem"
+        "Bunker.Gameplay",
+        "Bunker.Config",
+        "Unity.InputSystem",
+        "Mirror"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

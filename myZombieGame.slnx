@@ -13,12 +13,12 @@
   <Project Path="Mirror.Authenticators.csproj" />
   <Project Path="Mirror.Transports.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
+  <Project Path="Bunker.Gameplay.csproj" />
   <Project Path="Bunker.Config.csproj" />
   <Project Path="Telepathy.csproj" />
   <Project Path="Bunker.Net.csproj" />
   <Project Path="Bunker.Systems.Tests.csproj" />
-  <Project Path="Bunker.Gameplay.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Bunker.UI.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

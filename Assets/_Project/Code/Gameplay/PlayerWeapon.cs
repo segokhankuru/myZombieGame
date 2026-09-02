@@ -1,0 +1,304 @@
+using System;
+using Bunker.Config;
+using Bunker.Systems.Combat;
+using Bunker.Systems.Config;
+using Mirror;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace Bunker.Gameplay
+{
+    /// <summary>
+    /// Başlangıç silahı: hitscan, şarjör, dolum, geri tepme, isabet geri bildirimi.
+    /// M1-06 — bu milestone'un en kritik işi.
+    ///
+    /// <para><b>Girdi aynı karede karşılanır.</b> Tetiğe basıldığı an geri tepme,
+    /// iz ve mermi sayacı yereldeki oyuncuda hemen olur; host'un onayı beklenmez.
+    /// Beklemek, tek kişilik oyunda bile hissedilen bir gecikme üretir ve oyunun ölü
+    /// hissetmesinin en yaygın sebebidir (gameplay-code.md, 60 ms hedefi).</para>
+    ///
+    /// <para><b>Hasar host'ta uygulanır</b> (ADR-0004). İstemci "şuraya nişan aldım"
+    /// der; kimin öldüğüne host karar verir. İstemcinin gönderdiği yön ve konum
+    /// doğrulanır: atış hızı sunucu tarafında ayrıca sayılır, çünkü <b>her RPC bir güven
+    /// sınırıdır</b> (netcode.md) ve döngüde çağrılabilen her şey hız sınırlı olmalıdır.</para>
+    ///
+    /// <para><b>Sayıların hiçbiri burada değil.</b> Hepsi
+    /// <c>config/balance/weapon.json</c>'dan geliyor; bu dosyada bir denge sabiti
+    /// bulursan o bir defadır (config-data.md).</para>
+    /// </summary>
+    [AddComponentMenu("Bunker/Player Weapon")]
+    public sealed class PlayerWeapon : NetworkBehaviour
+    {
+        [Header("Ayar")]
+        [Tooltip("config/balance/weapon.json'dan uretilen varlik.")]
+        [SerializeField] private WeaponConfigAsset weaponConfig;
+
+        [Header("Referanslar")]
+        [SerializeField] private PlayerController controller;
+        [SerializeField] private Camera playerCamera;
+
+        [Tooltip("Merminin ciktigi nokta. Bos birakilirsa kamera kullanilir - gri " +
+                 "kutuda dogru olan da budur, cunku silah modeli yok.")]
+        [SerializeField] private Transform muzzle;
+
+        [Header("Gri kutu geri bildirimi")]
+        [Tooltip("Mermi izi cizgisi. Sanat gelene kadar atisin nereye gittigini " +
+                 "gosteren tek sey bu.")]
+        [SerializeField] private LineRenderer tracer;
+
+        private WeaponConfig _config;
+        private WeaponState _state;
+
+        // Sunucunun kendi kopyasi: istemcinin soyledigi degil, sunucunun saydigi
+        // gecerlidir. Istemci otoritesi burada BITER.
+        private WeaponState _serverState;
+
+        private float _tracerRemaining;
+        private float _hitMarkerRemaining;
+        private bool _lastShotWasHeadshot;
+
+        // Isin tamponu bir kez ayrilir: kare basina tahsis yasak (csharp-code.md).
+        private static readonly RaycastHit[] HitBuffer = new RaycastHit[8];
+
+        /// <summary>Bir isabet onaylandı (kafa mı, öldürdü mü). HUD buna bağlanır.</summary>
+        public event Action<bool, bool> HitConfirmed;
+
+        /// <summary>Bir zombi öldürüldü — ekonomi buna bağlanır.</summary>
+        public event Action<DamageKind, bool> KillConfirmed;
+
+        public int RoundsInMagazine => _state?.RoundsInMagazine ?? 0;
+        public int Reserve => _state?.Reserve ?? 0;
+        public int MagazineCapacity => _state?.MagazineCapacity ?? 0;
+        public bool IsReloading => _state?.IsReloading ?? false;
+        public float ReloadProgress01 => _state?.ReloadProgress01 ?? 0f;
+
+        /// <summary>İsabet işaretinin kalan süresi (0 = gösterme).</summary>
+        public float HitMarkerRemaining => _hitMarkerRemaining;
+
+        public bool LastHitWasHeadshot => _lastShotWasHeadshot;
+
+        // ---------------------------------------------------------------- kurulum
+
+        private void Awake()
+        {
+            if (controller == null) controller = GetComponent<PlayerController>();
+            if (playerCamera == null) playerCamera = GetComponentInChildren<Camera>(true);
+
+            if (weaponConfig == null)
+            {
+                // Eksik ayar sessiz varsayilanla gecistirilmez (config-protocol.md).
+                Debug.LogError("[Silah] weapon.asset atanmamis. 'Bunker/Config/Ice Aktar' " +
+                               "ile uret, 'Bunker/Zombi/Test Alanini Kur' ile bagla.", this);
+                enabled = false;
+                return;
+            }
+
+            _config = weaponConfig.ToRuntime();
+            _state = new WeaponState(_config);
+            _serverState = new WeaponState(_config);
+
+            // Geri tepmenin toparlanmasi kameranin sahibinde yasar ama sayisi silahin
+            // ayarindan gelir - tek kaynak.
+            if (controller != null)
+            {
+                controller.ConfigureRecoilRecovery(
+                    _config.RecoilRecoverySpeedDegreesPerSecond, _config.RecoilMaxPitchDegrees);
+            }
+
+            if (tracer != null) tracer.enabled = false;
+        }
+
+        // ---------------------------------------------------------------- kare dongusu
+
+        private void Update()
+        {
+            if (_state == null) return;
+
+            float dt = Time.deltaTime;
+
+            _state.Tick(dt);
+            if (isServer) _serverState.Tick(dt);
+
+            TickFeedback(dt);
+
+            // Yalnizca yerel oyuncu kendi silahini surer.
+            if (!isLocalPlayer) return;
+
+            ReadInput();
+        }
+
+        private void ReadInput()
+        {
+            Mouse mouse = Mouse.current;
+            Keyboard keyboard = Keyboard.current;
+
+            if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
+            {
+                _state.TryStartReload();
+            }
+
+            if (mouse == null) return;
+
+            // Yari otomatik his: basili tutmak degil, her basis bir atis. Otomatik
+            // ates silah cesitliligiyle (SYS-03) gelecek.
+            bool pressed = mouse.leftButton.wasPressedThisFrame;
+            if (!pressed && _state.Phase != WeaponPhase.Ready) return;
+
+            FireResult result = _state.TryFire(pressed);
+
+            switch (result)
+            {
+                case FireResult.Fired:
+                    FireLocally();
+                    break;
+
+                case FireResult.Empty:
+                    // Bos sarjorde tetige basmak dolum baslatir. Oyuncunun ayrica
+                    // R'ye basmasini beklemek, sürünün icinde ceza gibi hissettirir.
+                    _state.TryStartReload();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Yerel geri bildirim: geri tepme, iz, sayaç. <b>Host'un onayı beklenmez.</b>
+        /// </summary>
+        private void FireLocally()
+        {
+            Transform origin = muzzle != null ? muzzle : playerCamera.transform;
+            Vector3 direction = ApplySpread(playerCamera.transform.forward);
+
+            // Geri tepme atisin ayni karesinde. Bir kare sonrasi bile "gecikmis"
+            // hissettirir.
+            if (controller != null)
+            {
+                float yaw = UnityEngine.Random.Range(-1f, 1f) * _config.RecoilYawDegreesPerShot;
+                controller.AddRecoil(_config.RecoilPitchDegreesPerShot, yaw);
+            }
+
+            Vector3 endPoint = origin.position + direction * _config.FireRangeMeters;
+
+            // Yerel isin YALNIZCA gorsel icindir - hasari host uygular. Iki taraf
+            // farkli sonuc bulursa gecerli olan host'unkidir.
+            if (Physics.Raycast(origin.position, direction, out RaycastHit hit, _config.FireRangeMeters))
+            {
+                endPoint = hit.point;
+            }
+
+            ShowTracer(origin.position, endPoint);
+
+            CmdFire(origin.position, direction);
+        }
+
+        private Vector3 ApplySpread(Vector3 forward)
+        {
+            if (_config.FireSpreadDegrees <= 0f) return forward;
+
+            // Koni icinde rastgele sapma. Determinizm gerekmiyor: atis tekrar
+            // oynatilmiyor ve kaydedilmiyor (csharp-code.md'nin seed kurali
+            // tekrarlanabilir seyler icindir).
+            float radius = Mathf.Tan(_config.FireSpreadDegrees * Mathf.Deg2Rad);
+            Vector2 offset = UnityEngine.Random.insideUnitCircle * radius;
+
+            Transform cam = playerCamera.transform;
+            return (forward + cam.right * offset.x + cam.up * offset.y).normalized;
+        }
+
+        // ---------------------------------------------------------------- otorite
+
+        /// <summary>
+        /// Hasarın uygulandığı tek yer. <b>Her RPC bir güven sınırıdır</b> (netcode.md):
+        /// atış hızı sunucuda ayrıca sayılır, böylece istemci döngüde çağırarak
+        /// sınırsız hasar üretemez.
+        /// </summary>
+        [Command]
+        private void CmdFire(Vector3 origin, Vector3 direction, NetworkConnectionToClient sender = null)
+        {
+            // Hiz siniri: istemcinin ne dedigi degil, sunucunun saydigi gecerli.
+            if (_serverState.TryFire(true) != FireResult.Fired) return;
+
+            if (direction.sqrMagnitude < 0.001f) return;
+            direction.Normalize();
+
+            // Konum dogrulamasi: istemci kendi konumu uzerinde otorite sahibidir
+            // (ADR-0004) ama silahin oyuncudan kopmasina izin verilmez.
+            const float maxOriginDriftMeters = 3f;
+            if ((origin - transform.position).sqrMagnitude >
+                maxOriginDriftMeters * maxOriginDriftMeters)
+            {
+                return;
+            }
+
+            int count = Physics.RaycastNonAlloc(
+                new Ray(origin, direction), HitBuffer, _config.FireRangeMeters);
+
+            if (count == 0) return;
+
+            int nearest = -1;
+            float nearestDistance = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (HitBuffer[i].distance >= nearestDistance) continue;
+                nearestDistance = HitBuffer[i].distance;
+                nearest = i;
+            }
+
+            if (nearest < 0) return;
+
+            // Isabet eden sey ne oldugunu KENDISI soyler: silah kafa kutusunu bilmez,
+            // katman testi yapmaz. Bilmediginde yeni bir hedef tipi eklemek silahi
+            // degistirmeyi gerektirmez.
+            var target = HitBuffer[nearest].collider.GetComponent<IDamageable>();
+            if (target == null || !target.IsAlive) return;
+
+            // Vurulan sey kafa kutusu olup olmadigini KENDISI soyler - hasar
+            // uygulanmadan once. Once taban hasari gonderip sonra carpani ikinci bir
+            // uygulamayla eklemek, tek atistan iki hasar olayi uretirdi; can havuzu
+            // olumu bir kez bildirdigi icin de ikincisi sessizce yutulurdu.
+            bool headshot = target.CountsAsHeadshot;
+
+            DamageResult result = target.ApplyDamage(
+                new DamageInfo(_serverState.DamageFor(headshot), DamageKind.Bullet, headshot));
+
+            TargetReportHit(sender, headshot, result.Killed);
+
+            if (result.Killed) KillConfirmed?.Invoke(DamageKind.Bullet, headshot);
+        }
+
+        /// <summary>
+        /// Sonucu <b>yalnızca atan oyuncuya</b> bildirir. İsabet geri bildirimi kişisel
+        /// bir bilgidir; herkese yayınlamak hem bant genişliği hem gürültüdür.
+        /// </summary>
+        [TargetRpc]
+        private void TargetReportHit(NetworkConnection target, bool headshot, bool killed)
+        {
+            _hitMarkerRemaining = _config.FeelHitMarkerSeconds;
+            _lastShotWasHeadshot = headshot;
+            HitConfirmed?.Invoke(headshot, killed);
+        }
+
+        // ---------------------------------------------------------------- geri bildirim
+
+        private void ShowTracer(Vector3 from, Vector3 to)
+        {
+            if (tracer == null) return;
+
+            tracer.SetPosition(0, from);
+            tracer.SetPosition(1, to);
+            tracer.enabled = true;
+            _tracerRemaining = _config.FeelTracerSeconds;
+        }
+
+        private void TickFeedback(float dt)
+        {
+            if (_tracerRemaining > 0f)
+            {
+                _tracerRemaining -= dt;
+                if (_tracerRemaining <= 0f && tracer != null) tracer.enabled = false;
+            }
+
+            if (_hitMarkerRemaining > 0f) _hitMarkerRemaining -= dt;
+        }
+    }
+}

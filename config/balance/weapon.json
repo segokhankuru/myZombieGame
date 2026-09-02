@@ -1,0 +1,39 @@
+{
+  "$schema": "../schema/weapon.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-silah",
+    "lastTuned": "2026-09-02"
+  },
+
+  "_note": "M1-06 baslangic silahi: tabanca sinifi, yari otomatik his. Tur 1 zombisi 150 can, yani 3 govde ya da 2 kafa vurusu. Hicbiri kanit degil, hepsi hipotez - bu sayilar oynayarak ayarlanacak, okuyarak degil.",
+
+  "fire": {
+    "roundsPerMinute": 400,
+    "damage": 55,
+    "headshotMultiplier": 2.0,
+    "rangeMeters": 60,
+    "spreadDegrees": 0.6
+  },
+
+  "magazine": {
+    "capacity": 12,
+    "startingReserve": 120,
+    "reserveCapacity": 300,
+    "reloadSeconds": 1.6
+  },
+
+  "recoil": {
+    "pitchDegreesPerShot": 1.1,
+    "yawDegreesPerShot": 0.35,
+    "recoverySpeedDegreesPerSecond": 14,
+    "maxPitchDegrees": 6
+  },
+
+  "feel": {
+    "tracerSeconds": 0.05,
+    "hitMarkerSeconds": 0.12,
+    "inputBufferSeconds": 0.15
+  }
+}

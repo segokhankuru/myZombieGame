@@ -85,6 +85,9 @@ namespace Bunker.AI
 
         public ZombieState State => _brain?.State ?? ZombieState.Dead;
         public bool IsAlive => _initialized && _health.IsAlive;
+
+        /// <summary>Govde. Kafa kutusu ayri bir bilesendir (ZombieHitbox).</summary>
+        public bool CountsAsHeadshot => false;
         public float HealthFraction01 => _initialized ? _health.Fraction01 : 0f;
 
         // ---------------------------------------------------------------- kurulum

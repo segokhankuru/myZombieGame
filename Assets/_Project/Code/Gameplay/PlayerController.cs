@@ -41,6 +41,14 @@ namespace Bunker.Gameplay
         private float _pitchDegrees;
         private float _verticalVelocity;
 
+        // Geri tepme: nisandan AYRI tutulur ve uzerine binir (M1-06).
+        // Sifir baslar ve silah tarafindan ConfigureRecoilRecovery ile kurulur -
+        // buraya bir varsayilan yazmak, silahin ayarindan bagimsiz ikinci bir denge
+        // sayisi olurdu (config-data.md). Silah yoksa geri tepme de yoktur.
+        private float _recoilPitch;
+        private float _recoilRecoverySpeed;
+        private float _recoilMaxPitch;
+
         private void Awake()
         {
             // Referanslar bir kez cozulur; kare basina GetComponent yasak (csharp-code.md).
@@ -89,6 +97,40 @@ namespace Bunker.Gameplay
             ReadMove();
         }
 
+        /// <summary>
+        /// Silahın geri tepmesini kameraya bindirir (M1-06).
+        ///
+        /// <para><b>Neden burada:</b> dikey açı bu sınıfın durumu. Geri tepmeyi silahın
+        /// doğrudan kameraya yazması, aynı sayıyı iki yerden süren iki sahip demek
+        /// olurdu ve nişanın "kayması" tam olarak böyle doğar. Geri tepme birikir,
+        /// sonra kendiliğinden toparlanır; oyuncunun fare hareketi <b>her zaman</b> onun
+        /// üstünde çalışır.</para>
+        /// </summary>
+        public void AddRecoil(float pitchDegrees, float yawDegrees)
+        {
+            _recoilPitch += pitchDegrees;
+            _transform.Rotate(0f, yawDegrees, 0f, Space.Self);
+        }
+
+        /// <summary>Geri tepme toparlanma hızını silahın ayarından alır.</summary>
+        public void ConfigureRecoilRecovery(float degreesPerSecond, float maxPitchDegrees)
+        {
+            _recoilRecoverySpeed = degreesPerSecond;
+            _recoilMaxPitch = maxPitchDegrees;
+        }
+
+        private void TickRecoilRecovery(float dt)
+        {
+            if (_recoilMaxPitch > 0f && _recoilPitch > _recoilMaxPitch)
+            {
+                _recoilPitch = _recoilMaxPitch;
+            }
+
+            if (_recoilPitch <= 0f) return;
+
+            _recoilPitch = Mathf.Max(0f, _recoilPitch - _recoilRecoverySpeed * dt);
+        }
+
         private void ReadLook()
         {
             Mouse mouse = Mouse.current;
@@ -101,9 +143,17 @@ namespace Bunker.Gameplay
             _transform.Rotate(0f, delta.x, 0f, Space.Self);
 
             _pitchDegrees = Mathf.Clamp(_pitchDegrees - delta.y, -maxPitchDegrees, maxPitchDegrees);
+
+            TickRecoilRecovery(Time.deltaTime);
+
             if (playerCamera != null)
             {
-                playerCamera.transform.localRotation = Quaternion.Euler(_pitchDegrees, 0f, 0f);
+                // Geri tepme nisanin USTUNE binir, onun yerine gecmez: oyuncu geri
+                // tepmeyi asagi cekerek bastirabilmeli, yoksa silah oyuncuyla degil
+                // oyuncuya karsi calisir.
+                float pitch = Mathf.Clamp(_pitchDegrees - _recoilPitch,
+                                          -maxPitchDegrees, maxPitchDegrees);
+                playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
             }
         }
 

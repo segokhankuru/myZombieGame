@@ -32,6 +32,9 @@ namespace Bunker.AI
         public float Max => referenceMaxHealth;
         public bool IsAlive => _pool == null || _pool.IsAlive;
 
+        /// <summary>Oyuncuda kafa vuruşu yok — zombiler telegrafı olan tek bir vuruş yapar.</summary>
+        public bool CountsAsHeadshot => false;
+
         private void Awake() => _pool = new HealthPool(referenceMaxHealth);
 
         public DamageResult ApplyDamage(in DamageInfo damage)

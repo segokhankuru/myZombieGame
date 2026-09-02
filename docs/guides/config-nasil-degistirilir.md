@@ -48,6 +48,12 @@ Sırayı bozma, çünkü şema sözleşmedir:
 4. `config/balance/<alan>.json` içine değeri yaz.
 5. İçe aktar.
 
+> **Sıra önemli: şema → içe aktar → tüketici kodu.**
+> Üretilmemiş bir config sınıfına bağlanan kod projeyi derlenemez hâle getirir, ve
+> importer Unity içinde koştuğu için o noktadan sonra **importer da çalışamaz**. Kısır
+> döngüden çıkmanın yolu tüketici dosyayı geçici olarak proje dışına almaktır — bu bir
+> kez yaşandı (M1-06), tekrar yaşanmasın diye buraya yazıldı.
+
 **Bir tunable'ı asla `[SerializeField] float` olarak eklemezsin.** O alan denge
 katmanının dışında kalır, JSON'da görünmez, `/tune` ile değişmez ve bir gün başka bir
 sayıyla çelişir.

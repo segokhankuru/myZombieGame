@@ -54,6 +54,18 @@ namespace Bunker.Systems.Combat
     public interface IDamageable
     {
         bool IsAlive { get; }
+
+        /// <summary>
+        /// Buraya isabet etmek kafa vuruşu sayılır mı.
+        ///
+        /// <para><b>Hedef kendi anatomisini bilir, silah bilmez.</b> Alternatif, silahın
+        /// katman testi yapması ya da bileşen tipini tanımasıydı; ikisi de yeni bir
+        /// düşman tipi eklerken silaha dokunmayı gerektirirdi. Ayrıca çarpanın hasar
+        /// uygulanmadan <i>önce</i> bilinmesi şart: sonradan ikinci bir uygulamayla
+        /// eklemek tek atıştan iki hasar olayı üretir.</para>
+        /// </summary>
+        bool CountsAsHeadshot { get; }
+
         DamageResult ApplyDamage(in DamageInfo damage);
     }
 }

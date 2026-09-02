@@ -1,7 +1,9 @@
 using System;
 using System.Reflection;
 using Bunker.AI;
+using Bunker.Gameplay;
 using Bunker.Net;
+using Bunker.UI;
 using Mirror;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -31,6 +33,9 @@ namespace Bunker.Editor
         private const string MaterialPath = "Assets/_Project/Art/Materials/mat_zombie_greybox.mat";
         private const string SandboxObjectName = "_ZombieSandbox";
         private const string DirectorObjectName = "_ZombieDirector";
+        private const string HudObjectName = "_CombatHud";
+        private const string TracerObjectName = "Tracer";
+        private const string TracerMaterialPath = "Assets/_Project/Art/Materials/mat_tracer_greybox.mat";
 
         // ---------------------------------------------------------------- menu
 
@@ -57,6 +62,7 @@ namespace Bunker.Editor
 
             // 4) Deneme tezgahi sahnede
             InstallSandbox(zombiePrefab);
+            InstallHud();
 
             // 5) NavMesh bake - apron eklendigi icin eski bake gecersiz
             bool baked = BakeNavMesh();
@@ -269,6 +275,8 @@ namespace Bunker.Editor
                     changed = true;
                 }
 
+                changed |= PatchWeapon(contents);
+
                 if (!changed) return;
 
                 PrefabUtility.SaveAsPrefabAsset(contents, PlayerPrefabPath);
@@ -278,6 +286,80 @@ namespace Bunker.Editor
             {
                 PrefabUtility.UnloadPrefabContents(contents);
             }
+        }
+
+        /// <summary>
+        /// Oyuncuya silahı, puanı ve mermi izini ekler (M1-06). Zaten varsa dokunmaz.
+        /// </summary>
+        private static bool PatchWeapon(GameObject player)
+        {
+            bool changed = false;
+
+            var weapon = player.GetComponent<PlayerWeapon>();
+            if (weapon == null) { weapon = player.AddComponent<PlayerWeapon>(); changed = true; }
+
+            var score = player.GetComponent<PlayerScore>();
+            if (score == null) { score = player.AddComponent<PlayerScore>(); changed = true; }
+
+            // Mermi izi: gri kutuda atisin nereye gittigini gosteren tek sey.
+            Transform tracerTransform = player.transform.Find(TracerObjectName);
+            LineRenderer line;
+
+            if (tracerTransform == null)
+            {
+                var go = new GameObject(TracerObjectName);
+                go.transform.SetParent(player.transform, false);
+                line = go.AddComponent<LineRenderer>();
+                changed = true;
+            }
+            else
+            {
+                line = tracerTransform.GetComponent<LineRenderer>();
+                if (line == null) { line = tracerTransform.gameObject.AddComponent<LineRenderer>(); changed = true; }
+            }
+
+            line.positionCount = 2;
+            line.startWidth = 0.02f;
+            line.endWidth = 0.005f;
+            line.useWorldSpace = true;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.sharedMaterial = LoadOrCreateTracerMaterial();
+            line.enabled = false;
+
+            SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
+            SetPrivateField(weapon, "tracer", line);
+            SetPrivateField(score, "economyConfig", LoadConfigAsset("economy"));
+            SetPrivateField(score, "weapon", weapon);
+
+            return changed;
+        }
+
+        private static Material LoadOrCreateTracerMaterial()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(TracerMaterialPath);
+            if (existing != null) return existing;
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            var material = new Material(shader) { name = "mat_tracer_greybox" };
+            material.SetColor("_BaseColor", new Color(1f, 0.85f, 0.4f));
+
+            AssetDatabase.CreateAsset(material, TracerMaterialPath);
+            return material;
+        }
+
+        /// <summary>Savaş HUD'unu sahneye koyar (nişangâh, isabet işareti, şarjör, puan).</summary>
+        private static void InstallHud()
+        {
+            GameObject host = GameObject.Find(HudObjectName);
+
+            if (host == null)
+            {
+                host = new GameObject(HudObjectName);
+                Undo.RegisterCreatedObjectUndo(host, "Savas HUD");
+            }
+
+            if (host.GetComponent<CombatHud>() == null) host.AddComponent<CombatHud>();
         }
 
         // ---------------------------------------------------------------- sahne

@@ -25,6 +25,9 @@ namespace Bunker.AI
         public ZombieAgent Owner => owner;
         public bool IsAlive => owner != null && owner.IsAlive;
 
+        /// <summary>Kutu kendi anatomisini bilir; silah bilmez.</summary>
+        public bool CountsAsHeadshot => head;
+
         private void Awake()
         {
             if (owner == null) owner = GetComponentInParent<ZombieAgent>();

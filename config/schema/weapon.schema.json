@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/weapon",
+  "title": "Baslangic silahi",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "fire", "magazine", "recoil", "feel"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "fire": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roundsPerMinute", "damage", "headshotMultiplier", "rangeMeters", "spreadDegrees"],
+      "properties": {
+        "roundsPerMinute": {
+          "type": "number", "minimum": 60, "maximum": 1200,
+          "description": "Atis hizi. Bu silahin karakterinin yarisi burada: dusuk deger her atisin agirlik tasidigi, nisan almayi odullendiren bir silah verir; yuksek deger sprey ve panik verir. Cok dusurursen surunun icinde caresiz kalinir, cok artirirsan sarjor iki saniyede biter ve dolum suresi oyunun tamami olur."
+        },
+        "damage": {
+          "type": "number", "minimum": 5, "maximum": 500,
+          "description": "Govdeye isabetin hasari. Tur 1 zombisinin cani 150; 50 demek uc govde vurusu demektir. Buyutursen erken turlar tehditsiz gecer ve oyuncu haritayi ogrenmez; kucultursen mermi ekonomisi coker ve oyuncu her turda duvar silahina mahkum olur."
+        },
+        "headshotMultiplier": {
+          "type": "number", "minimum": 1, "maximum": 5,
+          "description": "Kafa vurusu carpani. 1'e yaklasirsa nisan almanin odulu kalmaz ve oyuncu govdeye sprey yapar; cok buyurse govde vurusu anlamsizlasir ve yakin mesafede panik atisi cezalandirilir. Ekonomideki kafa vurusu puani da ayrica odullendiriyor - ikisi birlikte dusunulmeli."
+        },
+        "rangeMeters": {
+          "type": "number", "minimum": 10, "maximum": 200,
+          "description": "Isinin etkili menzili. LVL-01'in en uzun gorus hatti ~40 m; bunun altina inersen kapali bir binada bile mermiler bosa gider ve oyuncu sebebini anlayamaz."
+        },
+        "spreadDegrees": {
+          "type": "number", "minimum": 0, "maximum": 5,
+          "description": "Atis konisinin yaricapi. Sifir, her atisin tam nisan noktasina gittigi lazer gibi bir silah verir - kesin ama karaktersiz. Buyutursen yakin mesafede bile isabet sansa kalir ve oyuncu kendi hatasini goremez, ki bu adaletsiz hissettirir."
+        }
+      }
+    },
+
+    "magazine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capacity", "startingReserve", "reserveCapacity", "reloadSeconds"],
+      "properties": {
+        "capacity": {
+          "type": "integer", "minimum": 1, "maximum": 200,
+          "description": "Sarjor kapasitesi. Tur temposunu bu belirler: kac zombi oldurup dolum icin geri cekilmen gerektigi. Buyutursen dolum kararinin gerilimi kaybolur; kucultursen surekli dolum yaparsin ve oyun atis degil bekleme oyunu olur."
+        },
+        "startingReserve": {
+          "type": "integer", "minimum": 0, "maximum": 2000,
+          "description": "Baslangicta yedekteki mermi. Az verirsen oyuncu ilk turlarda mermi biriktirmeye calisir ve bicak kullanmak zorunda kalir - bu bilincli bir tasarim olabilir ama kazara olmamali."
+        },
+        "reserveCapacity": {
+          "type": "integer", "minimum": 0, "maximum": 5000,
+          "description": "Tasinabilecek en fazla yedek mermi. Tavan olmazsa gec turlarda mermi bir kaynak olmaktan cikar ve duvar silahi satin almanin sebebi kalmaz."
+        },
+        "reloadSeconds": {
+          "type": "number", "minimum": 0.3, "maximum": 6,
+          "description": "Dolum suresi. Bu turdeki en onemli RISK penceresi: oyuncu bu sure boyunca savunmasizdir ve ne zaman dolduracagini secmek oyunun kendisidir. Kisaltirsan sarjor yonetimi diye bir sey kalmaz; uzatirsan tek bir yanlis zamanlama olum demektir ve oyuncu risk almaktan kacinir."
+        }
+      }
+    },
+
+    "recoil": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pitchDegreesPerShot", "yawDegreesPerShot", "recoverySpeedDegreesPerSecond", "maxPitchDegrees"],
+      "properties": {
+        "pitchDegreesPerShot": {
+          "type": "number", "minimum": 0, "maximum": 5,
+          "description": "Her atisin kamerayi yukari itmesi. Silahin agirlik hissi buradan gelir. Sifir yaparsan silah oyuncak gibi hissettirir; buyutursen ikinci atistan sonra tavana bakarsin ve otomatik ates anlamsizlasir."
+        },
+        "yawDegreesPerShot": {
+          "type": "number", "minimum": 0, "maximum": 3,
+          "description": "Yatay sapmanin buyuklugu (yon her atista rastgele). Sifir olursa geri tepme mekanik ve ezberlenebilir olur; buyutursen uzun mesafede kontrol tamamen kaybolur."
+        },
+        "recoverySpeedDegreesPerSecond": {
+          "type": "number", "minimum": 5, "maximum": 360,
+          "description": "Kameranin geri tepmeden toparlanma hizi. Yavas olursa ates hattini yeniden kurmak yavaslar ve silah hantal hissettirir; cok hizli olursa geri tepme hic olmamis gibi gorunur ve agirlik hissi kaybolur."
+        },
+        "maxPitchDegrees": {
+          "type": "number", "minimum": 0, "maximum": 30,
+          "description": "Birikmis geri tepmenin tavani. Tavan olmazsa uzun bir sprey oyuncuyu gokyuzune baktirir. Dusurursen uzun spreyin bedeli kalmaz."
+        }
+      }
+    },
+
+    "feel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tracerSeconds", "hitMarkerSeconds", "inputBufferSeconds"],
+      "properties": {
+        "tracerSeconds": {
+          "type": "number", "minimum": 0.01, "maximum": 0.5,
+          "description": "Merminin izinin ekranda kaldigi sure. Kisa olursa atisin nereye gittigi okunmaz ve oyuncu isabetsizligin sebebini ogrenemez; uzun olursa ekran cizgilerle dolar ve kaosta okunabilirlik (PILLAR-04) bozulur."
+        },
+        "hitMarkerSeconds": {
+          "type": "number", "minimum": 0.02, "maximum": 0.5,
+          "description": "Isabet isaretinin ekranda kalma suresi. Isabetin ILK isi bir seyin oldugunu soylemektir; bu isaret olmadan sunger hissi kacinilmazdir. Uzun olursa arka arkaya atislarda isaret surekli acik kalir ve bilgi tasimayi birakir."
+        },
+        "inputBufferSeconds": {
+          "type": "number", "minimum": 0, "maximum": 0.5,
+          "description": "Atis tusuna erken basildiginda istegin hafizada tutuldugu sure. Sifir yaparsan bekleme suresinin bir kare oncesine denk gelen basislar yenir ve oyuncu 'bastim ama atmadi' der - bu, oyunun olu hissettirmesinin en yaygin sebebidir (gameplay-code.md)."
+        }
+      }
+    }
+  }
+}
