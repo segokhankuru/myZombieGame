@@ -102,6 +102,10 @@ namespace Bunker.AI
                 return;
             }
 
+            // Play oturumlari arasinda sizan abonelikler iki kez tetiklenir; turu
+            // yuruten taraf acilista temizler (RoundSignals).
+            RoundSignals.Clear();
+
             _scaling = new RoundScaling(roundsConfig.ToRuntime());
             _zombieRuntimeConfig = zombieConfig.ToRuntime();
             _runner = new RoundRunner(_scaling);
@@ -171,8 +175,20 @@ namespace Bunker.AI
         {
             int budget = _runner.Tick(deltaTime, _active.Count);
 
-            if (_runner.RoundStartedThisTick) RoundStarted?.Invoke(_runner.Round);
-            if (_runner.RoundClearedThisTick) RoundCleared?.Invoke(_runner.Round);
+            if (_runner.RoundStartedThisTick)
+            {
+                RoundStarted?.Invoke(_runner.Round);
+
+                // Assembly sinirini asan yayin: silah ve barikat Bunker.Gameplay ile
+                // Bunker.AI'da yasiyor ve birbirlerini goremiyor (RoundSignals).
+                RoundSignals.RaiseRoundStarted(_runner.Round);
+            }
+
+            if (_runner.RoundClearedThisTick)
+            {
+                RoundCleared?.Invoke(_runner.Round);
+                RoundSignals.RaiseRoundCleared(_runner.Round);
+            }
 
             if (budget <= 0) return;
 
@@ -195,6 +211,7 @@ namespace Bunker.AI
             KillAll();
             _runner.JumpToRound(round);
             RoundStarted?.Invoke(_runner.Round);
+            RoundSignals.RaiseRoundStarted(_runner.Round);
         }
 
         public void KillAll()

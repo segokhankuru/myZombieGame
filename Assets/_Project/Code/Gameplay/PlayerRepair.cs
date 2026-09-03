@@ -81,7 +81,7 @@ namespace Bunker.Gameplay
             Transform cam = playerCamera != null ? playerCamera.transform : transform;
 
             if (!Physics.Raycast(cam.position, cam.forward, out RaycastHit hit,
-                                 _config.RepairRangeMeters))
+                                 _config.RepairRangeMeters, ~0, QueryTriggerInteraction.Collide))
             {
                 return null;
             }
@@ -103,7 +103,7 @@ namespace Bunker.Gameplay
             Transform cam = playerCamera != null ? playerCamera.transform : transform;
 
             if (!Physics.Raycast(cam.position, cam.forward, out RaycastHit hit,
-                                 _config.RepairRangeMeters))
+                                 _config.RepairRangeMeters, ~0, QueryTriggerInteraction.Collide))
             {
                 return;
             }

@@ -2,6 +2,7 @@ using System;
 using Bunker.Config;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
+using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -106,6 +107,24 @@ namespace Bunker.Gameplay
             if (tracer != null) tracer.enabled = false;
         }
 
+        private void OnEnable() => RoundSignals.RoundStarted += OnRoundStarted;
+
+        private void OnDisable() => RoundSignals.RoundStarted -= OnRoundStarted;
+
+        /// <summary>
+        /// Her turun basinda mermi tazelenir.
+        ///
+        /// <para><b>Neden:</b> M-01'de mermi kaynagi (duvar silahi, dagitici) henuz yok;
+        /// yedek bitince oyun bicakla oynanan baska bir oyuna donuyor ve tur temposu
+        /// olculemez hale geliyor. Bu bir denge karari degil, <b>eksik sistemin gecici
+        /// yerine gecen sey</b> - M1-10 duvar silahi gelince kaldirilacak.</para>
+        /// </summary>
+        private void OnRoundStarted(int round)
+        {
+            _state.Reset();
+            _guard.Reset();
+        }
+
         // ---------------------------------------------------------------- kare dongusu
 
         private void Update()
@@ -202,7 +221,8 @@ namespace Bunker.Gameplay
 
             // Yerel isin YALNIZCA gorsel icindir - hasari host uygular. Iki taraf
             // farkli sonuc bulursa gecerli olan host'unkidir.
-            if (Physics.Raycast(origin.position, direction, out RaycastHit hit, _config.FireRangeMeters))
+            if (Physics.Raycast(origin.position, direction, out RaycastHit hit, _config.FireRangeMeters,
+                                ~0, QueryTriggerInteraction.Ignore))
             {
                 endPoint = hit.point;
             }
@@ -269,7 +289,7 @@ namespace Bunker.Gameplay
             // kalabalik bir surunun icinde tam olarak "mermi gitmedi" hatasi uretir.
             // Physics.Raycast en yakini garanti eder ve tahsis yapmaz.
             if (!Physics.Raycast(origin, direction, out RaycastHit serverHit,
-                                 _config.FireRangeMeters))
+                                 _config.FireRangeMeters, ~0, QueryTriggerInteraction.Ignore))
             {
                 return;
             }

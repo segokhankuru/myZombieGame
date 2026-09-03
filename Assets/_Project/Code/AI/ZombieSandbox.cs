@@ -33,6 +33,8 @@ namespace Bunker.AI
 
         private readonly StringBuilder _hud = new StringBuilder(256);
         private GUIStyle _hudStyle;
+        private GUIStyle _countdownStyle;
+        private GUIStyle _labelStyle;
 
         private void Awake()
         {
@@ -92,11 +94,60 @@ namespace Bunker.AI
 
         }
 
+        /// <summary>
+        /// Molanın ortadaki geri sayımı: <b>10, 9, 8...</b>
+        ///
+        /// <para><b>Neden ekranın ortasında:</b> mola, PILLAR-03'ün "birkaç turda bir
+        /// dönüm noktası" sözünün tuttuğu yer. Oyuncunun ne kadar vakti kaldığını
+        /// bilmesi, molayı bir <i>bekleme</i> olmaktan çıkarıp bir <i>karar penceresine</i>
+        /// çevirir: tamir mi edeyim, mermi mi toplayayım, konum mu değiştireyim.
+        /// Köşede küçük bir sayı bu kararı tetiklemez.</para>
+        ///
+        /// <para>Son üç saniye kırmızıya döner — sayıyı okumadan da "bitiyor" bilgisi
+        /// geçsin diye (bilgi renkle <b>tek başına</b> taşınmıyor, sayı yanında).</para>
+        /// </summary>
+        private void DrawBreatherCountdown()
+        {
+            if (director.Phase != RoundPhase.Breather) return;
+
+            float remaining = director.BreatherRemainingSeconds;
+            if (remaining <= 0f) return;
+
+            _countdownStyle ??= new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 72,
+                alignment = TextAnchor.MiddleCenter,
+                richText = false
+            };
+
+            int seconds = Mathf.CeilToInt(remaining);
+
+            Color previous = GUI.color;
+            GUI.color = seconds <= 3 ? new Color(1f, 0.45f, 0.3f) : new Color(1f, 1f, 1f, 0.9f);
+
+            var box = new Rect(Screen.width * 0.5f - 120f, Screen.height * 0.5f - 150f, 240f, 90f);
+            GUI.Label(box, seconds.ToString(), _countdownStyle);
+
+            GUI.color = previous;
+
+            _labelStyle ??= new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 18,
+                alignment = TextAnchor.MiddleCenter,
+                richText = false
+            };
+
+            GUI.Label(new Rect(box.x, box.yMax - 6f, box.width, 26f),
+                      $"TUR {director.Round + 1} BASLIYOR", _labelStyle);
+        }
+
         private void OnGUI()
         {
             if (!showHud || director == null) return;
 
             _hudStyle ??= new GUIStyle(GUI.skin.label) { fontSize = 14, richText = false };
+
+            DrawBreatherCountdown();
 
             if (_playerHealth == null) _playerHealth = FindFirstObjectByType<DebugPlayerHealth>();
 

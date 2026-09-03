@@ -230,6 +230,7 @@ GameObject:
   - component: {fileID: 7626797396643432035}
   - component: {fileID: 4742032101874453115}
   - component: {fileID: 754639220494156596}
+  - component: {fileID: 2555786021152835011}
   m_Layer: 0
   m_Name: Zombie
   m_TagString: Untagged
@@ -329,6 +330,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieHitbox
   head: 0
   owner: {fileID: 4742032101874453115}
+--- !u!114 &2555786021152835011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6108485377960753986}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cfc1d8f2d3296e4bb8671c6cd5cd395, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieHealthBar
+  showInBuild: 0
+  heightAboveHeadMeters: 0.45
+  widthMeters: 0.7
+  thicknessMeters: 0.09
+  visibleDistanceMeters: 25
 --- !u!1 &6561053144033674933
 GameObject:
   m_ObjectHideFlags: 0

@@ -218,6 +218,9 @@ namespace Bunker.Editor
                 SetPrivateField(bodyHitbox, "head", false);
                 SetPrivateField(bodyHitbox, "owner", zombie);
 
+                // Gelistirme araci: kafanin ustunde can bari (yayin oncesi kapatilir).
+                root.AddComponent<ZombieHealthBar>();
+
                 var headHitbox = head.AddComponent<ZombieHitbox>();
                 SetPrivateField(headHitbox, "head", true);
                 SetPrivateField(headHitbox, "owner", zombie);

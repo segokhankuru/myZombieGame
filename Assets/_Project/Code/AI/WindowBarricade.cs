@@ -1,6 +1,7 @@
 using System;
 using Bunker.Config;
 using Bunker.Systems.Combat;
+using Bunker.Systems.Rounds;
 using UnityEngine;
 
 namespace Bunker.AI
@@ -63,7 +64,43 @@ namespace Bunker.AI
 
             _barricade = new Barricade(barricadeConfig.ToRuntime());
             BuildBoardVisuals();
+            BuildRepairTrigger();
             RefreshVisuals();
+        }
+
+        private void OnEnable() => RoundSignals.RoundStarted += OnRoundStarted;
+
+        private void OnDisable() => RoundSignals.RoundStarted -= OnRoundStarted;
+
+        /// <summary>
+        /// Her turun başında barikat tam hâline döner.
+        ///
+        /// <para><b>Neden otomatik:</b> mola, oyuncunun toparlandığı andır. Bir önceki
+        /// turdan kalan sökük pencereleri tek tek tamir etmek zorunda kalmak, molayı
+        /// bir dinlenme değil ev ödevi yapar — ve tur temposunu (PILLAR-03) bozar.
+        /// Tamir mekaniği <b>tur içinde</b> anlamlıdır, turlar arasında değil.</para>
+        /// </summary>
+        private void OnRoundStarted(int round)
+        {
+            ResetBarricade();
+        }
+
+        /// <summary>
+        /// Işının çarpabileceği bir yüzey. <b>Tetikleyicidir</b> (trigger): mermi ve
+        /// zombi ondan etkilenmez, yalnızca tamir sorgusu onu görür.
+        ///
+        /// <para>Bu olmadan tamir hiç çalışmıyordu: tahtaların collider'ı yok (mermiler
+        /// pencereden geçebilsin diye) ve işaret nesnesinin de yoktu, dolayısıyla
+        /// oyuncunun ışını hep arkadaki duvara çarpıyordu.</para>
+        /// </summary>
+        private void BuildRepairTrigger()
+        {
+            var trigger = gameObject.GetComponent<BoxCollider>();
+            if (trigger == null) trigger = gameObject.AddComponent<BoxCollider>();
+
+            trigger.isTrigger = true;
+            trigger.center = Vector3.zero;
+            trigger.size = new Vector3(openingWidthMeters, openingHeightMeters, 0.3f);
         }
 
         // ---------------------------------------------------------------- zombi ve oyuncu

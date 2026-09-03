@@ -145,7 +145,8 @@ namespace Bunker.Gameplay
 
             // Bicak bir isin degil bir KONI: kalabalikta savurmak ise yaramali, ama
             // arkani donup vurmak yaramamali.
-            int count = Physics.OverlapSphereNonAlloc(origin, _config.SwingRangeMeters, SwingHits);
+            int count = Physics.OverlapSphereNonAlloc(origin, _config.SwingRangeMeters, SwingHits,
+                                                      ~0, QueryTriggerInteraction.Ignore);
             if (count == 0) return;
 
             float cosLimit = Mathf.Cos(_config.SwingArcDegrees * 0.5f * Mathf.Deg2Rad);
