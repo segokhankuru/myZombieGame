@@ -137,6 +137,37 @@ namespace Bunker.AI
             _ready = true;
         }
 
+        private void OnEnable()
+        {
+            // Statik yayin noktasina abone olan herkes OnDisable'da birakir
+            // (RunSignals'in iki kuralindan biri).
+            RunSignals.RunRestarted += OnRunRestarted;
+        }
+
+        private void OnDisable()
+        {
+            RunSignals.RunRestarted -= OnRunRestarted;
+        }
+
+        /// <summary>
+        /// Yeni run: saha temizlenir, tur sayacı başa döner (AC-5).
+        ///
+        /// <para><see cref="JumpToRound"/> değil <see cref="RoundRunner.Reset"/>:
+        /// yeni run <b>molayla</b> başlamalı. Doğrudan tur 1'e atlamak, oyuncuyu
+        /// yeni run'ın ilk saniyesinde zombiyle karşılaştırır ve toparlanma anını
+        /// hiç vermez.</para>
+        /// </summary>
+        private void OnRunRestarted()
+        {
+            // Otorite kontrolu Update'teki ile ayni olmali: yetkisiz bir yonetmen
+            // (M-02'de uzak istemci) sahayi kendi basina temizlemez ve tur sayacini
+            // kendi basina sifirlamaz.
+            if (!_ready || !_authoritative) return;
+
+            KillAll();
+            _runner.Reset();
+        }
+
         private void OnDestroy()
         {
             // Awake'in kurdugunu geri al: her zombinin olay aboneligi burada kopar,
@@ -172,6 +203,15 @@ namespace Bunker.AI
         {
             if (!_ready || !_authoritative || !autoRun) return;
 
+            // Run bitti: tur ilerlemez, zombi dogmaz (AC-3). Skor ekrani acikken
+            // arkada bir sonraki turun baslamasi, ekrani kapatan oyuncuyu surunun
+            // ortasinda birakirdi.
+            if (RunSignals.IsRunOver) return;
+
+            // Sureyi turu yuruten taraf ilerletir: run'in suresi, oynanan surenin
+            // kendisidir - menude gecen zaman degil.
+            RunSignals.Current.Tick(Time.deltaTime);
+
             TickRound(Time.deltaTime);
         }
 
@@ -190,6 +230,9 @@ namespace Bunker.AI
                 // Assembly sinirini asan yayin: silah ve barikat Bunker.Gameplay ile
                 // Bunker.AI'da yasiyor ve birbirlerini goremiyor (RoundSignals).
                 RoundSignals.RaiseRoundStarted(_runner.Round);
+
+                // Skor ekraninin "ulasilan tur" sayisi (M1-11).
+                RunSignals.Current.NoteRound(_runner.Round);
             }
 
             if (_runner.RoundClearedThisTick)

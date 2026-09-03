@@ -1,6 +1,7 @@
 using System;
 using Bunker.Config;
 using Bunker.Systems.Combat;
+using Bunker.Systems.Rounds;
 using Bunker.Systems.Config;
 using Mirror;
 using UnityEngine;
@@ -80,6 +81,9 @@ namespace Bunker.Gameplay
             TickPendingSwing(dt);
 
             if (!isLocalPlayer) return;
+
+            // Run bitti: girdi kesilir (M1-11, AC-3).
+            if (RunSignals.IsRunOver) return;
 
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;

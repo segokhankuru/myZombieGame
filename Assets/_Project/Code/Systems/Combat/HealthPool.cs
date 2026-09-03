@@ -57,6 +57,25 @@ namespace Bunker.Systems.Combat
             return new DamageResult(before, true, overkill);
         }
 
+        /// <summary>
+        /// Can ekler, tavanı aşmaz. M1-11'in yenilenen canı buradan geçer.
+        ///
+        /// <para><b>Ölü bir havuzu doldurmaz.</b> Ölüm bu sınıfın tek yönlü kapısıdır;
+        /// dirilme bir tasarım kararıdır ve <see cref="ResetTo"/> ile açıkça yapılır.
+        /// Sessizce buradan gelmesi, ölümü hiç görünmez kılan türden bir hatadır.</para>
+        /// </summary>
+        /// <returns>Gerçekten eklenen can. Tavandaki bir havuzda sıfırdır.</returns>
+        public float Heal(float amount)
+        {
+            if (amount <= 0f || !IsAlive) return 0f;
+
+            float before = _current;
+            _current += amount;
+            if (_current > Max) _current = Max;
+
+            return _current - before;
+        }
+
         /// <summary>Anında öldürür. Tur temizliği ve hata ayıklama içindir.</summary>
         public DamageResult Kill()
         {

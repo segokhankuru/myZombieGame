@@ -1,6 +1,7 @@
 using Bunker.Config;
 using Bunker.Systems.Config;
 using Bunker.Systems.Economy;
+using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
 
@@ -79,6 +80,36 @@ namespace Bunker.Gameplay
         private void Start()
         {
             // Sunucu ve istemci ayni gorsel durumdan baslar.
+            ApplyOpenState();
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+
+            RunSignals.RunRestarted += OnRunRestarted;
+        }
+
+        public override void OnStopServer()
+        {
+            // OnStartServer'in kurdugunu OnStopServer bozar (csharp-code.md).
+            RunSignals.RunRestarted -= OnRunRestarted;
+
+            base.OnStopServer();
+        }
+
+        /// <summary>
+        /// Yeni run: kapı tekrar kilitlenir (AC-5).
+        ///
+        /// <para>Kapının "tek yönlü ve kalıcı" oluşu <b>bir run içinde</b> geçerlidir.
+        /// Run'lar arası taşınırsa ikinci run haritanın tamamı açıkken başlar ve
+        /// ekonominin belkemiği olan karar hiç sorulmaz.</para>
+        /// </summary>
+        private void OnRunRestarted()
+        {
+            if (!_opened) return;
+
+            _opened = false;
             ApplyOpenState();
         }
 

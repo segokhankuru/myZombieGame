@@ -139,6 +139,11 @@ namespace Bunker.Gameplay
             // Yalnizca yerel oyuncu kendi silahini surer.
             if (!isLocalPlayer) return;
 
+            // Run bitti: girdi kesilir (M1-11, AC-3). Skor ekraninin arkasindan ates
+            // etmek, olumu bir sonuc olmaktan cikarir. Silahin kendi zamani (dolum,
+            // geri bildirim) yukarida akmaya devam eder - durdurulan sey KOMUT.
+            if (RunSignals.IsRunOver) return;
+
             ReadInput();
         }
 

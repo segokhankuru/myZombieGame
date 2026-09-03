@@ -1,5 +1,6 @@
 using System.Text;
 using Bunker.Gameplay;
+using Bunker.Systems.Rounds;
 using UnityEngine;
 
 namespace Bunker.UI
@@ -28,8 +29,14 @@ namespace Bunker.UI
         [SerializeField] private float crosshairGapPixels = 4f;
         [SerializeField] private float crosshairThicknessPixels = 2f;
 
+        [Header("Can (M1-11)")]
+        [Tooltip("Dusuk canda ekran kenarinda yanan uyarinin kalinligi, piksel. " +
+                 "Denge degeri degil - okunabilirlik ayari.")]
+        [SerializeField] private float lowHealthVignettePixels = 90f;
+
         private PlayerWeapon _weapon;
         private PlayerScore _score;
+        private PlayerHealth _health;
         private PlayerRepair _repair;
         private PlayerInteract _interact;
         private float _searchTimer;
@@ -78,6 +85,7 @@ namespace Bunker.UI
 
                 _weapon = weapons[i];
                 _score = weapons[i].GetComponent<PlayerScore>();
+                _health = weapons[i].GetComponent<PlayerHealth>();
                 _repair = weapons[i].GetComponent<PlayerRepair>();
                 _interact = weapons[i].GetComponent<PlayerInteract>();
                 return;
@@ -88,6 +96,10 @@ namespace Bunker.UI
         {
             if (_weapon == null) return;
 
+            // Run bitti: sahne HUD'u susar, ekran skor ekranina birakilir. Ust uste
+            // iki arayuz, hangisinin canli oldugunu okunamaz yapar.
+            if (RunSignals.IsRunOver) return;
+
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, richText = false };
             _promptStyle ??= new GUIStyle(GUI.skin.label)
             {
@@ -96,8 +108,56 @@ namespace Bunker.UI
                 richText = false
             };
 
+            // Can uyarisi EN ALTTA cizilir: nisangahin ve yazinin ustune binmemeli.
+            // Bilgiyi kapatan bir uyari, uyardigi seyi kotu gosterir.
+            DrawHealth();
             DrawCrosshair();
             DrawReadout();
+        }
+
+        /// <summary>
+        /// Can barı ve düşük can uyarısı (AC-7).
+        ///
+        /// <para><b>Ölüm sürpriz olmamalı.</b> Oyuncu canının azaldığını hasar aldığı
+        /// anda görmüş olmalı; yoksa ölüm haksızlık gibi okunur ve ÇK-17'nin cevabı
+        /// "hayır" olur. Bilgi renkle <b>tek başına</b> taşınmıyor: barın uzunluğu da
+        /// aynı şeyi söylüyor (ui-code.md).</para>
+        /// </summary>
+        private void DrawHealth()
+        {
+            if (_health == null) return;
+
+            float fraction = _health.Fraction01;
+
+            if (_health.IsLow)
+            {
+                // Ekran kenari uyarisi: dort kenarda ince bir kirmizi bant. Tam ekran
+                // bir kaplama, nisan almayi zorlastirir - uyari oyunu oynanamaz
+                // yapmamali.
+                GUI.color = new Color(0.8f, 0.05f, 0.05f, 0.35f);
+
+                float t = lowHealthVignettePixels;
+                Rect(0f, 0f, Screen.width, t);
+                Rect(0f, Screen.height - t, Screen.width, t);
+                Rect(0f, 0f, t, Screen.height);
+                Rect(Screen.width - t, 0f, t, Screen.height);
+
+                GUI.color = Color.white;
+            }
+
+            // Can bari: sol altta, puanin hemen ustunde.
+            const float barWidth = 220f;
+            const float barHeight = 14f;
+            float x = 24f;
+            float y = Screen.height - 90f;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.5f);
+            Rect(x, y, barWidth, barHeight);
+
+            GUI.color = _health.IsLow ? new Color(0.9f, 0.2f, 0.15f) : new Color(0.85f, 0.85f, 0.85f);
+            Rect(x, y, barWidth * fraction, barHeight);
+
+            GUI.color = Color.white;
         }
 
         private void DrawCrosshair()

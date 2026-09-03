@@ -1,3 +1,4 @@
+using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -49,11 +50,72 @@ namespace Bunker.Gameplay
         private float _recoilRecoverySpeed;
         private float _recoilMaxPitch;
 
+        // M1-11: run basladigi yer. Yeniden baslatmada buraya donulur.
+        private Vector3 _spawnPosition;
+        private Quaternion _spawnRotation;
+
         private void Awake()
         {
             // Referanslar bir kez cozulur; kare basina GetComponent yasak (csharp-code.md).
             _controller = GetComponent<CharacterController>();
             _transform = transform;
+
+            _spawnPosition = _transform.position;
+            _spawnRotation = _transform.rotation;
+        }
+
+        private void OnEnable()
+        {
+            // Statik yayin noktasina abone olan herkes OnDisable'da birakir
+            // (RunSignals'in iki kuralindan biri) - yoksa ikinci Play oturumunda
+            // olaylar iki kez tetiklenir.
+            RunSignals.RunEnded += OnRunEnded;
+            RunSignals.RunRestarted += OnRunRestarted;
+        }
+
+        private void OnDisable()
+        {
+            RunSignals.RunEnded -= OnRunEnded;
+            RunSignals.RunRestarted -= OnRunRestarted;
+        }
+
+        /// <summary>
+        /// Run bitti: fare serbest bırakılır (AC-3).
+        ///
+        /// <para>Girdinin kesilmesi <see cref="Update"/>'teki tek satırda; burası
+        /// yalnızca imleci geri verir. Kilitli bir imleçle açılan bir skor ekranı,
+        /// oyuncunun tıklayamadığı bir ekrandır.</para>
+        /// </summary>
+        private void OnRunEnded(RunSummary summary)
+        {
+            if (!isLocalPlayer) return;
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        /// <summary>
+        /// Yeni run: oyuncu başlangıç noktasına döner, imleç tekrar kilitlenir (AC-5).
+        ///
+        /// <para><b><c>CharacterController</c> kapatılmadan konum yazılamaz.</b> Açıkken
+        /// controller her karede kendi konumunu geri yazar ve <c>transform.position</c>
+        /// sessizce hiçbir şey yapmaz — BUG-005'in <c>NavMeshAgent</c>'taki birebir
+        /// aynısı. Sessiz başarısızlık, oyun testine kadar görünmez.</para>
+        /// </summary>
+        private void OnRunRestarted()
+        {
+            if (!isLocalPlayer) return;
+
+            _controller.enabled = false;
+            _transform.SetPositionAndRotation(_spawnPosition, _spawnRotation);
+            _controller.enabled = true;
+
+            _verticalVelocity = 0f;
+            _pitchDegrees = 0f;
+            _recoilPitch = 0f;
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
 
         public override void OnStartLocalPlayer()
@@ -92,6 +154,10 @@ namespace Bunker.Gameplay
             // Yalnizca yerel oyuncu kendini kontrol eder. Bu satir olmadan her istemci
             // sahnedeki butun oyunculari surer.
             if (!isLocalPlayer) return;
+
+            // Run bitti: girdi kesilir (AC-3). Olu bir oyuncunun skor ekraninin
+            // arkasinda dolasmaya devam etmesi, olumu bir sonuc olmaktan cikarir.
+            if (RunSignals.IsRunOver) return;
 
             ReadLook();
             ReadMove();

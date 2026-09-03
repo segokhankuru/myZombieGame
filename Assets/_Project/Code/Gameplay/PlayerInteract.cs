@@ -1,4 +1,5 @@
 using Bunker.Systems.Economy;
+using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -52,6 +53,16 @@ namespace Bunker.Gameplay
         private void Update()
         {
             if (!isLocalPlayer) return;
+
+            // Run bitti: girdi kesilir (M1-11, AC-3). Olu bir oyuncunun kapi satin
+            // almasi, yeniden baslatmada silinecek bir harcamadir.
+            if (RunSignals.IsRunOver)
+            {
+                // HasTarget bu ikisinden turetilir; ayrica yazilmaz.
+                CurrentPrompt = string.Empty;
+                CanAfford = false;
+                return;
+            }
 
             IPurchasable target = FindTarget();
 

@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Bunker.Gameplay
 {
     /// <summary>
-    /// <see cref="RoundSignals"/>'in statik aboneliklerini <b>her oyun başlangıcında,
-    /// hiçbir sahne nesnesi uyanmadan önce</b> temizler.
+    /// <see cref="RoundSignals"/> ve <see cref="RunSignals"/>'in statik aboneliklerini
+    /// <b>her oyun başlangıcında, hiçbir sahne nesnesi uyanmadan önce</b> temizler.
     ///
     /// <para><b>Neden ayrı bir sınıf:</b> ilk sürümde temizliği <c>ZombieDirector.Awake</c>
     /// yapıyordu ve bu bir <b>sıralama yarışı</b> üretti. Unity sahne nesnelerini
@@ -26,6 +26,11 @@ namespace Bunker.Gameplay
         private static void ResetStatics()
         {
             RoundSignals.Clear();
+
+            // M1-11: run durumu da statiktir ve ayni sizinti riskini tasir. Temizlik
+            // burada olmazsa ikinci Play oturumu, birincinin bitmis run'iyla acilir -
+            // yani oyun daha ilk karede skor ekraninda baslar.
+            RunSignals.Clear();
         }
     }
 }

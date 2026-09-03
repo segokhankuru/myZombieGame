@@ -25,19 +25,19 @@ namespace Bunker.Config
         [Header("boards")]
         [Tooltip("Bir pencerenin tam barikatindaki tahta sayisi. Turun temposunu bu belirler: oyuncunun bir pencereyi kac saniyede kapatabilecegi ve zombinin kac saniyede acacagi. Az verirsen barikat bir gecikme olmaktan cikar; cok verirsen tamir bir tam zaman isi olur ve oyuncu savasmaya vakit bulamaz.")]
         [Range(1, 12)]
-        [SerializeField] private int boardsPerWindow = 6;
+        [SerializeField] private int boardsPerWindow = 4;
 
         [Tooltip("Tur 1 basladiginda pencerelerde duran tahta sayisi. perWindow'dan az verirsen oyuncu ilk turu tamir ederek gecirir - bu bilincli bir ogretme secimi olabilir ama kazara olmamali.")]
         [Range(0, 12)]
-        [SerializeField] private int boardsStartingCount = 6;
+        [SerializeField] private int boardsStartingCount = 4;
 
         [Tooltip("Zombinin bir tahtayi sokmesi kac saniye surer. Barikatin BUTUN degeri bu sayida: oyuncuya kazandirdigi zaman. Kisaltirsan barikat anlamsiz bir suslemeye doner; uzatirsan zombiler pencerede takilir ve turlar surunur.")]
         [Range(0.3f, 10f)]
-        [SerializeField] private float boardsZombieSecondsPerBoard = 1.8f;
+        [SerializeField] private float boardsZombieSecondsPerBoard = 1.2f;
 
         [Tooltip("Zombinin iceri girebilmesi icin kalmasi gereken en fazla tahta. 0 demek pencerenin tamamen bosalmasi gerekir; 2 demek iki tahta kalmisken zombi aradan sizabilir. Buyutursen barikat tamiri umutsuzlasir, oyuncu bosuna calisir; 0'da barikat mutlak bir duvar olur ve tek pencereyi tutmak yeterli hale gelir.")]
         [Range(0, 11)]
-        [SerializeField] private int boardsBeforeEntry = 1;
+        [SerializeField] private int boardsBeforeEntry = 0;
 
         [Header("repair")]
         [Tooltip("Oyuncunun bir tahtayi takmasi kac saniye surer. Tamir sirasinda oyuncu bakisini pencereye vermis ve savunmasizdir - karar burada: simdi mi tamir edeyim, once mi temizleyeyim. Kisaltirsan karar kalkar ve tamir refleks olur; uzatirsan hicbir zaman degmez.")]

@@ -9,7 +9,6 @@
   <Project Path="Mirror.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
   <Project Path="Bunker.Editor.csproj" />
-  <Project Path="Bunker.AI.csproj" />
   <Project Path="Mirror.Authenticators.csproj" />
   <Project Path="Mirror.Transports.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
@@ -18,7 +17,8 @@
   <Project Path="Bunker.Config.csproj" />
   <Project Path="Telepathy.csproj" />
   <Project Path="Bunker.Net.csproj" />
-  <Project Path="Mirror.CompilerSymbols.csproj" />
+  <Project Path="Bunker.AI.csproj" />
   <Project Path="Bunker.UI.csproj" />
+  <Project Path="Mirror.CompilerSymbols.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

@@ -1,6 +1,7 @@
 using System;
 using Bunker.Config;
 using Bunker.Systems.Combat;
+using Bunker.Systems.Rounds;
 using Bunker.Systems.Config;
 using Mirror;
 using UnityEngine;
@@ -62,6 +63,14 @@ namespace Bunker.Gameplay
         private void Update()
         {
             if (!isLocalPlayer || _config == null) return;
+
+            // Run bitti: girdi kesilir (M1-11, AC-3). Hedef de temizlenir, yoksa
+            // skor ekrani kapandiginda ekranda eski bir tamir ipucu asili kalir.
+            if (RunSignals.IsRunOver)
+            {
+                HasRepairTarget = false;
+                return;
+            }
 
             // Satin alinabilir bir seye bakarken tamir calismaz: ayni tus iki is
             // yapiyor ve cakisma TANIMLI olmali (basmak satin alir, tutmak tamir eder).

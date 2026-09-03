@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/player",
+  "title": "Oyuncu",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "health"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxPoints", "regenDelaySeconds", "regenPerSecond", "lowFraction"],
+      "properties": {
+        "maxPoints": {
+          "type": "number", "minimum": 50, "maximum": 500,
+          "description": "Oyuncunun tam cani. zombie.json'daki 'damage' aciklamasi bu sayiyi 100 kabul eder - degistirirsen o aciklamayi da guncelle, yoksa hasarin ne ifade ettigi kayboluyor. 100 can ve 30 hasar = dort vurusluk omur. Dusurursen tek bir yanlis kose turu bitirir; buyutursen zombiler kalabaligiyla degil sabirla oldurur ve tehdit hissi gider."
+        },
+        "regenDelaySeconds": {
+          "type": "number", "minimum": 1, "maximum": 15,
+          "description": "Son hasardan sonra yenilenmenin baslamasi icin gecmesi gereken sure. Kisaltirsan hasar bir sonuc olmaktan cikar ve surunun icinde durmanin bedeli kalmaz; uzatirsan tek bir kotu kose butun turu cezalandirir ve oyuncu oynamak yerine beklemeyi ogrenir. Kacmanin ODULU bu sure kadar surer."
+        },
+        "regenPerSecond": {
+          "type": "number", "minimum": 5, "maximum": 200,
+          "description": "Yenilenme hizi. 25 ile sifirdan tam cana dort saniye. Hizlandirirsan can bir kaynak olmaktan cikar ve hasar almak onemsizlesir; yavaslatirsan kacmak ise yaramaz, cunku donene kadar tur bitmis olur."
+        },
+        "lowFraction": {
+          "type": "number", "minimum": 0.1, "maximum": 0.6,
+          "description": "Ekran kenari uyarisinin gorundugu can orani. Bir vurusluk canin (0.30) hemen ustunde olmali: uyariyi gordugunde HALA bir vurus hakkin kalsin. Dusurursen olum surpriz olur ve oyuncu haksizliga ugradigini hisseder; buyutursen uyari surekli yanar ve anlamini kaybeder."
+        }
+      }
+    }
+  }
+}

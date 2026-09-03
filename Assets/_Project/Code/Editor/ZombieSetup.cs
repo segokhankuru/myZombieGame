@@ -304,18 +304,20 @@ namespace Bunker.Editor
                     changed = true;
                 }
 
-                if (contents.GetComponent<DebugPlayerHealth>() == null)
-                {
-                    contents.AddComponent<DebugPlayerHealth>();
-                    changed = true;
-                }
+                // M1-11: gecici DebugPlayerHealth'in yerini gercek can aldi. Eski
+                // bilesen prefab'da kalmis olabilir - betik silindigi icin Unity onu
+                // "Missing Script" olarak gosterir ve ReportRemainingMissing yakalar.
+                var health = contents.GetComponent<PlayerHealth>();
+                if (health == null) { health = contents.AddComponent<PlayerHealth>(); changed = true; }
+
+                SetPrivateField(health, "playerConfig", LoadConfigAsset("player"));
 
                 changed |= PatchWeapon(contents);
 
                 if (!changed) return;
 
                 PrefabUtility.SaveAsPrefabAsset(contents, PlayerPrefabPath);
-                Debug.Log("[Zombi] Oyuncu prefab'ina hedef isareti ve gecici can eklendi.");
+                Debug.Log("[Zombi] Oyuncu prefab'ina hedef isareti ve can eklendi.");
             }
             finally
             {
@@ -563,6 +565,11 @@ namespace Bunker.Editor
             }
 
             if (host.GetComponent<CombatHud>() == null) host.AddComponent<CombatHud>();
+
+            // M1-11: skor ekrani ayni sahne nesnesinde yasar. Ayri bir nesne olsaydi
+            // kurulum araci ikisini ayri ayri bulmak zorunda kalirdi ve biri eksik
+            // kaldiginda hata sessiz olurdu - olen oyuncu bos ekrana bakar.
+            if (host.GetComponent<GameOverHud>() == null) host.AddComponent<GameOverHud>();
         }
 
         // ---------------------------------------------------------------- sahne

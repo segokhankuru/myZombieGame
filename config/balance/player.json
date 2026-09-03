@@ -1,0 +1,18 @@
+{
+  "$schema": "../schema/player.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-01",
+    "lastTuned": "2026-09-03"
+  },
+
+  "_note": "M1-11. Can modeli: vurulmayinca yenilenir (gelistirici karari, 2026-09-03). Gerekce CK-17 - kalici hasar birikimi 20 dakikalik bir oturumda ceza hissi yaratir. 100 can / 30 hasar = dort vurus; dort saniye kacmak canin tamamini geri verir. Bu esik oynanarak ayarlanacak.",
+
+  "health": {
+    "maxPoints": 100,
+    "regenDelaySeconds": 4.0,
+    "regenPerSecond": 25,
+    "lowFraction": 0.35
+  }
+}

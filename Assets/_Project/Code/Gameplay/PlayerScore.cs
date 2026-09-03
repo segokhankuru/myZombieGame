@@ -1,6 +1,7 @@
 using Bunker.Config;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Economy;
+using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
 
@@ -59,6 +60,8 @@ namespace Bunker.Gameplay
 
             if (weapon != null) weapon.KillConfirmed += OnKillConfirmed;
             if (melee != null) melee.KillConfirmed += OnKillConfirmed;
+
+            RunSignals.RunRestarted += OnRunRestarted;
         }
 
         public override void OnStopServer()
@@ -66,6 +69,8 @@ namespace Bunker.Gameplay
             // OnStartServer'in kurdugunu OnStopServer bozar (csharp-code.md).
             if (weapon != null) weapon.KillConfirmed -= OnKillConfirmed;
             if (melee != null) melee.KillConfirmed -= OnKillConfirmed;
+
+            RunSignals.RunRestarted -= OnRunRestarted;
 
             base.OnStopServer();
         }
@@ -78,7 +83,19 @@ namespace Bunker.Gameplay
                 _ => headshot ? PointEvent.HeadshotKill : PointEvent.BodyKill
             };
 
+            // Skor ekraninin sayaci (M1-11). Puani Award yaziyor; buradaki bildirim
+            // OLDURMENIN kendisi - kac zombi, kaci kafadan, kaci bicakla.
+            RunSignals.Current.NoteKill(kind, headshot);
+
             Award(pointEvent);
+        }
+
+        /// <summary>Yeni run: cüzdan sıfırlanır (AC-5).</summary>
+        private void OnRunRestarted()
+        {
+            _wallet = new PlayerWallet(economyConfig.ToRuntime());
+            _spendable = 0;
+            _earned = 0;
         }
 
         /// <summary>Puan yazar. <b>Yalnızca sunucuda çağrılmalı.</b></summary>
@@ -88,6 +105,10 @@ namespace Bunker.Gameplay
             _wallet.Award(pointEvent, times);
             _spendable = _wallet.SpendablePoints;
             _earned = _wallet.TotalEarned;
+
+            // Kazanilan TOPLAM bildirilir, artis degil: ikinci bir toplama yapmak
+            // iki sayinin er gec ayrismasi demektir (config-data.md, hesaplanmis deger).
+            RunSignals.Current.NoteScore(_earned);
         }
 
         /// <summary>Harcama denemesi. Kapı ve duvar silahı buradan geçer (M1-09, M1-10).</summary>
