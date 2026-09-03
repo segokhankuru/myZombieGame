@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Rounds;
 using NUnit.Framework;
@@ -175,6 +176,128 @@ namespace Bunker.Systems.Tests
             recorder.NoteKill(DamageKind.Bullet, headshot: false);
 
             Assert.AreEqual(0.5f, recorder.Snapshot().HeadshotRatio01, 0.001f);
+        }
+
+        // ---------------------------------------------------------------- M1-12
+
+        [Test]
+        public void OlumYeri_BirKezYazilir()
+        {
+            var recorder = new RunRecorder();
+
+            recorder.NoteDeathPosition(12.5f, 1f, -8f);
+            recorder.NoteDeathPosition(99f, 99f, 99f);
+
+            RunSummary summary = recorder.Snapshot();
+
+            // Oldukten sonra hareket eden bir ceset olum yerini kaydirmamali.
+            Assert.IsTrue(summary.HasDeathPosition);
+            Assert.AreEqual(12.5f, summary.DeathX, 0.001f);
+            Assert.AreEqual(1f, summary.DeathY, 0.001f);
+            Assert.AreEqual(-8f, summary.DeathZ, 0.001f);
+        }
+
+        [Test]
+        public void OlumYeriBildirilmemisse_HasDeathPositionFalse()
+        {
+            RunSummary summary = new RunRecorder().Snapshot();
+
+            // Sifir bir koordinattir, "yok" degil.
+            Assert.IsFalse(summary.HasDeathPosition);
+        }
+
+        [Test]
+        public void DondurulduktanSonra_OlumYeriYazilmaz()
+        {
+            var recorder = new RunRecorder();
+            recorder.Freeze();
+
+            recorder.NoteDeathPosition(5f, 5f, 5f);
+
+            Assert.IsFalse(recorder.HasDeathPosition);
+        }
+
+        [Test]
+        public void AC3_TurZamanlari_TurBasinaBirKezYazilir()
+        {
+            var recorder = new RunRecorder();
+
+            recorder.NoteRound(1);
+            recorder.Tick(30f);
+            recorder.NoteRound(2);
+            recorder.Tick(45f);
+            recorder.NoteRound(3);
+
+            IReadOnlyList<float> starts = recorder.RoundStartSeconds;
+
+            Assert.AreEqual(3, starts.Count);
+            Assert.AreEqual(0f, starts[0], 0.001f);
+            Assert.AreEqual(30f, starts[1], 0.001f);
+            Assert.AreEqual(75f, starts[2], 0.001f);
+        }
+
+        [Test]
+        public void AC3_TurAtlanirsa_ListedekiSiraTurNumarasiylaHizali()
+        {
+            var recorder = new RunRecorder();
+
+            recorder.Tick(10f);
+            recorder.NoteRound(5);   // F7/F8 ile tur 5'e atlandi
+
+            // Listenin i. elemani HER ZAMAN (i+1). turdur - yoksa "tur 10 kacinci
+            // saniyede basladi" sorusunun cevabi sessizce kayar.
+            Assert.AreEqual(5, recorder.RoundStartSeconds.Count);
+            Assert.AreEqual(10f, recorder.RoundStartSeconds[4], 0.001f);
+        }
+
+        [Test]
+        public void AC3_TurAtlanmadiysa_UsedRoundSkipFalse()
+        {
+            var recorder = new RunRecorder();
+
+            recorder.NoteRound(1);
+            recorder.NoteRound(2);
+            recorder.NoteRound(3);
+
+            Assert.IsFalse(recorder.UsedRoundSkip);
+        }
+
+        [Test]
+        public void AC3_TurAtlandiysa_UsedRoundSkipTrue()
+        {
+            var recorder = new RunRecorder();
+
+            recorder.NoteRound(1);
+            recorder.NoteRound(5);   // F7/F8
+
+            // Bu run'in zamanlamasi bir olcum degil: atlanan turlarin baslangic
+            // saniyesi uydurma. Isaretlenmeseydi tek bir hata ayiklama run'i,
+            // CK-13'un cevabini sessizce bozardi.
+            Assert.IsTrue(recorder.UsedRoundSkip);
+        }
+
+        [Test]
+        public void AC6_Reset_TurAtlamaIsaretiniDeTemizler()
+        {
+            var recorder = new RunRecorder();
+            recorder.NoteRound(5);
+
+            recorder.Reset();
+
+            Assert.IsFalse(recorder.UsedRoundSkip);
+        }
+
+        [Test]
+        public void AC6_Reset_OlumYeriniVeTurZamanlariniDaTemizler()
+        {
+            var recorder = new RunRecorder();
+            recorder.NoteRound(3);
+            recorder.NoteDeathPosition(1f, 2f, 3f);
+
+            recorder.Reset();
+
+            Assert.IsFalse(recorder.HasDeathPosition);
+            Assert.AreEqual(0, recorder.RoundStartSeconds.Count);
         }
 
         [Test]

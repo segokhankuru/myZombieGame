@@ -108,6 +108,14 @@ namespace Bunker.Gameplay
 
             if (result.Killed)
             {
+                // Olum yeri, run sonu YAYILMADAN once bildirilir: RaisePlayerDied
+                // sayaclari DONDURUR ve ondan sonra gelen hicbir bildirim kabul
+                // edilmez (M1-12). Sira ters olsaydi telemetri her run'da olum yerini
+                // sessizce bos yazardi.
+                Vector3 position = transform.position;
+                RunSignals.Current.NoteDeathPosition(position.x, position.y, position.z);
+
+
                 // Run sonu bir kez olur. Ayni karede ikinci bir zombi vurursa
                 // RunSignals kapiyi kapatir - HealthPool'un "olum bir kez olur"
                 // kuralinin run seviyesindeki karsiligi.
