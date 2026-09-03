@@ -10,6 +10,8 @@ namespace Bunker.Systems.Ai
         Emerging,
         /// <summary>Dışarıda, gireceği pencereye yürüyor.</summary>
         ApproachingWindow,
+        /// <summary>Pencerenin barikatını söküyor. Bu süre oyuncunun kazandığı zamandır.</summary>
+        Tearing,
         /// <summary>Pencereden tırmanıyor. Bu sürede savunmasız ve yavaş.</summary>
         Vaulting,
         /// <summary>İçeride, oyuncuyu kovalıyor.</summary>
@@ -49,18 +51,25 @@ namespace Bunker.Systems.Ai
         /// <summary>Ölçülen gerçek hız. Sıkışma bundan anlaşılır, niyetten değil.</summary>
         public readonly float ActualSpeedMetersPerSecond;
 
+        /// <summary>
+        /// Pencere barikatlı mı — yani zombinin girmeden önce sökmesi gerekiyor mu (M1-08).
+        /// </summary>
+        public readonly bool WindowBlocked;
+
         public ZombieSenses(
             bool hasTarget,
             float distanceToTargetMeters,
             bool needsWindowEntry = false,
             float distanceToWindowMeters = 0f,
-            float actualSpeedMetersPerSecond = 0f)
+            float actualSpeedMetersPerSecond = 0f,
+            bool windowBlocked = false)
         {
             HasTarget = hasTarget;
             DistanceToTargetMeters = distanceToTargetMeters;
             NeedsWindowEntry = needsWindowEntry;
             DistanceToWindowMeters = distanceToWindowMeters;
             ActualSpeedMetersPerSecond = actualSpeedMetersPerSecond;
+            WindowBlocked = windowBlocked;
         }
     }
 
@@ -229,12 +238,21 @@ namespace Bunker.Systems.Ai
                     }
                     else if (senses.DistanceToWindowMeters <= _config.WindowEntryTriggerDistanceMeters)
                     {
-                        Enter(ZombieState.Vaulting);
+                        // Barikatliysa once sokulur (M1-08). Sokme suresi, oyuncunun
+                        // barikattan kazandigi zamanin ta kendisidir.
+                        Enter(senses.WindowBlocked ? ZombieState.Tearing : ZombieState.Vaulting);
                     }
                     else
                     {
                         TickStuck(deltaTime, senses);
                     }
+                    break;
+
+                case ZombieState.Tearing:
+                    // Barikat yeterince acildi mi? Tamamen bosalmasi gerekmez; esigi
+                    // barikatin kendisi bilir (BarricadeConfig.BoardsBeforeEntry).
+                    if (!senses.NeedsWindowEntry) Enter(ZombieState.Chasing);
+                    else if (!senses.WindowBlocked) Enter(ZombieState.Vaulting);
                     break;
 
                 case ZombieState.Vaulting:

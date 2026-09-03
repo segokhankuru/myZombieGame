@@ -64,6 +64,9 @@ namespace Bunker.Editor
             InstallSandbox(zombiePrefab);
             InstallHud();
 
+            // 4b) Pencerelere barikat (M1-08)
+            int barricades = InstallBarricades();
+
             // 5) NavMesh bake - apron eklendigi icin eski bake gecersiz
             bool baked = BakeNavMesh();
 
@@ -86,8 +89,9 @@ namespace Bunker.Editor
                 $"  prefab      : {ZombiePrefabPath}\n" +
                 $"  pencere      : {UnityEngine.Object.FindObjectsByType<WindowEntry>(FindObjectsSortMode.None).Length} giris noktasi\n" +
                 $"  NavMesh      : {(baked ? "bake edildi" : "BAKE EDILEMEDI - asagidaki uyariya bak")}\n" +
+                $"  barikat      : {barricades} pencere\n" +
                 $"  temizlik     : {stripped} bos bilesen kaldirildi\n" +
-                "  SIRADAKI ADIM: Play'e bas. Tur akisi kendiliginden isler; F7/F8 tur, F9 sahayi temizle, sol tik ates.");
+                "  SIRADAKI ADIM: Play'e bas. Sol tik ates, R dolum, V bicak, E barikat tamiri; F7/F8 tur, F9 sahayi temizle.");
         }
 
         /// <summary>
@@ -327,12 +331,47 @@ namespace Bunker.Editor
             line.sharedMaterial = LoadOrCreateTracerMaterial();
             line.enabled = false;
 
+            // --- bicak (M1-07) ve barikat tamiri (M1-08)
+            var melee = player.GetComponent<PlayerMelee>();
+            if (melee == null) { melee = player.AddComponent<PlayerMelee>(); changed = true; }
+
+            var repair = player.GetComponent<PlayerRepair>();
+            if (repair == null) { repair = player.AddComponent<PlayerRepair>(); changed = true; }
+
             SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
             SetPrivateField(weapon, "tracer", line);
             SetPrivateField(score, "economyConfig", LoadConfigAsset("economy"));
             SetPrivateField(score, "weapon", weapon);
+            SetPrivateField(score, "melee", melee);
+            SetPrivateField(melee, "knifeConfig", LoadConfigAsset("knife"));
+            SetPrivateField(repair, "barricadeConfig", LoadConfigAsset("barricade"));
+            SetPrivateField(repair, "score", score);
 
             return changed;
+        }
+
+        /// <summary>
+        /// Her zemin kat penceresine barikat takar (M1-08). Pencereler her üretimde
+        /// yeniden kurulduğu için bu adım da her seferinde koşar.
+        /// </summary>
+        private static int InstallBarricades()
+        {
+            UnityEngine.Object config = LoadConfigAsset("barricade");
+            WindowEntry[] windows = UnityEngine.Object.FindObjectsByType<WindowEntry>(
+                FindObjectsSortMode.None);
+
+            int count = 0;
+
+            for (int i = 0; i < windows.Length; i++)
+            {
+                var barricade = windows[i].GetComponent<WindowBarricade>();
+                if (barricade == null) barricade = windows[i].gameObject.AddComponent<WindowBarricade>();
+
+                SetPrivateField(barricade, "barricadeConfig", config);
+                count++;
+            }
+
+            return count;
         }
 
         private static Material LoadOrCreateTracerMaterial()

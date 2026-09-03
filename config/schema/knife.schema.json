@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/knife",
+  "title": "Bicak",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "swing"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "swing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["damage", "rangeMeters", "arcDegrees", "cooldownSeconds", "windupSeconds"],
+      "properties": {
+        "damage": {
+          "type": "number", "minimum": 10, "maximum": 2000,
+          "description": "Bir savurusun hasari. Bicak mermi harcamaz ve en riskli yontemdir; ekonomi de en yuksek puani ona verir. Dusurursen erken turlarda mermi biriktirmenin yolu kapanir ve oyuncu kosede kalir; buyutursen silah tasimanin sebebi kalmaz ve oyun bicak turuna doner."
+        },
+        "rangeMeters": {
+          "type": "number", "minimum": 0.8, "maximum": 4,
+          "description": "Savurusun erisimi. Zombinin saldiri menzili 1.6 m; bunun ALTINA inersen bicak kullanmak her seferinde hasar yemek demektir ve kimse kullanmaz. Cok buyutursen bicak menzilli bir silaha doner ve riski kaybolur."
+        },
+        "arcDegrees": {
+          "type": "number", "minimum": 10, "maximum": 180,
+          "description": "Savurusun yatay acisi (nisan noktasindan iki yana). Dar acili bir bicak tam nisan ister ve kalabalikta ise yaramaz; genis aci sürünün icinde savurmayi odullendirir ama nisan almanin anlamini azaltir."
+        },
+        "cooldownSeconds": {
+          "type": "number", "minimum": 0.2, "maximum": 3,
+          "description": "Iki savurus arasi sure. Bicagin butun riski buradan gelir: bu sure boyunca savunmasizsin. Kisaltirsan bicak silahtan ustun olur; uzatirsan tek bir zombiyi bile bicakla dusurmek kumar olur."
+        },
+        "windupSeconds": {
+          "type": "number", "minimum": 0, "maximum": 1,
+          "description": "Savurusun hasar verene kadarki hazirligi. Sifir yaparsan bicak aninda vurur ve agirlik hissi kaybolur; buyutursen zombi hazirlik bitmeden vurur ve bicak kullanilamaz hale gelir. Oyuncunun HISSEDECEGI agirlik burada."
+        }
+      }
+    }
+  }
+}

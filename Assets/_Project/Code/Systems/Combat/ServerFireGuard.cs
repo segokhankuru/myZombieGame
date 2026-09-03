@@ -39,7 +39,7 @@ namespace Bunker.Systems.Combat
         private readonly WeaponConfig _config;
         private readonly float _tolerance;
 
-        private float _nextAllowedShotTime = float.NegativeInfinity;
+        private readonly ActionRateLimiter _cadence;
         private float _reloadRequestedTime = float.NegativeInfinity;
         private bool _reloadPending;
 
@@ -56,6 +56,7 @@ namespace Bunker.Systems.Combat
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _tolerance = toleranceSeconds < 0f ? 0f : toleranceSeconds;
 
+            _cadence = new ActionRateLimiter(SecondsBetweenShots, _tolerance);
             _roundsInMagazine = Math.Max(1, _config.MagazineCapacity);
             _reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
         }
@@ -77,25 +78,18 @@ namespace Bunker.Systems.Combat
             // daha eklerdi.
             SettlePendingReload(now);
 
-            // Tolerans BIRIKMEZ. Ilk surumde her atistan ayri ayri dusuluyordu; o
-            // hesapla 0.15 saniyelik bir aralik, 0.03 saniyede bir atisa izin veriyordu
-            // - yani ayarlananin bes kati. Test yakaladi.
-            //
-            // Dogrusu: bir sonraki izinli an, atisin GELDIGI andan degil PLANLANAN
-            // andan ilerler. Boylece erken gelen bir atis oncekini one cekmez; tolerans
-            // yalnizca bir karelik titremeyi yutar, surekli bir hiz avantaji vermez.
-            if (now < _nextAllowedShotTime - _tolerance)
-            {
-                return FireRejection.TooFast;
-            }
-
+            // Mermi kontrolu hiz kontrolunden ONCE: hizli geldigi icin reddedilen bir
+            // atis mermi harcamamali, ve mermisi olmayan bir atis da hiz sayacini
+            // ilerletmemeli.
             if (_roundsInMagazine <= 0)
             {
                 return _reserve > 0 ? FireRejection.NoRounds : FireRejection.NoReserve;
             }
 
+            // Hiz siniri ve ag payi ortak sinifta (ActionRateLimiter): tolerans birikmez.
+            if (!_cadence.TryAccept(now)) return FireRejection.TooFast;
+
             _roundsInMagazine--;
-            _nextAllowedShotTime = Math.Max(now, _nextAllowedShotTime) + SecondsBetweenShots;
             return FireRejection.None;
         }
 
@@ -125,7 +119,7 @@ namespace Bunker.Systems.Combat
         {
             _roundsInMagazine = Math.Max(1, _config.MagazineCapacity);
             _reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
-            _nextAllowedShotTime = float.NegativeInfinity;
+            _cadence.Reset();
             _reloadRequestedTime = float.NegativeInfinity;
             _reloadPending = false;
         }

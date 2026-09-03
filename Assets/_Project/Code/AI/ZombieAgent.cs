@@ -56,6 +56,7 @@ namespace Bunker.AI
 
         private ZombieTargetBeacon _target;
         private WindowEntry _window;
+        private WindowBarricade _barricade;
         private bool _hasEnteredBuilding;
 
         private float _thinkAccumulator;
@@ -140,6 +141,7 @@ namespace Bunker.AI
             else _health.ResetTo(maxHealth);
 
             _window = entryWindow;
+            _barricade = entryWindow != null ? entryWindow.GetComponent<WindowBarricade>() : null;
             _hasEnteredBuilding = entryWindow == null;
 
             _thinkAccumulator = 0f;
@@ -300,12 +302,17 @@ namespace Bunker.AI
                 ? _navAgent.velocity.magnitude
                 : 0f;
 
+            // Barikat pencerenin uzerinde yasar; zombi yalnizca "gecebilir miyim"
+            // sorusunu sorar (M1-08).
+            bool windowBlocked = needsWindow && _barricade != null && !_barricade.AllowsEntry;
+
             var senses = new ZombieSenses(
                 hasTarget: _target != null,
                 distanceToTargetMeters: distanceToTarget,
                 needsWindowEntry: needsWindow,
                 distanceToWindowMeters: distanceToWindow,
-                actualSpeedMetersPerSecond: actualSpeed);
+                actualSpeedMetersPerSecond: actualSpeed,
+                windowBlocked: windowBlocked);
 
             ZombieState before = _brain.State;
             _brain.Tick(thinkDelta, senses);
@@ -313,6 +320,12 @@ namespace Bunker.AI
             if (before != _brain.State) OnStateChanged(before, _brain.State);
 
             if (_brain.AttackLandedThisTick) LandAttack();
+
+            // Sokme: beyin "sokuyorum" der, tahtayi dusuren burasi.
+            if (_brain.State == ZombieState.Tearing && _barricade != null)
+            {
+                _barricade.Tear(thinkDelta);
+            }
 
             // Sendeleme hizi (M1-13). Taban hiz turdan gelir; carpani beyin verir.
             if (_navAgent.enabled)
@@ -611,6 +624,7 @@ namespace Bunker.AI
             {
                 ZombieState.Emerging => new Color(0.35f, 0.35f, 0.40f),
                 ZombieState.ApproachingWindow => new Color(0.45f, 0.40f, 0.20f),
+                ZombieState.Tearing => new Color(0.70f, 0.45f, 0.10f),
                 ZombieState.Vaulting => new Color(0.85f, 0.65f, 0.10f),
                 ZombieState.Chasing => new Color(0.45f, 0.20f, 0.20f),
                 ZombieState.WindingUp => Color.Lerp(new Color(0.60f, 0.20f, 0.20f),

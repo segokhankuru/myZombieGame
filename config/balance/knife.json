@@ -1,0 +1,19 @@
+{
+  "$schema": "../schema/knife.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-bicak",
+    "lastTuned": "2026-09-02"
+  },
+
+  "_note": "M1-07. Tur 1 zombisi 150 can: 160 hasar tek savurusta dusurur, tur 2'de (250 can) iki savurus gerekir. Bicak erken turlarda mermi biriktirmenin yolu, gec turlarda ise son care. Bu esik oynanarak ayarlanacak.",
+
+  "swing": {
+    "damage": 160,
+    "rangeMeters": 2.2,
+    "arcDegrees": 70,
+    "cooldownSeconds": 0.85,
+    "windupSeconds": 0.12
+  }
+}

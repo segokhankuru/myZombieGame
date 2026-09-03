@@ -1,0 +1,23 @@
+{
+  "$schema": "../schema/barricade.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-barikat",
+    "lastTuned": "2026-09-02"
+  },
+
+  "_note": "M1-08 baslangic degerleri. Tam barikat 6 tahta; bir zombi tamamini sokmek icin 6 x 1.8 = ~11 saniye harciyor. Oyuncunun tamir maliyeti tahta basina 0.9 sn, yani bir pencereyi tam kapatmak ~5.4 sn. Zombi sokerken oyuncu tamir ederse pencere fiilen kapali kalir - bu, tek oyuncunun bir pencereyi tutabilmesi demek. Dort pencere ayni anda sokuluyorsa tutulamaz; PILLAR-02'nin tohumu burada.",
+
+  "boards": {
+    "perWindow": 6,
+    "startingCount": 6,
+    "zombieSecondsPerBoard": 1.8,
+    "beforeEntry": 1
+  },
+
+  "repair": {
+    "secondsPerBoard": 0.9,
+    "rangeMeters": 2.5
+  }
+}

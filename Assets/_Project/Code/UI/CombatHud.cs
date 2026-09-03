@@ -30,6 +30,7 @@ namespace Bunker.UI
 
         private PlayerWeapon _weapon;
         private PlayerScore _score;
+        private PlayerRepair _repair;
         private float _searchTimer;
 
         private readonly StringBuilder _text = new StringBuilder(128);
@@ -75,6 +76,7 @@ namespace Bunker.UI
 
                 _weapon = weapons[i];
                 _score = weapons[i].GetComponent<PlayerScore>();
+                _repair = weapons[i].GetComponent<PlayerRepair>();
                 return;
             }
         }
@@ -140,6 +142,16 @@ namespace Bunker.UI
             // Sag alt: mermi. Ekranin ortasindan uzak, ama goz ucuyla okunacak yerde.
             GUI.Label(new UnityEngine.Rect(Screen.width - 220f, Screen.height - 60f, 200f, 40f),
                       _text.ToString(), _style);
+
+            // Tamir ipucu: ekranin ortasinin biraz altinda, cunku nisangaha bakan goz
+            // onu goz ucuyla yakalar. Ipucu YALNIZCA tamir edilebilir bir sey varken
+            // cikar - surekli duran bir tus hatirlatmasi gurultudur.
+            if (_repair != null && _repair.HasRepairTarget)
+            {
+                GUI.Label(new UnityEngine.Rect(Screen.width * 0.5f - 90f,
+                                               Screen.height * 0.5f + 40f, 260f, 30f),
+                          "E  barikati tamir et", _style);
+            }
 
             if (_score == null) return;
 

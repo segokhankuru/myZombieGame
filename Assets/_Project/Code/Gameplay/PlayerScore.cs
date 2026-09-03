@@ -24,6 +24,7 @@ namespace Bunker.Gameplay
         [SerializeField] private EconomyConfigAsset economyConfig;
 
         [SerializeField] private PlayerWeapon weapon;
+        [SerializeField] private PlayerMelee melee;
 
         private PlayerWallet _wallet;
 
@@ -39,6 +40,7 @@ namespace Bunker.Gameplay
         private void Awake()
         {
             if (weapon == null) weapon = GetComponent<PlayerWeapon>();
+            if (melee == null) melee = GetComponent<PlayerMelee>();
 
             if (economyConfig == null)
             {
@@ -56,12 +58,14 @@ namespace Bunker.Gameplay
             base.OnStartServer();
 
             if (weapon != null) weapon.KillConfirmed += OnKillConfirmed;
+            if (melee != null) melee.KillConfirmed += OnKillConfirmed;
         }
 
         public override void OnStopServer()
         {
             // OnStartServer'in kurdugunu OnStopServer bozar (csharp-code.md).
             if (weapon != null) weapon.KillConfirmed -= OnKillConfirmed;
+            if (melee != null) melee.KillConfirmed -= OnKillConfirmed;
 
             base.OnStopServer();
         }

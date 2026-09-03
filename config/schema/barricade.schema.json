@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/barricade",
+  "title": "Pencere barikati",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "boards", "repair"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "boards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["perWindow", "startingCount", "zombieSecondsPerBoard", "beforeEntry"],
+      "properties": {
+        "perWindow": {
+          "type": "integer", "minimum": 1, "maximum": 12,
+          "description": "Bir pencerenin tam barikatindaki tahta sayisi. Turun temposunu bu belirler: oyuncunun bir pencereyi kac saniyede kapatabilecegi ve zombinin kac saniyede acacagi. Az verirsen barikat bir gecikme olmaktan cikar; cok verirsen tamir bir tam zaman isi olur ve oyuncu savasmaya vakit bulamaz."
+        },
+        "startingCount": {
+          "type": "integer", "minimum": 0, "maximum": 12,
+          "description": "Tur 1 basladiginda pencerelerde duran tahta sayisi. perWindow'dan az verirsen oyuncu ilk turu tamir ederek gecirir - bu bilincli bir ogretme secimi olabilir ama kazara olmamali."
+        },
+        "zombieSecondsPerBoard": {
+          "type": "number", "minimum": 0.3, "maximum": 10,
+          "description": "Zombinin bir tahtayi sokmesi kac saniye surer. Barikatin BUTUN degeri bu sayida: oyuncuya kazandirdigi zaman. Kisaltirsan barikat anlamsiz bir suslemeye doner; uzatirsan zombiler pencerede takilir ve turlar surunur."
+        },
+        "beforeEntry": {
+          "type": "integer", "minimum": 0, "maximum": 11,
+          "description": "Zombinin iceri girebilmesi icin kalmasi gereken en fazla tahta. 0 demek pencerenin tamamen bosalmasi gerekir; 2 demek iki tahta kalmisken zombi aradan sizabilir. Buyutursen barikat tamiri umutsuzlasir, oyuncu bosuna calisir; 0'da barikat mutlak bir duvar olur ve tek pencereyi tutmak yeterli hale gelir."
+        }
+      }
+    },
+
+    "repair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["secondsPerBoard", "rangeMeters"],
+      "properties": {
+        "secondsPerBoard": {
+          "type": "number", "minimum": 0.2, "maximum": 5,
+          "description": "Oyuncunun bir tahtayi takmasi kac saniye surer. Tamir sirasinda oyuncu bakisini pencereye vermis ve savunmasizdir - karar burada: simdi mi tamir edeyim, once mi temizleyeyim. Kisaltirsan karar kalkar ve tamir refleks olur; uzatirsan hicbir zaman degmez."
+        },
+        "rangeMeters": {
+          "type": "number", "minimum": 0.5, "maximum": 5,
+          "description": "Tamir edebilmek icin pencereye ne kadar yaklasmak gerektigi. Kucultursen oyuncu pencereye yapisir ve zombinin menziline girer - bu bilincli bir gerilim olabilir; buyutursen guvenli mesafeden tamir edilir ve risk kaybolur."
+        }
+      }
+    }
+  }
+}
