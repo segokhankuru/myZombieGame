@@ -267,6 +267,29 @@ namespace Bunker.Editor
             {
                 bool changed = false;
 
+                // Once bozuk bilesenler: bir betik dosyasi .meta'si olmadan tasinirsa
+                // Unity ona YENI bir GUID uretir ve o betige bakan her prefab "missing
+                // script" tasimaya baslar. Bir kez yasandi (BUG-003); temizligi
+                // kuruluma bagladik ki elle ugrasilmasin.
+                // Ozyinelemeli: RemoveMonoBehavioursWithMissingScript TEK bir
+                // GameObject'e bakar. Yalnizca koke uygulamak, kamera ve govde gibi
+                // alt nesnelerdeki bozuk bilesenleri geride birakir - ilk denemede
+                // tam olarak bu oldu.
+                int stripped = 0;
+                foreach (Transform t in contents.GetComponentsInChildren<Transform>(true))
+                {
+                    stripped += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(t.gameObject);
+                }
+
+                if (stripped > 0)
+                {
+                    changed = true;
+                    Debug.LogWarning($"[Zombi] Oyuncu prefab'indan {stripped} bozuk bilesen " +
+                                     "temizlendi (betik GUID'i degismis).");
+                }
+
+                ReportRemainingMissing(contents);
+
                 if (contents.GetComponent<ZombieTargetBeacon>() == null)
                 {
                     contents.AddComponent<ZombieTargetBeacon>();
@@ -289,6 +312,28 @@ namespace Bunker.Editor
             finally
             {
                 PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        /// <summary>
+        /// Temizlikten sonra <b>hâlâ</b> bozuk bileşen kaldıysa hangi nesnede olduğunu
+        /// söyler. Unity'nin temizleyemediği bir kalıntı varsa onu sessizce bırakmak,
+        /// her Play'de tekrarlanan ve kimsenin sebebini bilmediği bir uyarı demektir.
+        /// </summary>
+        private static void ReportRemainingMissing(GameObject root)
+        {
+            foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            {
+                Component[] components = t.GetComponents<Component>();
+
+                for (int i = 0; i < components.Length; i++)
+                {
+                    if (components[i] != null) continue;
+
+                    Debug.LogWarning($"[Zombi] '{t.name}' uzerinde temizlenemeyen bozuk " +
+                                     $"bilesen var (sira {i}). Prefab'i Unity'de acip " +
+                                     "elle kaldirmak gerekebilir.");
+                }
             }
         }
 

@@ -68,6 +68,7 @@ namespace Bunker.AI
         private ushort _nextId = 1;
         private bool _authoritative = true;
         private bool _ready;
+        private bool _warnedNoWindow;
 
         /// <summary>Sahadaki zombiler. Ağ seam'i bu listeyi okur.</summary>
         public IReadOnlyList<ZombieAgent> Active => _active;
@@ -216,8 +217,23 @@ namespace Bunker.AI
 
         private bool TrySpawnOne()
         {
-            WindowEntry window = NextOpenWindow();
-            if (window == null) return false;
+            WindowEntry window = NextSpawnWindow();
+
+            if (window == null)
+            {
+                // Hicbir dogum noktasi bulunamamasi SESSIZ kalamaz: tur akisi doner,
+                // sayaclar isler, ama sahada hicbir sey olmaz. Teshis edilmesi en zor
+                // hata turu budur (BUG-001'in ve BUG-003'un ortak dersi).
+                if (!_warnedNoWindow)
+                {
+                    _warnedNoWindow = true;
+                    Debug.LogError("[Zombi/Yonetmen] Dogum icin uygun pencere yok - hicbir " +
+                                   "zombi dogamayacak. Sahnedeki WindowEntry'lerin 'open' " +
+                                   "alani kapali olabilir.", this);
+                }
+
+                return false;
+            }
 
             // Dogum noktasi pencerenin DISINDA: zombinin gorunur sekilde hiclikten
             // belirmesi PILLAR-04'u cigner (LVL-01 spec'i).
@@ -256,7 +272,12 @@ namespace Bunker.AI
             return true;
         }
 
-        private WindowEntry NextOpenWindow()
+        /// <summary>
+        /// Sıradaki doğum penceresi. <b>Barikatlı olması engel değildir</b> — zombi
+        /// barikatlı pencerede doğar ve onu söker. Bir zamanlar bu metot "açık"
+        /// pencere arıyordu ve barikatlar gelince hiçbir zombi doğamadı (BUG-003).
+        /// </summary>
+        private WindowEntry NextSpawnWindow()
         {
             for (int i = 0; i < _windows.Count; i++)
             {

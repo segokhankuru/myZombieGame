@@ -48,6 +48,12 @@ Sırayı bozma, çünkü şema sözleşmedir:
 4. `config/balance/<alan>.json` içine değeri yaz.
 5. İçe aktar.
 
+> **Bir betiği geçici olarak proje dışına alman gerekirse `.cs` ve `.cs.meta`
+> DOSYALARINI BİRLİKTE taşı.** Yalnızca `.cs` taşımak, Unity'nin dönüşte yeni bir GUID
+> üretmesine ve o betiğe bakan **her sahne ve prefab referansının sessizce kopmasına**
+> yol açar. Bir kez yaşandı (BUG-003): oyuncu prefab'ındaki bileşenler "missing script"
+> oldu ve sebebi Console'da görünmedi.
+
 > **Sıra önemli: şema → içe aktar → tüketici kodu.**
 > Üretilmemiş bir config sınıfına bağlanan kod projeyi derlenemez hâle getirir, ve
 > importer Unity içinde koştuğu için o noktadan sonra **importer da çalışamaz**. Kısır

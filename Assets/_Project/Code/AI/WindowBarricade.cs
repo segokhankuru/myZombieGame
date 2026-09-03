@@ -150,8 +150,15 @@ namespace Bunker.AI
                 _boardVisuals[i].gameObject.SetActive(i < boards);
             }
 
-            // Pencerenin acikligi artik barikatin isi.
-            if (_window != null) _window.SetOpen(_barricade.AllowsEntry);
+            // BURADA WindowEntry.SetOpen CAGRILMAZ. Bir kez denendi ve butun oyunu
+            // durdurdu (BUG-003): dogum noktasi secimi "acik pencere" ariyordu, tam
+            // barikatli pencere kapali sayilinca hicbir zombi dogamadi.
+            //
+            // Iki kavram ayri:
+            //   WindowEntry.IsOpen     -> bu pencere bir giris noktasi MI (yapisal)
+            //   WindowBarricade.AllowsEntry -> su an gecilebilir mi (anlik)
+            // Zombi barikatli pencerede DOGAR ve onu soker; gecilemiyor olmasi oranin
+            // giris noktasi olmadigi anlamina gelmez.
         }
 
         /// <summary>

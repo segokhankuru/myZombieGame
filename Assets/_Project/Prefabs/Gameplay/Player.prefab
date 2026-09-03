@@ -13,10 +13,12 @@ GameObject:
   - component: {fileID: 7875062705266583648}
   - component: {fileID: 8708549400669588576}
   - component: {fileID: 2021654381381428347}
-  - component: {fileID: 3117965439112840657}
-  - component: {fileID: 3567607291165251803}
   - component: {fileID: 4540313072016357330}
   - component: {fileID: 2235901581722306753}
+  - component: {fileID: 6964586630144637122}
+  - component: {fileID: 166803673689404603}
+  - component: {fileID: 7851821998031307125}
+  - component: {fileID: 3373046144908580758}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -140,33 +142,6 @@ MonoBehaviour:
   maxPitchDegrees: 85
   playerCamera: {fileID: 714375003496467534}
   playerAudioListener: {fileID: 1603762921593217159}
---- !u!114 &3117965439112840657
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2014827978582427297}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 537e06409ebb699459a614fe03ac34c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieTargetBeacon
-  aimHeightMeters: 1
---- !u!114 &3567607291165251803
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2014827978582427297}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd92cf3429fedcd40a2fb887827ff173, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.DebugPlayerHealth
-  referenceMaxHealth: 100
-  respawnOnDeath: 1
 --- !u!114 &4540313072016357330
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,6 +179,69 @@ MonoBehaviour:
   syncInterval: 0
   economyConfig: {fileID: 11400000, guid: c6bcafe63f3a731468d9afd50285d569, type: 2}
   weapon: {fileID: 4540313072016357330}
+  melee: {fileID: 7851821998031307125}
+--- !u!114 &6964586630144637122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b46c86ca8a2756144abc55c0f9d1f5d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieTargetBeacon
+  aimHeightMeters: 1
+--- !u!114 &166803673689404603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ff880aea9bd31a48bb6a380e6cd108b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.DebugPlayerHealth
+  referenceMaxHealth: 100
+  respawnOnDeath: 1
+--- !u!114 &7851821998031307125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecbf46177843efa4788e50221c864e59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerMelee
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  knifeConfig: {fileID: 11400000, guid: aa36df24865bb924caed78a2ae5d8488, type: 2}
+  playerCamera: {fileID: 0}
+--- !u!114 &3373046144908580758
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3e802e98d4719d46ab2106e50250af4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerRepair
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  barricadeConfig: {fileID: 11400000, guid: 2051ebf3233304e42bc7ab0c5f93d2e2, type: 2}
+  playerCamera: {fileID: 0}
+  score: {fileID: 2235901581722306753}
 --- !u!1 &4229883192584380925
 GameObject:
   m_ObjectHideFlags: 0
