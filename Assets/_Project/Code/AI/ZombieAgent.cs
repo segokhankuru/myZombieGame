@@ -403,6 +403,16 @@ namespace Bunker.AI
 
         private void BeginVault()
         {
+            // Emniyet agi: barikat hala geciyorsa tirmanis baslamamali. Beyin bunu
+            // zaten kontrol ediyor; burasi, ayarin bozuk olmasi gibi sebeplerle
+            // barikatin sessizce "acik" gorunmesi durumunu YAKALAR ve sessiz
+            // kalmaz - oyun testinde "barikat oldugu halde gecti" diye okundu.
+            if (_barricade != null && !_barricade.AllowsEntry)
+            {
+                Debug.LogWarning($"[Zombi] '{_window.name}' barikatli oldugu halde tirmanis " +
+                                 "baslatildi. Barikat ayari eksik olabilir.", this);
+            }
+
             _vaultTimer = 0f;
             _vaultFrom = _transform.position;
 

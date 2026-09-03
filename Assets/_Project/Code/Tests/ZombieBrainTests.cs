@@ -120,6 +120,71 @@ namespace Bunker.Systems.Tests
             Assert.AreEqual(ZombieState.Chasing, brain.State);
         }
 
+        // ---------------------------------------------------------------- barikat (M1-08)
+
+        [Test]
+        public void AC7_BarikatliPencerede_TirmanmazSOKER()
+        {
+            var brain = new ZombieBrain(Config(emerge: 0.5f));
+            brain.Tick(0.6f, new ZombieSenses(true, 20f, true, 8f, 2f));
+
+            brain.Tick(0.1f, new ZombieSenses(true, 20f, true, 1f, 2f, windowBlocked: true));
+
+            Assert.AreEqual(ZombieState.Tearing, brain.State);
+            Assert.IsFalse(brain.WantsMovement, "sokerken pencerede durur");
+        }
+
+        [Test]
+        public void AC7_BarikatAcilinca_Tirmanisa_Gecer()
+        {
+            var brain = new ZombieBrain(Config(emerge: 0.5f));
+            brain.Tick(0.6f, new ZombieSenses(true, 20f, true, 8f, 2f));
+            brain.Tick(0.1f, new ZombieSenses(true, 20f, true, 1f, 2f, windowBlocked: true));
+
+            brain.Tick(0.1f, new ZombieSenses(true, 20f, true, 1f, 0f, windowBlocked: false));
+
+            Assert.AreEqual(ZombieState.Vaulting, brain.State);
+        }
+
+        [Test]
+        public void AC7_SokerkenBarikatTamirEdilirse_SokmeyeDevamEder()
+        {
+            var brain = new ZombieBrain(Config(emerge: 0.5f));
+            brain.Tick(0.6f, new ZombieSenses(true, 20f, true, 8f, 2f));
+            brain.Tick(0.1f, new ZombieSenses(true, 20f, true, 1f, 2f, windowBlocked: true));
+
+            brain.Tick(2f, new ZombieSenses(true, 20f, true, 1f, 0f, windowBlocked: true));
+
+            Assert.AreEqual(ZombieState.Tearing, brain.State, "oyuncu tamir ettikce sokmeye devam");
+        }
+
+        /// <summary>
+        /// Oyun testinde bulunan boşluk: bir kez sıkışıp kovalamaya geçen zombi,
+        /// binaya girmesi gerektiğini bir daha hiç hatırlamıyordu.
+        /// </summary>
+        [Test]
+        public void AC7_DisaridaKalanZombi_PencereyeGeriDoner()
+        {
+            var brain = Chasing(Config());
+
+            brain.Tick(0.1f, new ZombieSenses(true, 20f, needsWindowEntry: true,
+                                              distanceToWindowMeters: 8f,
+                                              actualSpeedMetersPerSecond: 2f));
+
+            Assert.AreEqual(ZombieState.ApproachingWindow, brain.State);
+        }
+
+        [Test]
+        public void AC7_IcerideykenPencereyeDonmez()
+        {
+            var brain = Chasing(Config());
+
+            brain.Tick(0.1f, Far);
+
+            Assert.AreEqual(ZombieState.Chasing, brain.State,
+                "iceri girmis zombi pencereye geri donmemeli");
+        }
+
         // ---------------------------------------------------------------- saldiri
 
         [Test]

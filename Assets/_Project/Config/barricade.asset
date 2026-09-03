@@ -16,6 +16,6 @@ MonoBehaviour:
   boardsPerWindow: 6
   boardsStartingCount: 6
   boardsZombieSecondsPerBoard: 1.8
-  boardsBeforeEntry: 1
+  boardsBeforeEntry: 0
   repairSecondsPerBoard: 0.9
   repairRangeMeters: 2.5

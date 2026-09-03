@@ -260,7 +260,16 @@ namespace Bunker.Systems.Ai
                     break;
 
                 case ZombieState.Chasing:
-                    if (senses.HasTarget && senses.DistanceToTargetMeters <= _config.AttackRangeMeters)
+                    // Hala disaridaysa pencereye geri doner. Bu satir olmadan bir kez
+                    // sikisip kovalamaya gecen zombi, binaya girmesi gerektigini bir
+                    // daha hic hatirlamiyordu: disaridaki NavMesh adasinda oyuncuya
+                    // "en yakin ulasilabilir noktaya" yuruyup orada kaliyordu.
+                    if (senses.NeedsWindowEntry)
+                    {
+                        Enter(ZombieState.ApproachingWindow);
+                    }
+                    else if (senses.HasTarget &&
+                             senses.DistanceToTargetMeters <= _config.AttackRangeMeters)
                     {
                         Enter(ZombieState.WindingUp);
                     }
