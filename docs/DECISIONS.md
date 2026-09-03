@@ -144,3 +144,29 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-09-02 | **BUG-005:** doğum konumunu `ZombieAgent.Spawn` yazar, `Warp` ile | ai-programmer | `NavMeshAgent` açıkken `transform.position` yazmak işe yaramaz; havuzdan çıkan zombi bir önceki hayatında öldüğü yere geri çekiliyordu. Bir bileşen bir alanın sahibiyse o alana başka kimse yazmamalı | docs/qa/bugs/BUG-005-havuzdan-cikan-zombi-eski-yerinde-beliriyor.md |
 | 2026-09-02 | Yalnızca **oyuncunun ulaşabildiği** pencerelerde doğum olur | game-designer | Klasik tur döngüsünün temel kuralı: kapalı bölgede zombi doğmaz. Bölge tanımına gerek yok — kapalı kapı NavMesh'i kestiği için "oyuncuya yol var mı" sorusu bölge sorusunun karşılığı | Assets/_Project/Code/AI/ZombieDirector.cs |
 | 2026-09-02 | REDDEDİLDİ: "sıkışan zombiyi bir süre sonra sahadan çek" emniyet ağı | kullanıcı | Hatayı başka bir hatayla kapatmak. Turun neden kilitlendiğini gizler ve gerçek sebebi arama isteğini öldürür. Kök sebep düzeltildi, yama geri alındı | Assets/_Project/Code/AI/ZombieDirector.cs |
+
+## 2026-09-04 — Gri kutuya okunabilirlik paleti ve kapatılabilir atmosfer
+
+**Karar:** M-01'e renk dili, ışık, gökyüzü, sis ve post-processing eklendi.
+Atmosfer katmanı **F10 ile kapatılabilir**.
+
+**Neden:** iki ayrı gerekçe, ikisi de geliştiriciden geldi.
+
+1. **Okunabilirlik — açık bir M-01 borcuydu.** Sahnedeki her şey Unity'nin varsayılan
+   grisiydi; kapı, duvar, zemin, rampa ve düşme deliği kenarı ayırt edilemiyordu, duvar
+   silahı satın alma noktalarının **hiç görseli yoktu**. PILLAR-04 "okunabilirlik bir
+   cila işi değil, bir tasarım kısıtıdır" diyor ve *"sanat gelince okunur hale gelir"*
+   gerekçesiyle ertelenen kararları açıkça reddediyor. Bu bir asset eksikliği değil,
+   tasarım eksikliğiydi.
+2. **Atmosfer — geliştiricinin bilinçli tercihi.** "Gri gri oynamayalım."
+
+**Ölçüm bedeli — kayda geçirildi.** ÇK-17 tam olarak *"gri kutuda, sanatsız bir tur
+döngüsü 20 dakika sonra tekrar oynatıyor mu"* diye soruyor. Atmosfer açıkken alınan bir
+"evet", döngünün mü görselliğin mi taşıdığını söylemez. Bu, geliştiriciye söylendi ve
+tercih onun. **Azaltma:** atmosfer tek tuşla kapanır, böylece ÇK-17 istenirse temiz gri
+kutuda ölçülebilir; renk dili her iki durumda da açık kalır (o cila değil, kısıt).
+
+**Not:** bu bir **sanat geçişi değildir**. Stil kilidi yok; `/art-direction` gerçek görsel
+dili kurduğunda bu palet yerini bırakır. Kalıcı olan renk değil, ayrımın kendisi.
+
+Detay: `docs/art/GREYBOX-PALETTE.md`
