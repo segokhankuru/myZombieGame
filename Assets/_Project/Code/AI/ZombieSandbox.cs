@@ -9,14 +9,14 @@ namespace Bunker.AI
     /// <summary>
     /// Oyun testi tezgâhı: turu ileri sar, sahayı temizle, ekranda ne olduğunu gör.
     ///
-    /// <para><b>Doğum artık burada değil</b> — M1-05 ile <see cref="ZombieDirector"/>'e
-    /// taşındı ve tur akışına bağlandı. Burada kalan tek şey, henüz sistemi olmayan iki
-    /// şeyin geçici karşılığı: <b>silah</b> (M1-06) ve <b>skor ekranı</b> (M1-11).
-    /// İkisi geldiğinde bu dosya silinir.</para>
+    /// <para><b>Doğum burada değil</b> (M1-05 <see cref="ZombieDirector"/>'e taşıdı),
+    /// <b>silah da burada değil</b> (M1-06 gerçek silahı yazdı — geçici ışın kaldırıldı;
+    /// aynı tuşta iki ateş kaynağı olması hem çift hasar hem teşhis zorluğu üretiyordu).
+    /// Geriye yalnızca tur zıplatma ve tezgâh ekranı kaldı; skor ekranı (M1-11) gelince
+    /// bu dosya silinir.</para>
     ///
     /// <code>
     /// F7/F8  tur -/+        F9  sahayi temizle
-    /// Sol tik  hata ayiklama isini (M1-06 bunu silecek)
     /// </code>
     /// </summary>
     [AddComponentMenu("Bunker/Zombie Sandbox (gecici)")]
@@ -24,12 +24,6 @@ namespace Bunker.AI
     {
         [Header("Referans")]
         [SerializeField] private ZombieDirector director;
-
-        [Header("Hata ayiklama silahi (M1-06 bunu silecek)")]
-        [Tooltip("Bir isinin hasari. Denge degeri DEGIL - tur 1 zombisini iki vurusta " +
-                 "dusurecek kadar, oyle ki olum akisi denenebilsin.")]
-        [SerializeField] private float debugShotDamage = 80f;
-        [SerializeField] private float debugShotRangeMeters = 60f;
 
         [Header("Ekran")]
         [SerializeField] private bool showHud = true;
@@ -39,8 +33,6 @@ namespace Bunker.AI
 
         private readonly StringBuilder _hud = new StringBuilder(256);
         private GUIStyle _hudStyle;
-
-        private static readonly RaycastHit[] ShotHits = new RaycastHit[8];
 
         private void Awake()
         {
@@ -98,42 +90,6 @@ namespace Bunker.AI
                 else if (keyboard.f9Key.wasPressedThisFrame) director.KillAll();
             }
 
-            Mouse mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame) DebugShot();
-        }
-
-        /// <summary>
-        /// M1-06 gelene kadarki en basit ışın. <b>Hissiyat ölçütü değildir:</b> geri
-        /// tepme yok, yayılım yok, isabet geri bildirimi yok. Yalnızca zombiyi
-        /// öldürebilmek için var.
-        /// </summary>
-        private void DebugShot()
-        {
-            Camera cam = Camera.main;
-            if (cam == null) return;
-
-            var ray = new Ray(cam.transform.position, cam.transform.forward);
-
-            // NonAlloc: kare basina cop uretmemek icin (csharp-code.md).
-            int count = Physics.RaycastNonAlloc(ray, ShotHits, debugShotRangeMeters);
-            if (count == 0) return;
-
-            int nearest = -1;
-            float nearestDistance = float.MaxValue;
-
-            for (int i = 0; i < count; i++)
-            {
-                if (ShotHits[i].distance >= nearestDistance) continue;
-                nearestDistance = ShotHits[i].distance;
-                nearest = i;
-            }
-
-            if (nearest < 0) return;
-
-            var hitbox = ShotHits[nearest].collider.GetComponent<ZombieHitbox>();
-            if (hitbox == null) return;
-
-            hitbox.ApplyDamage(new DamageInfo(debugShotDamage, DamageKind.Bullet));
         }
 
         private void OnGUI()
@@ -167,7 +123,7 @@ namespace Bunker.AI
                     .Append('/').Append(_playerHealth.Max.ToString("F0"));
             }
 
-            _hud.Append('\n').Append("F7/F8 tur  F9 sahayi temizle  sol tik ates");
+            _hud.Append('\n').Append("F7/F8 tur atla   F9 sahayi temizle");
 
             GUI.Label(new Rect(12f, 120f, 520f, 120f), _hud.ToString(), _hudStyle);
         }

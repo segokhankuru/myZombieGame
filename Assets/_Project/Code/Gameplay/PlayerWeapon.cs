@@ -56,9 +56,8 @@ namespace Bunker.Gameplay
         private float _tracerRemaining;
         private float _hitMarkerRemaining;
         private bool _lastShotWasHeadshot;
+        private float _lastRejectWarnTime = -99f;
 
-        // Isin tamponu bir kez ayrilir: kare basina tahsis yasak (csharp-code.md).
-        private static readonly RaycastHit[] HitBuffer = new RaycastHit[8];
 
         /// <summary>Bir isabet onaylandı (kafa mı, öldürdü mü). HUD buna bağlanır.</summary>
         public event Action<bool, bool> HitConfirmed;
@@ -134,7 +133,7 @@ namespace Bunker.Gameplay
 
             if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
             {
-                _state.TryStartReload();
+                StartReload();
             }
 
             if (mouse == null) return;
@@ -155,9 +154,39 @@ namespace Bunker.Gameplay
                 case FireResult.Empty:
                     // Bos sarjorde tetige basmak dolum baslatir. Oyuncunun ayrica
                     // R'ye basmasini beklemek, sürünün icinde ceza gibi hissettirir.
-                    _state.TryStartReload();
+                    StartReload();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Dolumu başlatır <b>ve sunucuya bildirir</b>.
+        ///
+        /// <para><b>Bu satırın yokluğu M1-06'nın ilk oyun testinde bulunan hataydı:</b>
+        /// istemci kendi şarjörünü dolduruyor, sunucunun gölge şarjörü ise ilk 12
+        /// mermiden sonra sonsuza kadar boş kalıyordu. Sonuç, oyuncunun gördüğü şekliyle
+        /// "üç zombiden sonra zombiler hasar yemiyor" — hiçbir hata mesajı olmadan.</para>
+        ///
+        /// <para>Ders şu: sunucuda mermi sayan bir sistem, <b>mermiyi geri veren yolu da
+        /// aynı anda</b> yazmak zorundadır. Yarısı yazılmış bir otorite, otorite değil
+        /// sessiz bir duvardır.</para>
+        /// </summary>
+        private void StartReload()
+        {
+            if (!_state.TryStartReload()) return;
+
+            CmdReload();
+        }
+
+        /// <summary>
+        /// Sunucunun gölge şarjörünü de doldurur. İstemci ne zaman doldurduğunu söyler;
+        /// <b>ne kadar süreceğine sunucu kendi ayarından karar verir</b>, yani dolum
+        /// süresini kısaltarak avantaj alınamaz.
+        /// </summary>
+        [Command]
+        private void CmdReload()
+        {
+            _serverState.TryStartReload();
         }
 
         /// <summary>
@@ -215,7 +244,18 @@ namespace Bunker.Gameplay
         private void CmdFire(Vector3 origin, Vector3 direction, NetworkConnectionToClient sender = null)
         {
             // Hiz siniri: istemcinin ne dedigi degil, sunucunun saydigi gecerli.
-            if (_serverState.TryFire(true) != FireResult.Fired) return;
+            FireResult serverResult = _serverState.TryFire(true);
+
+            if (serverResult != FireResult.Fired)
+            {
+                // Reddedilen atis SESSIZ olmaz. Bu satirin yoklugu, sunucunun sarjoru
+                // bittikten sonra butun atislarin sessizce dusmesine ve oyunun
+                // "zombiler hasar yemiyor" gibi gorunmesine sebep oldu; teshis bir
+                // oyun testi surdu. Bir istemcinin atisi reddedilebilir (hile,
+                // gecikme), ama gorunmez olmamali (netcode.md).
+                WarnRejectedShot(serverResult);
+                return;
+            }
 
             if (direction.sqrMagnitude < 0.001f) return;
             direction.Normalize();
@@ -229,27 +269,21 @@ namespace Bunker.Gameplay
                 return;
             }
 
-            int count = Physics.RaycastNonAlloc(
-                new Ray(origin, direction), HitBuffer, _config.FireRangeMeters);
-
-            if (count == 0) return;
-
-            int nearest = -1;
-            float nearestDistance = float.MaxValue;
-
-            for (int i = 0; i < count; i++)
+            // Tek isin, EN YAKIN isabet. Onceki surum RaycastNonAlloc + elle en yakini
+            // bulma kullaniyordu; o cagri sekiz slotluk tamponu SIRASIZ doldurur ve
+            // isin uzerinde sekizden fazla carpisan varsa gercek en yakini atabilir -
+            // kalabalik bir surunun icinde tam olarak "mermi gitmedi" hatasi uretir.
+            // Physics.Raycast en yakini garanti eder ve tahsis yapmaz.
+            if (!Physics.Raycast(origin, direction, out RaycastHit serverHit,
+                                 _config.FireRangeMeters))
             {
-                if (HitBuffer[i].distance >= nearestDistance) continue;
-                nearestDistance = HitBuffer[i].distance;
-                nearest = i;
+                return;
             }
-
-            if (nearest < 0) return;
 
             // Isabet eden sey ne oldugunu KENDISI soyler: silah kafa kutusunu bilmez,
             // katman testi yapmaz. Bilmediginde yeni bir hedef tipi eklemek silahi
             // degistirmeyi gerektirmez.
-            var target = HitBuffer[nearest].collider.GetComponent<IDamageable>();
+            var target = serverHit.collider.GetComponent<IDamageable>();
             if (target == null || !target.IsAlive) return;
 
             // Vurulan sey kafa kutusu olup olmadigini KENDISI soyler - hasar
@@ -279,6 +313,20 @@ namespace Bunker.Gameplay
         }
 
         // ---------------------------------------------------------------- geri bildirim
+
+        /// <summary>
+        /// Sunucunun reddettiği atışı görünür kılar — <b>saniyede en fazla bir kez</b>,
+        /// çünkü döngüde çağrılan bir istemci Console'u da doldurabilmemeli.
+        /// </summary>
+        private void WarnRejectedShot(FireResult reason)
+        {
+            if (Time.unscaledTime - _lastRejectWarnTime < 1f) return;
+            _lastRejectWarnTime = Time.unscaledTime;
+
+            Debug.LogWarning($"[Silah] Sunucu atisi reddetti: {reason}. " +
+                             "Istemci ile sunucunun silah durumu ayrismis olabilir " +
+                             "(dolum bildirilmedi, ya da atis hizi asildi).", this);
+        }
 
         private void ShowTracer(Vector3 from, Vector3 to)
         {
