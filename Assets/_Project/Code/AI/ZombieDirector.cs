@@ -102,10 +102,6 @@ namespace Bunker.AI
                 return;
             }
 
-            // Play oturumlari arasinda sizan abonelikler iki kez tetiklenir; turu
-            // yuruten taraf acilista temizler (RoundSignals).
-            RoundSignals.Clear();
-
             _scaling = new RoundScaling(roundsConfig.ToRuntime());
             _zombieRuntimeConfig = zombieConfig.ToRuntime();
             _runner = new RoundRunner(_scaling);

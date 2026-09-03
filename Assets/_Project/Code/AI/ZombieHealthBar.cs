@@ -39,6 +39,7 @@ namespace Bunker.AI
         private MaterialPropertyBlock _propertyBlock;
         private Camera _camera;
         private float _lastFraction = -1f;
+        private float _lastCameraSearch = -99f;
 
         private static Material _barMaterial;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -56,6 +57,13 @@ namespace Bunker.AI
 
             Build();
             _propertyBlock = new MaterialPropertyBlock();
+        }
+
+        private void OnEnable()
+        {
+            // Havuzdan cikan zombi tam canla baslar; bar eski sahibinin degerinde
+            // kalmamali. -1 "henuz cizilmedi" demek, bir sonraki karede yeniden yazilir.
+            _lastFraction = -1f;
         }
 
         private void OnDestroy()
@@ -104,7 +112,7 @@ namespace Bunker.AI
         {
             if (_root == null) return;
 
-            if (_camera == null) _camera = Camera.main;
+            if (_camera == null) AcquireCamera();
             if (_camera == null) return;
 
             Vector3 toCamera = _camera.transform.position - _root.position;
@@ -120,6 +128,28 @@ namespace Bunker.AI
             _root.rotation = Quaternion.LookRotation(-toCamera.normalized, Vector3.up);
 
             UpdateFill();
+        }
+
+        /// <summary>
+        /// Kamerayı bulur. <b><c>Camera.main</c> tek başına yetmez:</b> o özellik
+        /// yalnızca "MainCamera" etiketli kamerayı döner ve oyuncu kamerası etiketsizse
+        /// <c>null</c> gelir. İlk sürümde tam olarak bu oldu — can barları göründü ama
+        /// hiç güncellenmedi, çünkü bütün güncelleme kameranın bulunmasına bağlıydı.
+        ///
+        /// <para>Arama saniyede birden fazla yapılmaz: oyuncu ağ üzerinden geç gelir,
+        /// ama kare başına kamera aramak 40 zombide bedava değildir.</para>
+        /// </summary>
+        private void AcquireCamera()
+        {
+            if (Time.unscaledTime - _lastCameraSearch < 1f) return;
+            _lastCameraSearch = Time.unscaledTime;
+
+            _camera = Camera.main;
+            if (_camera != null) return;
+
+            // Etiketsiz kamera da olsa bar calismali; gorunur olmak etiketten
+            // daha onemli.
+            _camera = FindFirstObjectByType<Camera>();
         }
 
         private void UpdateFill()

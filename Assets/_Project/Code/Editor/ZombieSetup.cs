@@ -386,6 +386,18 @@ namespace Bunker.Editor
             var repair = player.GetComponent<PlayerRepair>();
             if (repair == null) { repair = player.AddComponent<PlayerRepair>(); changed = true; }
 
+            // Oyuncu kamerasi "MainCamera" etiketli olmali. Camera.main yalnizca o
+            // etikete bakar; etiketsiz kalirsa null doner ve ona guvenen her sey
+            // sessizce calismaz - zombi can barlari tam olarak boyle hic
+            // guncellenmedi.
+            Camera playerCamera = player.GetComponentInChildren<Camera>(true);
+            if (playerCamera != null && !playerCamera.CompareTag("MainCamera"))
+            {
+                playerCamera.tag = "MainCamera";
+                changed = true;
+                Debug.Log("[Zombi] Oyuncu kamerasi 'MainCamera' olarak etiketlendi.");
+            }
+
             SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
             SetPrivateField(weapon, "tracer", line);
             SetPrivateField(score, "economyConfig", LoadConfigAsset("economy"));

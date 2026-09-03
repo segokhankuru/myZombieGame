@@ -32,8 +32,13 @@ namespace Bunker.Systems.Rounds
         public static void RaiseRoundCleared(int round) => RoundCleared?.Invoke(round);
 
         /// <summary>
-        /// Bütün abonelikleri siler. <b>Yalnızca turu yürüten taraf, açılışta çağırır</b> —
-        /// Play oturumları arasında sızan aboneliklerin tek panzehiri budur.
+        /// Bütün abonelikleri siler.
+        ///
+        /// <para><b>Yalnızca oyun başlarken, hiçbir sahne nesnesi uyanmadan önce
+        /// çağrılır</b> (<c>RoundSignalsBootstrap</c>). Bir sahne nesnesinin
+        /// <c>Awake</c>'inden çağrılması bir sıralama yarışıdır: ondan önce uyanmış
+        /// abonelerin kaydı silinir ve o aboneler sessizce hiçbir olay almaz. Bir kez
+        /// yaşandı — pencerelerin bir kısmı tur başında yenilenmiyordu.</para>
         /// </summary>
         public static void Clear()
         {
