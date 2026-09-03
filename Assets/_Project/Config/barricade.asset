@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: barricade
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.BarricadeConfigAsset
   version: 1
-  boardsPerWindow: 6
-  boardsStartingCount: 6
-  boardsZombieSecondsPerBoard: 1.8
+  boardsPerWindow: 4
+  boardsStartingCount: 4
+  boardsZombieSecondsPerBoard: 1.2
   boardsBeforeEntry: 0
   repairSecondsPerBoard: 0.9
   repairRangeMeters: 2.5

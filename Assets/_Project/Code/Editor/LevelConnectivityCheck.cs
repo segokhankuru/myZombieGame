@@ -44,6 +44,56 @@ namespace Bunker.Editor
         /// <summary>Her yol tamamsa true.</summary>
         public static bool Run()
         {
+            // UYARI: bu YOL yalnizca EDITORDE guvenilir. Kapali kapilar NavMesh'i
+            // oyar (NavMeshObstacle, M1-09) ve oymanin geri alinmasi oyun dongusune
+            // baglidir - toplu calistirmada kare ilerlemedigi icin geri alinmaz ve
+            // arac haksiz yere "kopuk" der. Yetkili olcum kurulumun icinde, bake'in
+            // hemen ardinda yapiliyor (ZombieSetup.BakeNavMesh).
+            GameObject[] leaves = FindDoorLeaves();
+            // Kanatlar OLCUM SIRASINDA YOK EDILIR, yalnizca kapatilmaz: oyma
+            // (carving) kapatmayla aninda geri alinmaz - NavMesh guncellemesi oyun
+            // dongusune baglidir ve toplu calistirmada kare ilerlemez. Sahne
+            // kaydedilmedigi icin yok etmek guvenli.
+            for (int i = 0; i < leaves.Length; i++) UnityEngine.Object.DestroyImmediate(leaves[i]);
+
+            // Oyma NavMesh guncellemesiyle geri alinir ve o guncelleme oyun
+            // dongusune baglidir; toplu calistirmada kare ilerlemedigi icin dongu
+            // elle cevriliyor.
+            for (int i = 0; i < 8; i++) EditorApplication.QueuePlayerLoopUpdate();
+
+            try
+            {
+                return Measure(leaves.Length);
+            }
+            finally
+            {
+                // Sahne KAYDEDILMEZ; yok edilen kanatlar diskteki dosyada duruyor.
+            }
+        }
+
+        private static GameObject[] FindDoorLeaves()
+        {
+            var leaves = new System.Collections.Generic.List<GameObject>(4);
+
+            foreach (Bunker.Gameplay.PurchasableDoor door in
+                     UnityEngine.Object.FindObjectsByType<Bunker.Gameplay.PurchasableDoor>(
+                         FindObjectsSortMode.None))
+            {
+                Transform leaf = door.transform.Find("Leaf");
+                if (leaf != null) leaves.Add(leaf.gameObject);
+            }
+
+            return leaves.ToArray();
+        }
+
+        /// <summary>
+        /// Olcumun kendisi. <b>Kurulum araci bunu bake'in hemen ardindan, kapi
+        /// kanatlari HALA kapaliyken cagirir</b> - dogru an orasi. Ayri bir oturumda
+        /// olcmek, kapali kapinin NavMesh'te actigi oymayi geri almayi gerektiriyor ve
+        /// o geri alma oyun dongusune bagli oldugu icin toplu calistirmada hic olmuyor.
+        /// </summary>
+        public static bool Measure(int openedDoors)
+        {
             GameObject playerSpawn = GameObject.Find("PlayerSpawn");
             GameObject upstairs = GameObject.Find("MysteryBox");
             WindowEntry[] windows = UnityEngine.Object.FindObjectsByType<WindowEntry>(

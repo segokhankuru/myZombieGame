@@ -428,13 +428,47 @@ namespace Bunker.Editor
             }
 
             Transform doors = Group("Doors", markers);
-            Marker(doors, "Door_A_to_B", new Vector3(s.Divider, 1.25f, midZ));
-            Marker(doors, "Door_To_Ramp", new Vector3(s.RampX, 1.25f, s.RampStartZ - 0.5f));
+
+            // Kapinin KENDISI. Onceki surumde yalnizca bir isaret vardi ve duvarda
+            // zaten bir bosluk duruyordu - yani "kapiyi satin aldim" dedigin an
+            // gorunur hicbir sey degismiyordu, cunku kapanmis bir sey yoktu.
+            GameObject dividerDoor = Marker(doors, "Door_A_to_B", new Vector3(s.Divider, 1.25f, midZ));
+            BuildDoorLeaf(dividerDoor, s,
+                new Vector3(s.Divider, s.DoorHeight / 2f, midZ),
+                new Vector3(s.WallThickness * 1.5f, s.DoorHeight, s.DoorWidth));
+
+            GameObject rampDoor = Marker(doors, "Door_To_Ramp",
+                new Vector3(s.RampX, 1.25f, s.RampStartZ - 0.5f));
+            BuildDoorLeaf(rampDoor, s,
+                new Vector3(s.RampX, s.DoorHeight / 2f, s.RampStartZ - 0.5f),
+                new Vector3(s.RampWidth + 0.8f, s.DoorHeight, s.WallThickness * 1.5f));
 
             Transform buys = Group("Purchases", markers);
             Marker(buys, "WallBuy_A_Cheap", new Vector3(s.West + 0.5f, 1.4f, s.South + 2f));
             Marker(buys, "WallBuy_B_Mid", new Vector3(s.East - 0.5f, 1.4f, s.North - 2f));
             Marker(buys, "MysteryBox", new Vector3(s.Divider + 2f, s.UpperFloorY + 0.5f, midZ));
+        }
+
+        /// <summary>
+        /// Kapı kanadı: satın alınana kadar geçişi kapatan katı bir blok.
+        ///
+        /// <para><b>Navigasyonu <c>NavMeshObstacle</c> ile keser, bake ile değil.</b>
+        /// Bake edilmiş bir NavMesh çalışma anında değişmez; kanat bake'e girseydi
+        /// kapıyı satın almak geçidi <i>açmazdı</i> — kapı görünmez olur, zombiler yine
+        /// geçemezdi. Oyma (carving) yapan bir engel ise kapatılınca NavMesh'i geri
+        /// verir. Bu yüzden <c>ZombieSetup</c> bake'i kanatlar <b>kapalıyken</b>
+        /// yapar.</para>
+        /// </summary>
+        private static void BuildDoorLeaf(GameObject parent, BlockoutSettings s,
+                                          Vector3 center, Vector3 size)
+        {
+            GameObject leaf = Box(parent.transform, "Leaf", center, size);
+
+            var obstacle = leaf.AddComponent<UnityEngine.AI.NavMeshObstacle>();
+            obstacle.carving = true;
+            obstacle.shape = UnityEngine.AI.NavMeshObstacleShape.Box;
+            obstacle.size = Vector3.one;          // kutu zaten olcekli
+            obstacle.center = Vector3.zero;
         }
 
         // ---------------------------------------------------------------- yardimcilar

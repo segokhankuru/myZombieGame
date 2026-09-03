@@ -354,6 +354,21 @@ namespace Bunker.Editor
 
                 EnsureInteractionTrigger(marker, new Vector3(2.2f, 2.6f, 1.2f));
 
+                // Kapinin kanadi: satin alinca kapanacak nesne. Bu bagli degilse
+                // "kapiyi aldim ama hicbir sey olmadi" olur - tam olarak oyun
+                // testinde gorulen sey.
+                Transform leaf = marker.transform.Find("Leaf");
+                if (leaf != null)
+                {
+                    SetPrivateField(door, "blockers", new[] { leaf.gameObject });
+                }
+                else
+                {
+                    Debug.LogWarning($"[Zombi] '{name}' kapisinin kanadi yok; satin almak " +
+                                     "gorunur bir sey degistirmeyecek. Gri kutu yeniden " +
+                                     "uretilmeli.");
+                }
+
                 SetPrivateField(door, "economyConfig", economy);
                 SetPrivateField(door, "displayName", name == "Door_A_to_B" ? "YAN KANAT" : "UST KAT");
 
@@ -706,6 +721,32 @@ namespace Bunker.Editor
                 Debug.Log("[Zombi] NavMeshSurface bulunamadi, koke eklendi.");
             }
 
+            // Kapi kanatlari bake sirasinda KAPALI: gecidin NavMesh'i bastan var olsun,
+            // kapali kapiyi calisma aninda NavMeshObstacle kessin. Kanat bake'e
+            // girseydi kapiyi satin almak gecidi acmazdi - bake edilmis NavMesh
+            // calisma aninda degismez.
+            GameObject[] leaves = FindDoorLeaves();
+            for (int i = 0; i < leaves.Length; i++) leaves[i].SetActive(false);
+
+            // TETIKLEYICILER DE KAPATILIR. Etkilesim icin eklenen kutular (kapi, duvar
+            // silahi) sahnede duruyor ve bake onlari GEOMETRI sayabiliyor - kapinin
+            // 2.2 x 2.6 m'lik tetikleyicisi tam boslugun icinde oturdugu icin gecidi
+            // tikadi ve "zemin -> ust kat KOPUK" olarak olculdu. Tetikleyici asla
+            // yurunemez engel degildir; bake'te bulunmamali.
+            Collider[] triggers = UnityEngine.Object.FindObjectsByType<Collider>(
+                FindObjectsSortMode.None);
+            var disabledTriggers = new System.Collections.Generic.List<Collider>(16);
+
+            for (int i = 0; i < triggers.Length; i++)
+            {
+                if (!triggers[i].isTrigger || !triggers[i].enabled) continue;
+                triggers[i].enabled = false;
+                disabledTriggers.Add(triggers[i]);
+            }
+
+            Debug.Log($"[Zombi] Bake hazirligi: {leaves.Length} kapi kanadi ve " +
+                      $"{disabledTriggers.Count} tetikleyici gecici olarak kapatildi.");
+
             MethodInfo build = surfaceType.GetMethod("BuildNavMesh",
                 BindingFlags.Public | BindingFlags.Instance);
 
@@ -719,11 +760,27 @@ namespace Bunker.Editor
             PropertyInfo dataProperty = surfaceType.GetProperty("navMeshData",
                 BindingFlags.Public | BindingFlags.Instance);
 
-            for (int i = 0; i < surfaces.Length; i++)
+            try
             {
-                build.Invoke(surfaces[i], null);
-                PersistNavMeshData(surfaces[i], dataProperty, i);
-                EditorUtility.SetDirty(surfaces[i]);
+                for (int i = 0; i < surfaces.Length; i++)
+                {
+                    build.Invoke(surfaces[i], null);
+                    PersistNavMeshData(surfaces[i], dataProperty, i);
+                    EditorUtility.SetDirty(surfaces[i]);
+                }
+
+                // Baglanti olcumu TAM BURADA yapilir: bake yeni, kanatlar hala kapali,
+                // yani olculen sey haritanin topolojisi. Ayri bir oturumda olcmek
+                // kapali kapilarin oymasini geri almayi gerektiriyor ve o geri alma
+                // toplu calistirmada hic olmuyor.
+                LevelConnectivityCheck.Measure(leaves.Length);
+            }
+            finally
+            {
+                // Kanatlar ve tetikleyiciler her durumda geri acilir - bake patlasa
+                // bile kapilar acik, etkilesimler olu kalmamali.
+                for (int i = 0; i < leaves.Length; i++) leaves[i].SetActive(true);
+                for (int i = 0; i < disabledTriggers.Count; i++) disabledTriggers[i].enabled = true;
             }
 
             return true;
@@ -762,6 +819,21 @@ namespace Bunker.Editor
 
         // ---------------------------------------------------------------- yardimcilar
 
+        /// <summary>Sahnedeki bütün kapı kanatları.</summary>
+        private static GameObject[] FindDoorLeaves()
+        {
+            var leaves = new System.Collections.Generic.List<GameObject>(4);
+
+            foreach (PurchasableDoor door in
+                     UnityEngine.Object.FindObjectsByType<PurchasableDoor>(FindObjectsSortMode.None))
+            {
+                Transform leaf = door.transform.Find("Leaf");
+                if (leaf != null) leaves.Add(leaf.gameObject);
+            }
+
+            return leaves.ToArray();
+        }
+
         private static Type FindType(string fullName)
         {
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -792,8 +864,52 @@ namespace Bunker.Editor
                 return;
             }
 
-            if (value is bool b) property.boolValue = b;
-            else property.objectReferenceValue = value as UnityEngine.Object;
+            // Her tip acikca ele alinir. Onceki surum yalnizca bool ve nesne
+            // referansi biliyordu; enum, metin ve dizi alanlari SESSIZCE bos
+            // kaliyordu - kapinin fiyat bandi ve adi bu yuzden hic yazilmadi.
+            switch (value)
+            {
+                case bool b:
+                    property.boolValue = b;
+                    break;
+
+                case int i:
+                    property.intValue = i;
+                    break;
+
+                case float f:
+                    property.floatValue = f;
+                    break;
+
+                case string s:
+                    property.stringValue = s;
+                    break;
+
+                case System.Enum e:
+                    property.enumValueIndex = Convert.ToInt32(e);
+                    break;
+
+                case UnityEngine.Object[] array:
+                    property.arraySize = array.Length;
+                    for (int n = 0; n < array.Length; n++)
+                    {
+                        property.GetArrayElementAtIndex(n).objectReferenceValue = array[n];
+                    }
+                    break;
+
+                case UnityEngine.Object o:
+                    property.objectReferenceValue = o;
+                    break;
+
+                case null:
+                    property.objectReferenceValue = null;
+                    break;
+
+                default:
+                    Debug.LogError($"[Zombi] '{fieldName}' icin desteklenmeyen tip: " +
+                                   $"{value.GetType().Name}. SetPrivateField genisletilmeli.");
+                    return;
+            }
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }

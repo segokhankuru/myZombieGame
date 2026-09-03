@@ -69,6 +69,7 @@ namespace Bunker.AI
         private bool _authoritative = true;
         private bool _ready;
         private bool _warnedNoWindow;
+        private bool _warnedInsideSpawn;
 
         /// <summary>Sahadaki zombiler. Ağ seam'i bu listeyi okur.</summary>
         public IReadOnlyList<ZombieAgent> Active => _active;
@@ -252,11 +253,33 @@ namespace Bunker.AI
             // belirmesi PILLAR-04'u cigner (LVL-01 spec'i).
             Vector3 wanted = window.OutsidePoint + window.transform.forward * 2f;
 
-            if (!NavMesh.SamplePosition(wanted, out NavMeshHit hit, 4f, NavMesh.AllAreas))
+            // Yaricap KUCUK tutuluyor. SamplePosition duvarlari umursamaz: genis bir
+            // yaricapla, disarida NavMesh bulunamayan bir noktadan ICERIDEKI zemine
+            // yapisabilir - zombi o zaman barikati hic gormeden binanin icinde belirir.
+            // Oyun testinde "barikati yikmadan giriyorlar, icerde spawn oluyor
+            // olabilirler" diye okundu; tam olarak buydu.
+            if (!NavMesh.SamplePosition(wanted, out NavMeshHit hit, 1.5f, NavMesh.AllAreas))
             {
                 Debug.LogWarning($"[Zombi/Yonetmen] '{window.name}' disinda NavMesh yok. " +
                                  "Bina cevresindeki serit uretilmemis ya da bake " +
                                  "edilmemis olabilir.", window);
+                return false;
+            }
+
+            // Ikinci korkuluk: dogum noktasi pencerenin DIS tarafinda mi? Yaricap
+            // kucultuldu ama geometriden bagimsiz bir garanti daha ucuz: noktanin
+            // pencerenin disa bakan yonunde olmasi. Icerideyse dogum atlanir.
+            if (Vector3.Dot(hit.position - window.transform.position,
+                            window.transform.forward) <= 0f)
+            {
+                if (!_warnedInsideSpawn)
+                {
+                    _warnedInsideSpawn = true;
+                    Debug.LogWarning($"[Zombi/Yonetmen] '{window.name}' icin bulunan dogum " +
+                                     "noktasi binanin ICINDE kaldi; dogum atlandi. " +
+                                     "Bina cevresindeki serit (apron) eksik olabilir.", window);
+                }
+
                 return false;
             }
 

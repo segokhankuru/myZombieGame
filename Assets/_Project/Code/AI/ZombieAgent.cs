@@ -477,10 +477,19 @@ namespace Bunker.AI
 
             if (!_navAgent.isOnNavMesh)
             {
-                if (NavMesh.SamplePosition(_transform.position, out NavMeshHit hit, 5f, NavMesh.AllAreas))
+                // Yaricap KUCUK. Genis bir yaricapla SamplePosition duvarlari
+                // umursamadan en yakin NavMesh noktasini bulur ve disarida sikismis
+                // bir zombiyi binanin ICINE isinlayabilir - barikati hic gormeden.
+                // Hala disaridaysa kendi penceresinin disina donmesi dogru olan.
+                Vector3 anchor = !_hasEnteredBuilding && _window != null
+                    ? _window.OutsidePoint
+                    : _transform.position;
+
+                if (NavMesh.SamplePosition(anchor, out NavMeshHit hit, 2f, NavMesh.AllAreas))
                 {
                     _navAgent.Warp(hit.position);
                 }
+
                 return;
             }
 
