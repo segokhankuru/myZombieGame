@@ -70,18 +70,27 @@ Bağımlılık tek yönlü. Hiçbir şey `Bunker.UI`'ye bağımlı olamaz.
 Detay: `docs/architecture/ARCHITECTURE.md`
 
 ## Current work
-**Milestone:** M-01 Solo Çekirdek Döngü — 13 işten 2'si kapandı, **9'u kod olarak bitti**
+**Milestone:** M-01 Solo Çekirdek Döngü — **13 işin 13'ü de kod olarak bitti**
 **Bitti:** M1-01 tur ölçekleme (12 test) · M1-02 ekonomi (18 test)
-**Kodu bitti, oyun testi bekliyor:** M1-03 harita · M1-04 zombi · M1-05 doğum ve tur
-akışı · M1-06 silah · M1-07 bıçak · M1-08 barikat · M1-09 kapı · M1-10 duvar silahı ·
-M1-13 vuruş hissi
-**Sıradaki:** M1-11 ölüm/skor ekranı · M1-12 telemetri — sonra **ÇK-17**
+**Kodu bitti, oyun testi bekliyor (11):** M1-03 harita · M1-04 zombi · M1-05 doğum ve
+tur akışı · M1-06 silah · M1-07 bıçak · M1-08 barikat · M1-09 kapı · M1-10 duvar
+silahı · M1-11 ölüm/skor ekranı · M1-12 telemetri · M1-13 vuruş hissi
+
+**Sıradaki: kod değil, oynamak.** Protokol hazır:
+`docs/qa/playtests/PT-01-ck17-tekrar-oynatiyor-mu.md` — üç seans (shakedown → kapalı
+zarflı öz test → arkadaşlar). **SEANS B bir build gerektiriyor ve bu projede hiç build
+alınmadı.**
+
 **Not:** M1-06 bir `Feel` işi; DoD'si `/feel-check` notunu zorunlu kılıyor
 **Altyapı:** config importer (ADR-0005) — denge sayıları tek kaynakta ·
-zombi konum seam'i kilitlendi: tek paket, 12 bayt/zombi, 10 Hz
+zombi konum seam'i kilitlendi: tek paket, 12 bayt/zombi, 10 Hz ·
+**telemetri hattı** (M1-12): her run `telemetry/runs.jsonl`'a bir satır,
+`.claude/tools/telemetry.ps1` özetler ve ÇK-13'ü cevaplar
 **Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
+**Borç:** kurulum aracı her çalıştırmada bir NavMesh varlığı bırakıyor — 25 orphan
+birikti (`editor-tools.md` idempotency ihlali)
 
-**Toplam 177 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
+**Toplam 234 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
 `.claude/tools/unity-test.ps1`, `.claude/tools/unity-exec.ps1`.
 
 **Oyun testinde bulunan 5 hata düzeltildi** (BUG-001…005, `docs/qa/bugs/`). Ortak ders:
