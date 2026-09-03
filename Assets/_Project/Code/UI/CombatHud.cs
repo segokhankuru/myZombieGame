@@ -31,10 +31,12 @@ namespace Bunker.UI
         private PlayerWeapon _weapon;
         private PlayerScore _score;
         private PlayerRepair _repair;
+        private PlayerInteract _interact;
         private float _searchTimer;
 
         private readonly StringBuilder _text = new StringBuilder(128);
         private GUIStyle _style;
+        private GUIStyle _promptStyle;
         private Texture2D _pixel;
 
         private void Awake()
@@ -77,6 +79,7 @@ namespace Bunker.UI
                 _weapon = weapons[i];
                 _score = weapons[i].GetComponent<PlayerScore>();
                 _repair = weapons[i].GetComponent<PlayerRepair>();
+                _interact = weapons[i].GetComponent<PlayerInteract>();
                 return;
             }
         }
@@ -86,6 +89,12 @@ namespace Bunker.UI
             if (_weapon == null) return;
 
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, richText = false };
+            _promptStyle ??= new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16,
+                alignment = TextAnchor.MiddleCenter,
+                richText = false
+            };
 
             DrawCrosshair();
             DrawReadout();
@@ -146,11 +155,27 @@ namespace Bunker.UI
             // Tamir ipucu: ekranin ortasinin biraz altinda, cunku nisangaha bakan goz
             // onu goz ucuyla yakalar. Ipucu YALNIZCA tamir edilebilir bir sey varken
             // cikar - surekli duran bir tus hatirlatmasi gurultudur.
-            if (_repair != null && _repair.HasRepairTarget)
+            if (_interact != null && _interact.HasTarget)
             {
-                GUI.Label(new UnityEngine.Rect(Screen.width * 0.5f - 90f,
-                                               Screen.height * 0.5f + 40f, 260f, 30f),
-                          "E  barikati tamir et", _style);
+                // Satin alma ipucu: puan yetmiyorsa soluk. Fiyati okumadan da "bu
+                // simdilik alinmaz" bilgisi gecsin - ama fiyat da yaninda duruyor,
+                // yani bilgi renkle TEK BASINA tasinmiyor.
+                Color previous = GUI.color;
+                GUI.color = _interact.CanAfford
+                    ? new Color(1f, 1f, 1f, 0.95f)
+                    : new Color(1f, 1f, 1f, 0.45f);
+
+                GUI.Label(new UnityEngine.Rect(Screen.width * 0.5f - 150f,
+                                               Screen.height * 0.5f + 40f, 300f, 30f),
+                          $"E    {_interact.CurrentPrompt}", _promptStyle);
+
+                GUI.color = previous;
+            }
+            else if (_repair != null && _repair.HasRepairTarget)
+            {
+                GUI.Label(new UnityEngine.Rect(Screen.width * 0.5f - 150f,
+                                               Screen.height * 0.5f + 40f, 300f, 30f),
+                          "E    barikati tamir et", _promptStyle);
             }
 
             if (_score == null) return;

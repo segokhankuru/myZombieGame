@@ -191,6 +191,26 @@ namespace Bunker.Gameplay
         }
 
         /// <summary>
+        /// Yedege mermi ekler. <b>Yalnizca sunucu cagirir</b> (duvar silahi, dagitici).
+        /// Istemcinin gorunen sayaci bir sonraki senkronda degil, hemen guncellensin
+        /// diye yerel durum da tazelenir - mermi almanin karsiligi aninda gorulmeli.
+        /// </summary>
+        [Server]
+        public void ServerAddReserve(int amount)
+        {
+            if (amount <= 0) return;
+
+            _guard.AddReserve(amount);
+            TargetAddReserve(connectionToClient, amount);
+        }
+
+        [TargetRpc]
+        private void TargetAddReserve(NetworkConnection target, int amount)
+        {
+            _state.AddReserve(amount);
+        }
+
+        /// <summary>
         /// Sunucuya dolumu bildirir. İstemci <i>ne zaman</i> doldurduğunu söyler;
         /// <b>ne kadar süreceğine sunucu kendi ayarından karar verir</b>, yani dolum
         /// süresini kısaltarak avantaj alınamaz.

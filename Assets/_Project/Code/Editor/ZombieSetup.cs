@@ -67,6 +67,9 @@ namespace Bunker.Editor
             // 4b) Pencerelere barikat (M1-08)
             int barricades = InstallBarricades();
 
+            // 4c) Kapilar ve duvar silahlari (M1-09, M1-10)
+            (int doors, int wallWeapons) = InstallPurchasables();
+
             // 5) NavMesh bake - apron eklendigi icin eski bake gecersiz
             bool baked = BakeNavMesh();
 
@@ -90,8 +93,10 @@ namespace Bunker.Editor
                 $"  pencere      : {UnityEngine.Object.FindObjectsByType<WindowEntry>(FindObjectsSortMode.None).Length} giris noktasi\n" +
                 $"  NavMesh      : {(baked ? "bake edildi" : "BAKE EDILEMEDI - asagidaki uyariya bak")}\n" +
                 $"  barikat      : {barricades} pencere\n" +
+                $"  satin alma   : {doors} kapi, {wallWeapons} duvar silahi\n" +
                 $"  temizlik     : {stripped} bos bilesen kaldirildi\n" +
-                "  SIRADAKI ADIM: Play'e bas. Sol tik ates, R dolum, V bicak, E barikat tamiri; F7/F8 tur, F9 sahayi temizle.");
+                "  SIRADAKI ADIM: Play'e bas. Sol tik ates, R dolum, V bicak, " +
+                "E tamir/satin al; F7/F8 tur, F9 sahayi temizle.");
         }
 
         /// <summary>
@@ -319,6 +324,84 @@ namespace Bunker.Editor
         }
 
         /// <summary>
+        /// Gri kutudaki kapı ve duvar silahı işaretlerini <b>satın alınabilir</b> hâle
+        /// getirir (M1-09, M1-10).
+        ///
+        /// <para>İşaretler <c>BlockoutGenerator</c> tarafından üretiliyor; burada
+        /// üstlerine bileşen, çarpıştırıcı ve fiyat bandı bağlanıyor. Kapılar
+        /// <c>NetworkIdentity</c> alır çünkü açılma durumu geç katılan istemciye de
+        /// gitmeli (ADR-0004).</para>
+        /// </summary>
+        private static (int doors, int weapons) InstallPurchasables()
+        {
+            UnityEngine.Object economy = LoadConfigAsset("economy");
+            int doors = 0;
+            int weapons = 0;
+
+            // --- kapilar
+            foreach (string name in new[] { "Door_A_to_B", "Door_To_Ramp" })
+            {
+                GameObject marker = GameObject.Find(name);
+                if (marker == null) continue;
+
+                var door = marker.GetComponent<PurchasableDoor>();
+                if (door == null) door = marker.AddComponent<PurchasableDoor>();
+
+                if (marker.GetComponent<NetworkIdentity>() == null)
+                {
+                    marker.AddComponent<NetworkIdentity>();
+                }
+
+                EnsureInteractionTrigger(marker, new Vector3(2.2f, 2.6f, 1.2f));
+
+                SetPrivateField(door, "economyConfig", economy);
+                SetPrivateField(door, "displayName", name == "Door_A_to_B" ? "YAN KANAT" : "UST KAT");
+
+                // Ucuz bant A->B, orta bant ust kat: ust kat dagiticiyi barindiriyor
+                // ve dongunun uzak ucu, o yuzden daha pahali (LVL-01).
+                SetPrivateField(door, "priceTier",
+                                name == "Door_A_to_B" ? DoorPriceTier.Cheap : DoorPriceTier.Mid);
+
+                doors++;
+            }
+
+            // --- duvar silahlari
+            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid" })
+            {
+                GameObject marker = GameObject.Find(name);
+                if (marker == null) continue;
+
+                var wall = marker.GetComponent<WallWeaponPurchase>();
+                if (wall == null) wall = marker.AddComponent<WallWeaponPurchase>();
+
+                EnsureInteractionTrigger(marker, new Vector3(1.4f, 1.4f, 0.8f));
+
+                SetPrivateField(wall, "economyConfig", economy);
+                SetPrivateField(wall, "midTier", name.EndsWith("Mid"));
+                SetPrivateField(wall, "displayName", "MERMI");
+
+                weapons++;
+            }
+
+            return (doors, weapons);
+        }
+
+        /// <summary>
+        /// Etkileşim için tetikleyici bir kutu. İşaretler boş <c>GameObject</c>;
+        /// ışının çarpacağı bir yüzey olmadan hiçbir etkileşim bulunamaz — barikat
+        /// tamirinde tam olarak bu unutulmuştu.
+        /// </summary>
+        private static void EnsureInteractionTrigger(GameObject target, Vector3 size)
+        {
+            var box = target.GetComponent<BoxCollider>();
+            if (box == null) box = target.AddComponent<BoxCollider>();
+
+            box.isTrigger = true;
+            box.center = Vector3.zero;
+            box.size = size;
+        }
+
+        /// <summary>
         /// Temizlikten sonra <b>hâlâ</b> bozuk bileşen kaldıysa hangi nesnede olduğunu
         /// söyler. Unity'nin temizleyemediği bir kalıntı varsa onu sessizce bırakmak,
         /// her Play'de tekrarlanan ve kimsenin sebebini bilmediği bir uyarı demektir.
@@ -386,6 +469,9 @@ namespace Bunker.Editor
             var repair = player.GetComponent<PlayerRepair>();
             if (repair == null) { repair = player.AddComponent<PlayerRepair>(); changed = true; }
 
+            var interact = player.GetComponent<PlayerInteract>();
+            if (interact == null) { interact = player.AddComponent<PlayerInteract>(); changed = true; }
+
             // Oyuncu kamerasi "MainCamera" etiketli olmali. Camera.main yalnizca o
             // etikete bakar; etiketsiz kalirsa null doner ve ona guvenen her sey
             // sessizce calismaz - zombi can barlari tam olarak boyle hic
@@ -406,6 +492,9 @@ namespace Bunker.Editor
             SetPrivateField(melee, "knifeConfig", LoadConfigAsset("knife"));
             SetPrivateField(repair, "barricadeConfig", LoadConfigAsset("barricade"));
             SetPrivateField(repair, "score", score);
+            SetPrivateField(repair, "interact", interact);
+            SetPrivateField(interact, "score", score);
+            SetPrivateField(interact, "weapon", weapon);
 
             return changed;
         }

@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 166803673689404603}
   - component: {fileID: 7851821998031307125}
   - component: {fileID: 3373046144908580758}
+  - component: {fileID: 7141545215752374328}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -242,6 +243,26 @@ MonoBehaviour:
   barricadeConfig: {fileID: 11400000, guid: 2051ebf3233304e42bc7ab0c5f93d2e2, type: 2}
   playerCamera: {fileID: 0}
   score: {fileID: 2235901581722306753}
+  interact: {fileID: 7141545215752374328}
+--- !u!114 &7141545215752374328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b7bd85ba60351344a17d04d54c7bf97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerInteract
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  playerCamera: {fileID: 0}
+  score: {fileID: 2235901581722306753}
+  weapon: {fileID: 4540313072016357330}
+  rangeMeters: 3
 --- !u!1 &4229883192584380925
 GameObject:
   m_ObjectHideFlags: 0

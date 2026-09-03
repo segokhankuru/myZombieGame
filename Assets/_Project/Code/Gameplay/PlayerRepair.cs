@@ -32,6 +32,7 @@ namespace Bunker.Gameplay
         [Header("Referanslar")]
         [SerializeField] private Camera playerCamera;
         [SerializeField] private PlayerScore score;
+        [SerializeField] private PlayerInteract interact;
 
         private BarricadeConfig _config;
 
@@ -45,6 +46,7 @@ namespace Bunker.Gameplay
         {
             if (playerCamera == null) playerCamera = GetComponentInChildren<Camera>(true);
             if (score == null) score = GetComponent<PlayerScore>();
+            if (interact == null) interact = GetComponent<PlayerInteract>();
 
             if (barricadeConfig == null)
             {
@@ -61,7 +63,11 @@ namespace Bunker.Gameplay
         {
             if (!isLocalPlayer || _config == null) return;
 
-            IRepairable target = FindTarget();
+            // Satin alinabilir bir seye bakarken tamir calismaz: ayni tus iki is
+            // yapiyor ve cakisma TANIMLI olmali (basmak satin alir, tutmak tamir eder).
+            bool blockedByPurchase = interact != null && interact.HasTarget;
+
+            IRepairable target = blockedByPurchase ? null : FindTarget();
             HasRepairTarget = target != null;
 
             Keyboard keyboard = Keyboard.current;
