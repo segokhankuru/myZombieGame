@@ -142,6 +142,7 @@ namespace Bunker.Systems.Ai
             StateTimeSeconds = 0f;
             AttackLandedThisTick = false;
             _stuckTimerSeconds = 0f;
+            _flinchRemaining = 0f;
         }
 
         /// <summary>Ölüm. Her durumdan geçerlidir ve geri dönüşü yoktur.</summary>
@@ -151,7 +152,46 @@ namespace Bunker.Systems.Ai
             Enter(ZombieState.Dead);
         }
 
+        /// <summary>
+        /// Zombi isabet aldı. M1-13 — <b>vuruşun bir karşılığı olması</b>.
+        ///
+        /// <para>İki şey yapar. Birincisi <b>sendeleme</b>: zombi kısa bir süre yavaşlar,
+        /// yani oyuncu hasarın kabul edildiğini görür. Bu olmadan sürü, mermilerin
+        /// içinden yürüyen bir duvar gibi okunur ve silah ne kadar iyi ayarlanırsa
+        /// ayarlansın sünger hissettirir.</para>
+        ///
+        /// <para>İkincisi ve önemlisi: <b>hazırlanan vuruşu keser.</b> Telegrafı gören
+        /// oyuncunun elinde iki seçenek olur — geri çekilmek ya da vurup kesmek. Bu,
+        /// tek bir satırla ateş etmeye taktik değeri veren yerdir; sendeleme yalnızca
+        /// görsel olsaydı bu seçenek hiç doğmazdı.</para>
+        ///
+        /// <para>Ölü zombi sendelemez.</para>
+        /// </summary>
+        public void NotifyHit(bool headshot)
+        {
+            if (State == ZombieState.Dead) return;
+
+            float duration = _config.HitReactionFlinchSeconds;
+            if (headshot) duration *= _config.HitReactionHeadshotFlinchMultiplier;
+
+            // Uzun olan kazanir: arka arkaya isabetler sendelemeyi KISALTMAMALI.
+            if (duration > _flinchRemaining) _flinchRemaining = duration;
+
+            if (State == ZombieState.WindingUp) Enter(ZombieState.Chasing);
+        }
+
+        /// <summary>Zombi şu an sendeliyor mu.</summary>
+        public bool IsFlinching => _flinchRemaining > 0f;
+
+        /// <summary>
+        /// Hareket hızının çarpanı. Sendelerken yavaşlar; motor tarafı bunu NavMesh
+        /// hızına uygular.
+        /// </summary>
+        public float SpeedMultiplier =>
+            IsFlinching ? _config.HitReactionFlinchSpeedMultiplier : 1f;
+
         private float _stuckTimerSeconds;
+        private float _flinchRemaining;
 
         /// <summary>
         /// Bir düşünme adımı. <paramref name="deltaTime"/> son düşünmeden bu yana geçen
@@ -166,6 +206,8 @@ namespace Bunker.Systems.Ai
 
             if (deltaTime < 0f) deltaTime = 0f;
             StateTimeSeconds += deltaTime;
+
+            if (_flinchRemaining > 0f) _flinchRemaining -= deltaTime;
 
             switch (State)
             {

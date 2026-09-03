@@ -49,15 +49,14 @@ namespace Bunker.Gameplay
         private WeaponConfig _config;
         private WeaponState _state;
 
-        // Sunucunun kendi kopyasi: istemcinin soyledigi degil, sunucunun saydigi
-        // gecerlidir. Istemci otoritesi burada BITER.
-        private WeaponState _serverState;
+        // Sunucunun hile denetimi. Istemcinin simulasyonunu TEKRARLAMAZ; makul olup
+        // olmadigina bakar. Istemci otoritesi burada biter (BUG-002).
+        private ServerFireGuard _guard;
 
         private float _tracerRemaining;
         private float _hitMarkerRemaining;
         private bool _lastShotWasHeadshot;
         private float _lastRejectWarnTime = -99f;
-
 
         /// <summary>Bir isabet onaylandı (kafa mı, öldürdü mü). HUD buna bağlanır.</summary>
         public event Action<bool, bool> HitConfirmed;
@@ -94,7 +93,7 @@ namespace Bunker.Gameplay
 
             _config = weaponConfig.ToRuntime();
             _state = new WeaponState(_config);
-            _serverState = new WeaponState(_config);
+            _guard = new ServerFireGuard(_config);
 
             // Geri tepmenin toparlanmasi kameranin sahibinde yasar ama sayisi silahin
             // ayarindan gelir - tek kaynak.
@@ -116,8 +115,6 @@ namespace Bunker.Gameplay
             float dt = Time.deltaTime;
 
             _state.Tick(dt);
-            if (isServer) _serverState.Tick(dt);
-
             TickFeedback(dt);
 
             // Yalnizca yerel oyuncu kendi silahini surer.
@@ -162,14 +159,10 @@ namespace Bunker.Gameplay
         /// <summary>
         /// Dolumu başlatır <b>ve sunucuya bildirir</b>.
         ///
-        /// <para><b>Bu satırın yokluğu M1-06'nın ilk oyun testinde bulunan hataydı:</b>
-        /// istemci kendi şarjörünü dolduruyor, sunucunun gölge şarjörü ise ilk 12
-        /// mermiden sonra sonsuza kadar boş kalıyordu. Sonuç, oyuncunun gördüğü şekliyle
-        /// "üç zombiden sonra zombiler hasar yemiyor" — hiçbir hata mesajı olmadan.</para>
-        ///
-        /// <para>Ders şu: sunucuda mermi sayan bir sistem, <b>mermiyi geri veren yolu da
-        /// aynı anda</b> yazmak zorundadır. Yarısı yazılmış bir otorite, otorite değil
-        /// sessiz bir duvardır.</para>
+        /// <para><b>Bu bildirimin yokluğu BUG-001'di:</b> istemci kendi şarjörünü
+        /// dolduruyor, sunucunun saydığı mermi ise ilk şarjörden sonra hiç geri
+        /// gelmiyordu. Sunucuda bir kaynağı sayan sistem, o kaynağı geri veren yolu
+        /// <b>aynı anda</b> yazmak zorundadır.</para>
         /// </summary>
         private void StartReload()
         {
@@ -179,14 +172,14 @@ namespace Bunker.Gameplay
         }
 
         /// <summary>
-        /// Sunucunun gölge şarjörünü de doldurur. İstemci ne zaman doldurduğunu söyler;
+        /// Sunucuya dolumu bildirir. İstemci <i>ne zaman</i> doldurduğunu söyler;
         /// <b>ne kadar süreceğine sunucu kendi ayarından karar verir</b>, yani dolum
         /// süresini kısaltarak avantaj alınamaz.
         /// </summary>
         [Command]
         private void CmdReload()
         {
-            _serverState.TryStartReload();
+            _guard.NoteReload(Time.time);
         }
 
         /// <summary>
@@ -243,17 +236,18 @@ namespace Bunker.Gameplay
         [Command]
         private void CmdFire(Vector3 origin, Vector3 direction, NetworkConnectionToClient sender = null)
         {
-            // Hiz siniri: istemcinin ne dedigi degil, sunucunun saydigi gecerli.
-            FireResult serverResult = _serverState.TryFire(true);
+            // Hile denetimi: sunucu simulasyonu tekrarlamaz, MAKUL olup olmadigina
+            // bakar. Kare kare aynilik beklemek, komut agdan bir kare sonra geldigi
+            // icin oyuncunun tikini yiyordu (BUG-002).
+            FireRejection rejection = _guard.TryAcceptShot(Time.time);
 
-            if (serverResult != FireResult.Fired)
+            if (rejection != FireRejection.None)
             {
                 // Reddedilen atis SESSIZ olmaz. Bu satirin yoklugu, sunucunun sarjoru
                 // bittikten sonra butun atislarin sessizce dusmesine ve oyunun
                 // "zombiler hasar yemiyor" gibi gorunmesine sebep oldu; teshis bir
-                // oyun testi surdu. Bir istemcinin atisi reddedilebilir (hile,
-                // gecikme), ama gorunmez olmamali (netcode.md).
-                WarnRejectedShot(serverResult);
+                // oyun testi surdu (BUG-001).
+                WarnRejectedShot(rejection);
                 return;
             }
 
@@ -293,7 +287,7 @@ namespace Bunker.Gameplay
             bool headshot = target.CountsAsHeadshot;
 
             DamageResult result = target.ApplyDamage(
-                new DamageInfo(_serverState.DamageFor(headshot), DamageKind.Bullet, headshot));
+                new DamageInfo(_guard.DamageFor(headshot), DamageKind.Bullet, headshot));
 
             TargetReportHit(sender, headshot, result.Killed);
 
@@ -318,7 +312,7 @@ namespace Bunker.Gameplay
         /// Sunucunun reddettiği atışı görünür kılar — <b>saniyede en fazla bir kez</b>,
         /// çünkü döngüde çağrılan bir istemci Console'u da doldurabilmemeli.
         /// </summary>
-        private void WarnRejectedShot(FireResult reason)
+        private void WarnRejectedShot(FireRejection reason)
         {
             if (Time.unscaledTime - _lastRejectWarnTime < 1f) return;
             _lastRejectWarnTime = Time.unscaledTime;

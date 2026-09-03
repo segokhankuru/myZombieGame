@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4099707336220774911}
   - component: {fileID: 8169496786480200603}
   - component: {fileID: 1125182646925923522}
-  - component: {fileID: 7437127837106685699}
+  - component: {fileID: 6268777892350185201}
   m_Layer: 0
   m_Name: Head
   m_TagString: Untagged
@@ -113,7 +113,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &7437127837106685699
+--- !u!114 &6268777892350185201
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -122,11 +122,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1969894411760375749}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 707b1d7a8a30a6545a95ca94dae7a6b7, type: 3}
+  m_Script: {fileID: 11500000, guid: f312d74bc979270489fe19479e82595f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieHitbox
   head: 1
-  owner: {fileID: 3661980862364038748}
+  owner: {fileID: 4742032101874453115}
 --- !u!1 &4873011979053234925
 GameObject:
   m_ObjectHideFlags: 0
@@ -228,8 +228,8 @@ GameObject:
   - component: {fileID: 7305551944717697043}
   - component: {fileID: 8121203044496061659}
   - component: {fileID: 7626797396643432035}
-  - component: {fileID: 3661980862364038748}
-  - component: {fileID: 7810011012535227667}
+  - component: {fileID: 4742032101874453115}
+  - component: {fileID: 754639220494156596}
   m_Layer: 0
   m_Name: Zombie
   m_TagString: Untagged
@@ -300,7 +300,7 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 2
---- !u!114 &3661980862364038748
+--- !u!114 &4742032101874453115
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -309,13 +309,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 6108485377960753986}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 99cc8e92cb973994f8e668853dcf3ad8, type: 3}
+  m_Script: {fileID: 11500000, guid: c28ecd4586ce65845965de521e9173ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieAgent
   bodyRenderer: {fileID: 8882161023559147415}
   animator: {fileID: 0}
   debugVisuals: 1
---- !u!114 &7810011012535227667
+--- !u!114 &754639220494156596
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -324,11 +324,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 6108485377960753986}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 707b1d7a8a30a6545a95ca94dae7a6b7, type: 3}
+  m_Script: {fileID: 11500000, guid: f312d74bc979270489fe19479e82595f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieHitbox
   head: 0
-  owner: {fileID: 3661980862364038748}
+  owner: {fileID: 4742032101874453115}
 --- !u!1 &6561053144033674933
 GameObject:
   m_ObjectHideFlags: 0

@@ -187,6 +187,90 @@ namespace Bunker.Systems.Tests
             Assert.IsFalse(brain.AttackLandedThisTick);
         }
 
+        // ---------------------------------------------------------------- vurus hissi (M1-13)
+
+        [Test]
+        public void AC6_IsabetAlanZombi_Sendeler_VeYavaslar()
+        {
+            var brain = Chasing(Config());
+
+            brain.NotifyHit(false);
+
+            Assert.IsTrue(brain.IsFlinching, "vurusun bir karsiligi olmali");
+            Assert.Less(brain.SpeedMultiplier, 1f, "sendeleyen zombi yavaslar");
+        }
+
+        [Test]
+        public void AC6_SendelemeSuresiDolunca_HizGeriGelir()
+        {
+            var brain = Chasing(Config());
+            brain.NotifyHit(false);
+
+            brain.Tick(1f, Far);
+
+            Assert.IsFalse(brain.IsFlinching);
+            Assert.AreEqual(1f, brain.SpeedMultiplier, 0.001f);
+        }
+
+        [Test]
+        public void AC6_HazirlananVurus_IsabetleKESILIR()
+        {
+            // Telegrafi goren oyuncunun iki secenegi olur: geri cekilmek ya da vurup
+            // kesmek. Sendeleme yalnizca gorsel olsaydi bu secenek hic dogmazdi.
+            var brain = Chasing(Config(windup: 0.5f));
+            brain.Tick(0.1f, InReach);
+            Assert.AreEqual(ZombieState.WindingUp, brain.State, "kurulum");
+
+            brain.NotifyHit(false);
+
+            Assert.AreEqual(ZombieState.Chasing, brain.State, "vurus kesilmeli");
+
+            brain.Tick(0.6f, InReach);
+            Assert.IsFalse(brain.AttackLandedThisTick, "kesilen vurus isabet edemez");
+        }
+
+        [Test]
+        public void AC6_KafaVurusu_DahaUzunSendeletir()
+        {
+            var a = Chasing(Config());
+            var b = Chasing(Config());
+
+            a.NotifyHit(false);
+            b.NotifyHit(true);
+
+            // Govde vurusunun sendelemesi bitecek kadar, kafa vurusununki bitmeyecek
+            // kadar zaman gecir. Config: 0.22 x 2 = 0.44 sn (varsayilanlar).
+            a.Tick(0.3f, Far);
+            b.Tick(0.3f, Far);
+
+            Assert.IsFalse(a.IsFlinching, "govde vurusunun sendelemesi bitmis olmali");
+            Assert.IsTrue(b.IsFlinching, "kafa vurusu daha uzun sendeletir");
+        }
+
+        [Test]
+        public void AC6_ArkaArkayaIsabetler_SendelemeyiKISALTMAZ()
+        {
+            var brain = Chasing(Config());
+            brain.NotifyHit(true);      // uzun sendeleme
+
+            brain.NotifyHit(false);     // kisa olan uzerine yazmamali
+
+            brain.Tick(0.3f, Far);
+            Assert.IsTrue(brain.IsFlinching, "uzun olan kazanir");
+        }
+
+        [Test]
+        public void AC6_OluZombi_Sendelemez()
+        {
+            var brain = Chasing(Config());
+            brain.Kill();
+
+            brain.NotifyHit(true);
+
+            Assert.IsFalse(brain.IsFlinching);
+            Assert.AreEqual(ZombieState.Dead, brain.State);
+        }
+
         // ---------------------------------------------------------------- sikisma
 
         [Test]

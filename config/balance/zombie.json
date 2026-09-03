@@ -26,6 +26,14 @@
     "damage": 30
   },
 
+  "hitReaction": {
+    "flinchSeconds": 0.22,
+    "flinchSpeedMultiplier": 0.35,
+    "headshotFlinchMultiplier": 2.0,
+    "knockbackMeters": 0.25,
+    "deathLingerSeconds": 0.7
+  },
+
   "navigation": {
     "repathIntervalSeconds": 0.35,
     "stuckSpeedMetersPerSecond": 0.15,

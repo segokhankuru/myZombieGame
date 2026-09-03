@@ -52,6 +52,26 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 5 .. 100 | JSON: attack.damage</remarks>
         public readonly float AttackDamage;
 
+        /// <summary>Isabet alan zombinin sendeleme suresi. Vurmanin bir sey hissettirmesinin TEMELI budur: zombi hasari kabul ettigini gostermezse sürü, mermilerin icinden yuruyen bir duvar gibi okunur. Sifir yaparsan vurus karsiliksiz kalir; buyutursen zombiler surekli sendeler ve tehdit olmaktan cikar, oyuncu tek basina sürüyü kilitleyebilir.</summary>
+        /// <remarks>Aralik: 0 .. 1.5 | JSON: hitReaction.flinchSeconds</remarks>
+        public readonly float HitReactionFlinchSeconds;
+
+        /// <summary>Sendeleme sirasindaki hiz carpani. 1'e yaklasirsa sendeleme gorsel bir suslemeye doner ve taktik degeri kalmaz; sifira yaklasirsa surekli ates ederek bir zombiyi yerinde tutmak mumkun olur - bu, mermi ekonomisini anlamsizlastirir.</summary>
+        /// <remarks>Aralik: 0 .. 1 | JSON: hitReaction.flinchSpeedMultiplier</remarks>
+        public readonly float HitReactionFlinchSpeedMultiplier;
+
+        /// <summary>Kafa vurusunun sendelemeyi kac katina cikardigi. Nisan almanin odulu yalnizca hasar olmamali, EKRANDA gorulmeli. 1 yaparsan kafa vurusu sayisal bir detay olarak kalir ve oyuncu nisan almayi ogrenmez.</summary>
+        /// <remarks>Aralik: 1 .. 4 | JSON: hitReaction.headshotFlinchMultiplier</remarks>
+        public readonly float HitReactionHeadshotFlinchMultiplier;
+
+        /// <summary>Her isabetin zombiyi geri ittigi mesafe. Yon bilgisi tasir: oyuncu nereden vurdugunu okur ve sürüyü bir hatta tutabilir. Buyutursen zombiler ucar, gri kutuda komik ve okunaksiz olur; sifir yaparsan darbogaz tutma taktigi zayiflar.</summary>
+        /// <remarks>Aralik: 0 .. 2 | JSON: hitReaction.knockbackMeters</remarks>
+        public readonly float HitReactionKnockbackMeters;
+
+        /// <summary>Olen zombinin sahnede kalma suresi (yikilma ani). Sifir yaparsan zombi aninda yok olur ve oldurme SAYILMAMIS gibi hissettirir - oyuncunun basardigi seyi gorecek zamani olmaz. Buyutursen cesetler birikir, hem kare butcesi hem okunabilirlik bozulur (PILLAR-04) ve havuz tavani cesetlerle dolar.</summary>
+        /// <remarks>Aralik: 0 .. 5 | JSON: hitReaction.deathLingerSeconds</remarks>
+        public readonly float HitReactionDeathLingerSeconds;
+
         /// <summary>Zombinin yeni yol istemeler arasi sure. Kucultursen zombiler oyuncuyu daha yakin takip eder ama yol bulma maliyeti dogrusal artar (PERF-BUDGET); buyutursen zombiler oyuncunun eski konumuna kosar ve kandirilmis gorunur. Bu bir denge degeri kadar performans degeridir.</summary>
         /// <remarks>Aralik: 0.1 .. 2 | JSON: navigation.repathIntervalSeconds</remarks>
         public readonly float NavigationRepathIntervalSeconds;
@@ -90,6 +110,11 @@ namespace Bunker.Systems.Config
             float attackWindupSeconds = 0.55f,
             float attackRecoverySeconds = 0.9f,
             float attackDamage = 30f,
+            float hitReactionFlinchSeconds = 0.22f,
+            float hitReactionFlinchSpeedMultiplier = 0.35f,
+            float hitReactionHeadshotFlinchMultiplier = 2f,
+            float hitReactionKnockbackMeters = 0.25f,
+            float hitReactionDeathLingerSeconds = 0.7f,
             float navigationRepathIntervalSeconds = 0.35f,
             float navigationStuckSpeedMetersPerSecond = 0.15f,
             float navigationStuckAfterSeconds = 1.5f,
@@ -106,6 +131,11 @@ namespace Bunker.Systems.Config
             AttackWindupSeconds = attackWindupSeconds;
             AttackRecoverySeconds = attackRecoverySeconds;
             AttackDamage = attackDamage;
+            HitReactionFlinchSeconds = hitReactionFlinchSeconds;
+            HitReactionFlinchSpeedMultiplier = hitReactionFlinchSpeedMultiplier;
+            HitReactionHeadshotFlinchMultiplier = hitReactionHeadshotFlinchMultiplier;
+            HitReactionKnockbackMeters = hitReactionKnockbackMeters;
+            HitReactionDeathLingerSeconds = hitReactionDeathLingerSeconds;
             NavigationRepathIntervalSeconds = navigationRepathIntervalSeconds;
             NavigationStuckSpeedMetersPerSecond = navigationStuckSpeedMetersPerSecond;
             NavigationStuckAfterSeconds = navigationStuckAfterSeconds;

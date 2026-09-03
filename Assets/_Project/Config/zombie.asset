@@ -21,6 +21,11 @@ MonoBehaviour:
   attackWindupSeconds: 0.55
   attackRecoverySeconds: 0.9
   attackDamage: 30
+  hitReactionFlinchSeconds: 0.22
+  hitReactionFlinchSpeedMultiplier: 0.35
+  hitReactionHeadshotFlinchMultiplier: 2
+  hitReactionKnockbackMeters: 0.25
+  hitReactionDeathLingerSeconds: 0.7
   navigationRepathIntervalSeconds: 0.35
   navigationStuckSpeedMetersPerSecond: 0.15
   navigationStuckAfterSeconds: 1.5

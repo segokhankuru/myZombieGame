@@ -57,6 +57,27 @@ namespace Bunker.Config
         [Range(5f, 100f)]
         [SerializeField] private float attackDamage = 30f;
 
+        [Header("hitReaction")]
+        [Tooltip("Isabet alan zombinin sendeleme suresi. Vurmanin bir sey hissettirmesinin TEMELI budur: zombi hasari kabul ettigini gostermezse sürü, mermilerin icinden yuruyen bir duvar gibi okunur. Sifir yaparsan vurus karsiliksiz kalir; buyutursen zombiler surekli sendeler ve tehdit olmaktan cikar, oyuncu tek basina sürüyü kilitleyebilir.")]
+        [Range(0f, 1.5f)]
+        [SerializeField] private float hitReactionFlinchSeconds = 0.22f;
+
+        [Tooltip("Sendeleme sirasindaki hiz carpani. 1'e yaklasirsa sendeleme gorsel bir suslemeye doner ve taktik degeri kalmaz; sifira yaklasirsa surekli ates ederek bir zombiyi yerinde tutmak mumkun olur - bu, mermi ekonomisini anlamsizlastirir.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float hitReactionFlinchSpeedMultiplier = 0.35f;
+
+        [Tooltip("Kafa vurusunun sendelemeyi kac katina cikardigi. Nisan almanin odulu yalnizca hasar olmamali, EKRANDA gorulmeli. 1 yaparsan kafa vurusu sayisal bir detay olarak kalir ve oyuncu nisan almayi ogrenmez.")]
+        [Range(1f, 4f)]
+        [SerializeField] private float hitReactionHeadshotFlinchMultiplier = 2f;
+
+        [Tooltip("Her isabetin zombiyi geri ittigi mesafe. Yon bilgisi tasir: oyuncu nereden vurdugunu okur ve sürüyü bir hatta tutabilir. Buyutursen zombiler ucar, gri kutuda komik ve okunaksiz olur; sifir yaparsan darbogaz tutma taktigi zayiflar.")]
+        [Range(0f, 2f)]
+        [SerializeField] private float hitReactionKnockbackMeters = 0.25f;
+
+        [Tooltip("Olen zombinin sahnede kalma suresi (yikilma ani). Sifir yaparsan zombi aninda yok olur ve oldurme SAYILMAMIS gibi hissettirir - oyuncunun basardigi seyi gorecek zamani olmaz. Buyutursen cesetler birikir, hem kare butcesi hem okunabilirlik bozulur (PILLAR-04) ve havuz tavani cesetlerle dolar.")]
+        [Range(0f, 5f)]
+        [SerializeField] private float hitReactionDeathLingerSeconds = 0.7f;
+
         [Header("navigation")]
         [Tooltip("Zombinin yeni yol istemeler arasi sure. Kucultursen zombiler oyuncuyu daha yakin takip eder ama yol bulma maliyeti dogrusal artar (PERF-BUDGET); buyutursen zombiler oyuncunun eski konumuna kosar ve kandirilmis gorunur. Bu bir denge degeri kadar performans degeridir.")]
         [Range(0.1f, 2f)]
@@ -96,6 +117,11 @@ namespace Bunker.Config
                 attackWindupSeconds,
                 attackRecoverySeconds,
                 attackDamage,
+                hitReactionFlinchSeconds,
+                hitReactionFlinchSpeedMultiplier,
+                hitReactionHeadshotFlinchMultiplier,
+                hitReactionKnockbackMeters,
+                hitReactionDeathLingerSeconds,
                 navigationRepathIntervalSeconds,
                 navigationStuckSpeedMetersPerSecond,
                 navigationStuckAfterSeconds,

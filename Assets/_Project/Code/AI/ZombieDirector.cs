@@ -130,7 +130,9 @@ namespace Bunker.AI
             // yoksa sahne degisirken olu nesneler uzerinden olay tetiklenir.
             for (int i = 0; i < _active.Count; i++)
             {
-                if (_active[i] != null) _active[i].Killed -= OnZombieKilled;
+                if (_active[i] == null) continue;
+                _active[i].Killed -= OnZombieKilled;
+                _active[i].Despawned -= OnZombieDespawned;
             }
 
             _active.Clear();
@@ -247,6 +249,7 @@ namespace Bunker.AI
             // dinleyicilerini temizler, boylece havuzdan cikan zombi eski bir
             // dinleyiciyi tasimaz.
             zombie.Killed += OnZombieKilled;
+            zombie.Despawned += OnZombieDespawned;
 
             _active.Add(zombie);
             _byId[zombie.NetId] = zombie;
@@ -268,9 +271,26 @@ namespace Bunker.AI
         private void OnZombieKilled(ZombieAgent zombie, DamageKind kind, bool headshot)
         {
             ZombieKilled?.Invoke(zombie, kind, headshot);
-            Release(zombie);
+
+            // Olen zombi HEMEN sahadan sayilmaz olur: tur "hepsi oldu mu" sorusunu
+            // cesetleri bekleyerek cevaplamamali. Nesnenin kendisi hala gorunur
+            // (yikilma ani, M1-13) ve havuza iadesi Despawned ile gelir.
+            if (zombie == null) return;
+
+            zombie.Killed -= OnZombieKilled;
+            _active.Remove(zombie);
+            _byId.Remove(zombie.NetId);
         }
 
+        private void OnZombieDespawned(ZombieAgent zombie)
+        {
+            if (zombie == null) return;
+
+            zombie.Despawned -= OnZombieDespawned;
+            _pool.Return(zombie);
+        }
+
+        /// <summary>Zombiyi sahadan ve havuzdan tek adımda çeker (temizlik yolu).</summary>
         private void Release(ZombieAgent zombie)
         {
             if (zombie == null)
@@ -280,6 +300,7 @@ namespace Bunker.AI
             }
 
             zombie.Killed -= OnZombieKilled;
+            zombie.Despawned -= OnZombieDespawned;
             _active.Remove(zombie);
             _byId.Remove(zombie.NetId);
             _pool.Return(zombie);

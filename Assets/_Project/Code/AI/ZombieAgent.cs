@@ -67,14 +67,25 @@ namespace Bunker.AI
         private bool _simulated = true;
         private bool _initialized;
 
+        private float _baseSpeed;
+        private bool _dying;
+        private float _deathTimer;
+        private Quaternion _deathStartRotation;
+
         private Vector3 _netTargetPosition;
         private float _netTargetYaw;
         private bool _hasNetTarget;
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-        /// <summary>Zombi öldüğünde bir kez tetiklenir. Ekonomi ve spawn sayacı buna bağlanır.</summary>
+        /// <summary>Zombi öldüğünde bir kez tetiklenir. Ekonomi ve tur sayacı buna bağlanır.</summary>
         public event Action<ZombieAgent, DamageKind, bool> Killed;
+
+        /// <summary>
+        /// Ceset sahneden kalktı — <b>havuza iade zamanı</b>. Ölümden ayrı bir olay,
+        /// çünkü ölüm anında puan yazılmalı ama nesne hâlâ görünürdür (M1-13).
+        /// </summary>
+        public event Action<ZombieAgent> Despawned;
 
         /// <summary>
         /// Ağdaki kimliği. <b>Nesne referansı değil id gönderilir</b> — istemci
@@ -136,8 +147,12 @@ namespace Bunker.AI
             _vaultTimer = 0f;
             _target = null;
             _hasNetTarget = false;
+            _dying = false;
+            _deathTimer = 0f;
 
             SetCollidersEnabled(true);
+
+            _baseSpeed = speedMetersPerSecond;
 
             _navAgent.enabled = true;
             _navAgent.speed = speedMetersPerSecond;
@@ -167,6 +182,7 @@ namespace Bunker.AI
             // bozulacak abonelik yok; olay dinleyicileri temizleniyor ki havuzdan
             // cikan zombi eski dinleyiciyi tasimasin.
             Killed = null;
+            Despawned = null;
         }
 
         // ---------------------------------------------------------------- kare dongusu
@@ -210,6 +226,14 @@ namespace Bunker.AI
         private void Update()
         {
             if (!_initialized) return;
+
+            // Yikilma ani her kare surulur ve baska hicbir sey calismaz: olu zombi
+            // dusunmez, yol bulmaz, sendelemez.
+            if (_dying)
+            {
+                TickDying(Time.deltaTime);
+                return;
+            }
 
             if (!_simulated)
             {
@@ -289,6 +313,12 @@ namespace Bunker.AI
             if (before != _brain.State) OnStateChanged(before, _brain.State);
 
             if (_brain.AttackLandedThisTick) LandAttack();
+
+            // Sendeleme hizi (M1-13). Taban hiz turdan gelir; carpani beyin verir.
+            if (_navAgent.enabled)
+            {
+                _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier;
+            }
 
             DriveMovement(thinkDelta);
         }
@@ -448,10 +478,42 @@ namespace Bunker.AI
             if (!_initialized) return default;
 
             DamageResult result = _health.ApplyDamage(damage);
-            if (!result.Killed) return result;
 
-            Die(damage.Kind, damage.Headshot);
+            if (result.Killed)
+            {
+                Die(damage.Kind, damage.Headshot);
+                return result;
+            }
+
+            // Hasar emilmediyse (olu hedef) tepki de yok.
+            if (result.Absorbed <= 0f) return result;
+
+            // M1-13: vurusun bir karsiligi olmali. Sendeleme kararini beyin verir
+            // (hazirlanan vurusu kesmek dahil), gorunur kismini burasi surer.
+            _brain.NotifyHit(damage.Headshot);
+            ApplyKnockback();
+            ApplyDebugColor();
+
             return result;
+        }
+
+        /// <summary>
+        /// İsabetin yönünü <b>görünür</b> kılar: zombi biraz geri iter.
+        ///
+        /// <para>Yön bilgisi taktiktir — oyuncu sürüyü bir hatta tutmayı bununla öğrenir.
+        /// İtme <see cref="NavMeshAgent.Move"/> ile yapılır, transform'a yazılarak
+        /// değil: doğrudan yazmak ajanı NavMesh'in dışına taşıyıp "not on NavMesh"
+        /// durumuna sokabilir ve zombi olduğu yerde donar.</para>
+        /// </summary>
+        private void ApplyKnockback()
+        {
+            float distance = _config.HitReactionKnockbackMeters;
+            if (distance <= 0f) return;
+            if (!_navAgent.enabled || !_navAgent.isOnNavMesh) return;
+
+            // Zombinin baktigi yonun tersi: oyuncu onu kovaladigi icin zaten oyuncuya
+            // doner, yani "geri" pratikte atisin geldigi yondur.
+            _navAgent.Move(-_transform.forward * distance);
         }
 
         private void Die(DamageKind kind, bool headshot)
@@ -464,10 +526,53 @@ namespace Bunker.AI
             // Ceset carpismasi kalirsa oyuncu ve diger zombiler olulere takilir.
             SetCollidersEnabled(false);
 
+            // Oldurme HEMEN bildirilir: puan ve tur sayaci beklemez. Cesedin sahnede
+            // kalmasi gorsel bir mesele, oyun mantiginin degil.
             Killed?.Invoke(this, kind, headshot);
 
-            // Ceset bekletme ve havuza iade M1-05'in isi. M1-04'te zombi yok olur;
-            // gri kutuda bu kabul edilebilir, ceset/ragdoll karari sanat asamasinda.
+            // M1-13: olumun bir ani olmali. Zombinin aninda yok olmasi, oldurmenin
+            // SAYILMAMIS gibi hissettirdigi seydir - oyuncunun basardigi seyi gorecek
+            // zamani olmaz.
+            _deathTimer = 0f;
+            _dying = _config.HitReactionDeathLingerSeconds > 0f;
+            _deathStartRotation = _transform.rotation;
+
+            if (!_dying) FinishDeath();
+        }
+
+        /// <summary>
+        /// Yıkılma anı: zombi yana devrilir ve zemine gömülür. <b>Ragdoll değil</b> —
+        /// gri kutuda fizik simülasyonu gereksiz; okunması gereken tek şey "bu artık
+        /// ölü". Ceset görünümü sanat aşamasının işi.
+        /// </summary>
+        private void TickDying(float dt)
+        {
+            _deathTimer += dt;
+
+            float duration = _config.HitReactionDeathLingerSeconds;
+            float t = duration <= 0f ? 1f : Mathf.Clamp01(_deathTimer / duration);
+
+            // Once devril, sonra bat. Ikisi ayni anda olursa hangisinin oldugu okunmaz.
+            _transform.rotation = Quaternion.Slerp(
+                _deathStartRotation,
+                _deathStartRotation * Quaternion.Euler(88f, 0f, 0f),
+                Mathf.Clamp01(t * 2.5f));
+
+            if (t > 0.6f)
+            {
+                float sink = (t - 0.6f) / 0.4f;
+                Vector3 p = _transform.position;
+                p.y = -1.2f * sink;
+                _transform.position = p;
+            }
+
+            if (t >= 1f) FinishDeath();
+        }
+
+        private void FinishDeath()
+        {
+            _dying = false;
+            Despawned?.Invoke(this);
             gameObject.SetActive(false);
         }
 
@@ -516,6 +621,14 @@ namespace Bunker.AI
                 ZombieState.Stuck => new Color(0.10f, 0.40f, 0.70f),
                 _ => Color.black
             };
+
+            // Sendeleme beyaza dogru bir parlama: durum renginin USTUNE binir, onun
+            // yerine gecmez. Ayri bir renk olsaydi "vuruldu" ve "ne yapiyor" bilgisi
+            // birbirini gizlerdi (PILLAR-04).
+            if (_brain != null && _brain.IsFlinching)
+            {
+                c = Color.Lerp(c, Color.white, 0.65f);
+            }
 
             bodyRenderer.GetPropertyBlock(_propertyBlock);
             _propertyBlock.SetColor(BaseColorId, c);
