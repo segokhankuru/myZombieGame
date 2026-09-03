@@ -12,7 +12,8 @@
     "netcode": "Mirror (MIT)",
     "transport": "FizzySteamworks / FizzyFacepunch"
   },
-  "counters": { "epics": 0, "stories": 22, "done": 6, "bugs": 0, "generations": 0 },
+  "counters": { "epics": 0, "stories": 23, "done": 11, "bugs": 5, "generations": 0 },
   "lastUpdated": "2026-09-02"
 }
+
 

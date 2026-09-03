@@ -9,7 +9,7 @@ Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı
 sistemlerinden keyif alan oyuncu.
 **Platform:** PC / Steam. 1080p/60, orta seviye genel donanım.
 **Stage:** preproduction
-**Milestone:** **M-01 Solo Çekirdek Döngü** — 13 işten 2'si kapandı, 7'si oyun testi bekliyor
+**Milestone:** **M-01 Solo Çekirdek Döngü** — 13 işten 2'si kapandı, 9'u kod olarak bitti
 **Review mode:** lean
 
 ## Pillars
@@ -70,19 +70,23 @@ Bağımlılık tek yönlü. Hiçbir şey `Bunker.UI`'ye bağımlı olamaz.
 Detay: `docs/architecture/ARCHITECTURE.md`
 
 ## Current work
-**Milestone:** M-01 Solo Çekirdek Döngü — 13 işten 2'si kapandı, 7'si oyun testi bekliyor
+**Milestone:** M-01 Solo Çekirdek Döngü — 13 işten 2'si kapandı, **9'u kod olarak bitti**
 **Bitti:** M1-01 tur ölçekleme (12 test) · M1-02 ekonomi (18 test)
-**Sürüyor:** M1-03 gri kutu harita (ölçü ayarı) · M1-04 zombi · M1-05 doğum ve tur akışı ·
-M1-06 silah ·
-M1-07 bıçak · M1-08 barikat · M1-13 vuruş hissi — hepsinin kodu ve kurulumu bitti, **kalan tek şey oynayıp hissiyata bakmak**
-**Sıradaki:** önce **oyun testi** — M1-06 bir `Feel` işi ve DoD'si `/feel-check` notu
-zorunlu kılıyor. Sonra M1-09 kapı · M1-10 duvar silahı · M1-11 skor ekranı
+**Kodu bitti, oyun testi bekliyor:** M1-03 harita · M1-04 zombi · M1-05 doğum ve tur
+akışı · M1-06 silah · M1-07 bıçak · M1-08 barikat · M1-09 kapı · M1-10 duvar silahı ·
+M1-13 vuruş hissi
+**Sıradaki:** M1-11 ölüm/skor ekranı · M1-12 telemetri — sonra **ÇK-17**
+**Not:** M1-06 bir `Feel` işi; DoD'si `/feel-check` notunu zorunlu kılıyor
 **Altyapı:** config importer (ADR-0005) — denge sayıları tek kaynakta ·
 zombi konum seam'i kilitlendi: tek paket, 12 bayt/zombi, 10 Hz
 **Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
 
-**Toplam 172 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
+**Toplam 177 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
 `.claude/tools/unity-test.ps1`, `.claude/tools/unity-exec.ps1`.
+
+**Oyun testinde bulunan 5 hata düzeltildi** (BUG-001…005, `docs/qa/bugs/`). Ortak ders:
+**sessiz başarısızlık en pahalı hata türü** — beşinin dördü hiçbir mesaj vermiyordu ve
+teşhis oyun testine kaldı.
 
 ## Known debt and risks
 - **En büyük risk:** klon aşaması uzar, farklılaştırıcı (kartlar) hiç inşa edilmez. Uyarı
