@@ -129,8 +129,18 @@ namespace Bunker.AI
         /// <param name="maxHealth">Turun canı (<c>RoundScaling.HealthForRound</c>).</param>
         /// <param name="speedMetersPerSecond">Turun hızı (<c>RoundScaling.SpeedForRound</c>).</param>
         /// <param name="entryWindow">Girilecek pencere. <c>null</c> ise zombi zaten içeridedir.</param>
+        /// <param name="position">
+        /// Doğum noktası. <b>Konumu bu metot yazar, çağıran taraf değil.</b>
+        ///
+        /// <para>Sebep somut: <c>NavMeshAgent</c> açıkken <c>transform.position</c>'a
+        /// yazmak işe yaramaz — ajan kendi iç konumunu korur ve nesneyi oraya geri
+        /// çeker. Havuzdan çıkan bir zombi böylece <b>bir önceki hayatında öldüğü
+        /// yere</b> ışınlanıyordu; oyuncu bunu "zombiler doğrudan içeride beliriyor ve
+        /// mavi yanıp sönüyor" olarak gördü. Doğrusu ajanı kapatıp konumu yazmak, sonra
+        /// açıp <c>Warp</c> ile iç konumu da hizalamaktır.</para>
+        /// </param>
         public void Spawn(ZombieConfig config, float maxHealth, float speedMetersPerSecond,
-                          WindowEntry entryWindow)
+                          WindowEntry entryWindow, Vector3 position)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
 
@@ -156,9 +166,19 @@ namespace Bunker.AI
 
             _baseSpeed = speedMetersPerSecond;
 
+            // Once ajani KAPAT, sonra konumu yaz: acik bir ajan transform yazmasini
+            // yok sayar ve nesneyi kendi ic konumuna geri ceker.
+            _navAgent.enabled = false;
+            _transform.SetPositionAndRotation(position, Quaternion.identity);
+
             _navAgent.enabled = true;
             _navAgent.speed = speedMetersPerSecond;
             _navAgent.isStopped = false;
+
+            // Warp ic konumu da hizalar. Bu satir olmadan ajan, acildigi andaki eski
+            // konumunu "dogru" kabul edebilir.
+            _navAgent.Warp(position);
+
             if (_navAgent.isOnNavMesh) _navAgent.ResetPath();
 
             _initialized = true;

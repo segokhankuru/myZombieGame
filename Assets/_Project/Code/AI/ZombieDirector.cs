@@ -68,6 +68,12 @@ namespace Bunker.AI
         private ushort _nextId = 1;
         private bool _authoritative = true;
         private bool _ready;
+        private const float WindowReachabilityRefreshSeconds = 1.5f;
+
+        private float[] _windowCheckedAt;
+        private bool[] _windowReachable;
+        private NavMeshPath _reachabilityPath;
+
         private bool _warnedNoWindow;
         private bool _warnedInsideSpawn;
 
@@ -118,6 +124,11 @@ namespace Bunker.AI
                 enabled = false;
                 return;
             }
+
+            // Pencere basina ulasilabilirlik onbellegi (kapali kapi arkasi dogum yapmaz).
+            _windowCheckedAt = new float[_windows.Count];
+            _windowReachable = new bool[_windows.Count];
+            for (int i = 0; i < _windowCheckedAt.Length; i++) _windowCheckedAt[i] = float.NegativeInfinity;
 
             _pool.Prewarm(prewarmCount);
 
@@ -286,14 +297,17 @@ namespace Bunker.AI
             ZombieAgent zombie = _pool.Rent();
             if (zombie == null) return false;   // havuz sinirinda - tanimli durum
 
-            zombie.transform.SetPositionAndRotation(hit.position, Quaternion.identity);
             zombie.NetId = _nextId++;
             if (_nextId == 0) _nextId = 1;      // 0 "yok" anlamina gelir
 
+            // Konumu ZombieAgent.Spawn yazar - acik bir NavMeshAgent transform
+            // yazmasini yok sayar (havuzdan cikan zombi eski olum yerine geri
+            // cekiliyordu).
             zombie.Spawn(_zombieRuntimeConfig,
                          _scaling.HealthForRound(_runner.Round),
                          _scaling.SpeedForRound(_runner.Round),
-                         window);
+                         window,
+                         hit.position);
 
             zombie.SetSimulated(_authoritative);
 
@@ -319,10 +333,61 @@ namespace Bunker.AI
             {
                 _windowCursor = (_windowCursor + 1) % _windows.Count;
                 WindowEntry candidate = _windows[_windowCursor];
-                if (candidate != null && candidate.IsOpen) return candidate;
+
+                if (candidate == null || !candidate.IsOpen) continue;
+                if (!IsWindowInPlayableArea(_windowCursor, candidate)) continue;
+
+                return candidate;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Bu pencere <b>oyuncunun ulaşabildiği alanda mı</b>.
+        ///
+        /// <para>Klasik tur döngüsünün temel kuralı: <b>yalnızca açık bölgelerde zombi
+        /// doğar.</b> Bu olmadan kapalı kapının ardındaki pencerelerden zombi doğuyordu;
+        /// barikatı söküp içeri giriyor, sonra oyuncuya yolu kapalı olduğu için
+        /// hareket edemiyor ve <i>sıkışmış</i> (mavi) hâlde bekliyordu. Oyuncu tarafında
+        /// bu, "gelmeyen zombiler yüzünden tur bitmiyor" olarak görünür — turun
+        /// kilitlenmesinin en sinsi hâli.</para>
+        ///
+        /// <para><b>Bölge tanımına gerek yok:</b> kapı kapalıyken NavMesh'i kesiyor
+        /// (M1-09), yani "oyuncuya yol var mı" sorusu bölge sorusunun tam karşılığı.
+        /// Kapı açılınca o bölgenin pencereleri kendiliğinden devreye girer.</para>
+        ///
+        /// <para>Sonuç önbelleğe alınır: yol hesabı ucuz değil ve bir saniyede birden
+        /// fazla değişmez.</para>
+        /// </summary>
+        private bool IsWindowInPlayableArea(int index, WindowEntry window)
+        {
+            if (Time.time - _windowCheckedAt[index] < WindowReachabilityRefreshSeconds)
+            {
+                return _windowReachable[index];
+            }
+
+            _windowCheckedAt[index] = Time.time;
+
+            ZombieTargetBeacon target = ZombieTargets.Nearest(window.InsidePoint);
+
+            if (target == null)
+            {
+                // Hedef yoksa kisitlamanin anlami da yok: oyuncu daha dogmamis olabilir.
+                _windowReachable[index] = true;
+                return true;
+            }
+
+            _reachabilityPath ??= new NavMeshPath();
+
+            bool reachable =
+                NavMesh.SamplePosition(window.InsidePoint, out NavMeshHit inside, 2f, NavMesh.AllAreas) &&
+                NavMesh.SamplePosition(target.GroundPosition, out NavMeshHit player, 2f, NavMesh.AllAreas) &&
+                NavMesh.CalculatePath(inside.position, player.position, NavMesh.AllAreas, _reachabilityPath) &&
+                _reachabilityPath.status == NavMeshPathStatus.PathComplete;
+
+            _windowReachable[index] = reachable;
+            return reachable;
         }
 
         private void OnZombieKilled(ZombieAgent zombie, DamageKind kind, bool headshot)
@@ -375,7 +440,7 @@ namespace Bunker.AI
             if (zombie == null) return null;
 
             zombie.NetId = id;
-            zombie.Spawn(_zombieRuntimeConfig, 1f, 0f, null);
+            zombie.Spawn(_zombieRuntimeConfig, 1f, 0f, null, zombie.transform.position);
             zombie.SetSimulated(false);   // vekil dusunmez, yalnizca konuma uyar
 
             _active.Add(zombie);
