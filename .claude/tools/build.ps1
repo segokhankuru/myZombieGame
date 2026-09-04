@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Headless Unity build. Finds the right Editor version, invokes it, summarizes the result.
 
@@ -95,6 +95,21 @@ if ($WhatIf) {
 
 if (Test-Path $log) { Remove-Item -LiteralPath $log -Force }
 $sw = [Diagnostics.Stopwatch]::StartNew()
+
+# --- Acik sahne durumunu koru -------------------------------------------------
+# Batch modda calisan Unity, cikarken Library/LastSceneManagerSetup.txt dosyasini
+# BOSALTIR (sceneSetups: []). Sonucu: gelistirici Unity'yi acinca hiyerarsiyi bos
+# bulur ve sahnesini kaybettigini saniyor - hicbir sey kaybolmus degil, Unity
+# hangi sahneyi acacagini bilmiyor.
+#
+# 2026-09-04: bu dosya bir oturumda onlarca kez sifirlandi ve gelistirici
+# "hierarchy yine sifirlanmis" dedi. Arac, gelistiricinin acik sahnesine
+# DOKUNMAMALI.
+$sceneSetupPath = Join-Path $root "Library\LastSceneManagerSetup.txt"
+$sceneSetupBackup = $null
+if (Test-Path $sceneSetupPath) {
+    $sceneSetupBackup = Get-Content -LiteralPath $sceneSetupPath -Raw
+}
 $p = Start-Process -FilePath $editor -ArgumentList $unityArgs -PassThru -NoNewWindow
 if (-not $p.WaitForExit($TimeoutMinutes * 60 * 1000)) {
     try { $p.Kill() } catch {}
@@ -111,6 +126,15 @@ if (-not $p.WaitForExit($TimeoutMinutes * 60 * 1000)) {
 # fails loudly.
 $p.WaitForExit()
 $sw.Stop()
+
+# Acik sahne durumunu HEMEN geri yaz. Buraya konmasinin sebebi: ilk denemede bu
+# blok dosyanin sonuna, "exit 0"in ALTINA eklenmisti ve hic calismiyordu - build
+# yine "OK" diyor, dosya yine bosaliyordu. Unity cikar cikmaz, herhangi bir
+# cikis yolundan once calismali.
+if ($null -ne $sceneSetupBackup -and $sceneSetupBackup -notmatch 'sceneSetups:\s*\[\]') {
+    try { Set-Content -LiteralPath $sceneSetupPath -Value $sceneSetupBackup -NoNewline -Encoding UTF8 } catch { }
+}
+
 $code = $p.ExitCode
 if ($null -eq $code) { $code = 1 }
 
