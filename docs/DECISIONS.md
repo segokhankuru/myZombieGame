@@ -188,3 +188,47 @@ PILLAR-03'ün açıkça reddettiği "menü işi yapıyorum" modu. Ritmi belirley
 **Not:** bu bir `/tune` değil. Değer aynı kaldı; yalnızca yaşadığı yer değişti — böylece
 oyun testinden sonra ayarlanabilir hâle geldi. Aralık (1–40) ve şema açıklaması,
 oynamadan önce hangi yönün neyi bozacağını yazıyor.
+
+## 2026-09-04 — Tur başı otomatik yenilenme kaldırıldı (barikat + mermi)
+
+**Karar (geliştirici):** *"Tamir eden zaten tur arası süresinde tamir etsin edebildiği
+kadar; ama tur başladığında tamamen yenilenen barikat, can, mermi oyunu çok kolay
+kılıyor."*
+
+Üçünün üçü de gerçekten öyle çalışıyordu. Ama **üçü aynı şey değil:**
+
+| | Neydi | Ne yapıldı | Neden M-01 |
+|---|---|---|---|
+| **Barikat** | Her tur başında `4/4`'e dönüyordu | Tur sıfırlaması kaldırıldı; yalnızca **run** başında sıfırlanıyor | **Sadakat düzeltmesi.** Klon taban barikatı otomatik onarmaz; otomatik dönüş bizim kazara eklediğimiz sapmaydı |
+| **Mermi** | Her tur başında tam yedeğe dönüyordu | Aynı: yalnızca run başında | **Kalmış iskele.** Kodun kendi yorumu *"M1-10 duvar silahı gelince kaldırılacak"* diyordu; M1-10 geldi, iskele kaldı |
+| **Can** | Vurulmayınca tam yenileniyor | **Değişmedi** — M-02'ye ertelendi | Bu klona **sadık**. İki katmanlı model (aşağıda) bir farklılaştırıcı, kontrol grubuna girmez |
+
+**Mermi değişikliğinin etkisi küçük değil.** Denge simülasyonu mermiyi satın alınan bir
+kaynak varsayarak koştu ve gelirin %77–98'inin mermiye gittiğini buldu
+(`design/economy/curves.md`). Yani oyun bugüne kadar simülasyonun anlattığından
+**belirgin şekilde kolaydı**; bu değişiklikle ikisi hizalandı ve KIRILMA 1 (mermi
+seferleri) artık gerçekten hissedilecek.
+
+**Run sıfırlaması eklendi.** Tur sıfırlaması kaldırılınca ikisini düzelten başka hiçbir
+yol kalmıyordu: `R` ile başlayan ikinci run, birincinin sökük barikatları ve kalan
+mermisiyle başlardı — M1-11 AC-6'nın ("sayılar sızmaz") barikat ve mermi karşılığı.
+
+**Oyun testinde izlenecek:** barikatın eski yorumu bir uyarı taşıyordu ve hâlâ geçerli
+olabilir — *"sökük pencereleri tek tek tamir etmek molayı bir dinlenme değil ev ödevi
+yapar (PILLAR-03)."* 10 saniyelik mola dört pencereye yetmiyorsa bu gerilim gerçek olur.
+
+## 2026-09-04 — Can: iki katmanlı model onaylandı (M-02)
+
+**Karar (geliştirici):** Darktide modeli onaylandı — hızlı yenilenen bir **kalkan**
+katmanı + kısmi yenilenen **can** katmanı.
+
+Bu, 3 Eylül'deki "vurulmayınca can tam yenilenir" kararıyla arasındaki çelişkiyi çözüyor:
+kaçmanın ödülü kalkanda yaşamaya devam ediyor, yıpranma ise cana yazılıyor.
+
+**M-02'ye ertelendi.** M-01 bilerek bir kontrol grubu; iki katmanlı can bir
+farklılaştırıcı ve kontrol grubunun içine konursa ÇK-17'nin cevabı yorumlanamaz olur.
+
+**Açık kalan:** can nasıl geri gelir? Kalkan kendiliğinden dolar, ama can hiç dolmazsa
+her run bir ölüm sarmalına döner. Darktide bunu medicae istasyonu ve iksirlerle çözüyor.
+Bizde adayları: tezgâhtan iyileştirme, zombiden düşen nadir can, hasarsız biten turun
+ödülü, `Vampir`/`Kan Nakli` kartları. **Karar verilmedi** — `SYS-02` §7f.

@@ -68,19 +68,34 @@ namespace Bunker.AI
             RefreshVisuals();
         }
 
-        private void OnEnable() => RoundSignals.RoundStarted += OnRoundStarted;
+        private void OnEnable() => RunSignals.RunRestarted += OnRunRestarted;
 
-        private void OnDisable() => RoundSignals.RoundStarted -= OnRoundStarted;
+        private void OnDisable() => RunSignals.RunRestarted -= OnRunRestarted;
 
         /// <summary>
-        /// Her turun başında barikat tam hâline döner.
+        /// Yeni run: barikat tam hâline döner.
         ///
-        /// <para><b>Neden otomatik:</b> mola, oyuncunun toparlandığı andır. Bir önceki
-        /// turdan kalan sökük pencereleri tek tek tamir etmek zorunda kalmak, molayı
-        /// bir dinlenme değil ev ödevi yapar — ve tur temposunu (PILLAR-03) bozar.
-        /// Tamir mekaniği <b>tur içinde</b> anlamlıdır, turlar arasında değil.</para>
+        /// <para><b>Tur başında DEĞİL, RUN başında</b> (geliştirici kararı, 2026-09-04).
+        /// Önceki sürüm her tur başında tam hâline dönüyordu ve gerekçesi şuydu: <i>"mola
+        /// oyuncunun toparlandığı andır; sökük pencereleri tek tek tamir etmek molayı ev
+        /// ödevi yapar (PILLAR-03)."</i> Geliştirici tersini seçti: <b>"tur başladığında
+        /// tamamen yenilenen barikat oyunu çok kolay kılıyor."</b></para>
+        ///
+        /// <para><b>Bu bir farklılaştırıcı değil, bir sadakat düzeltmesi.</b> Klon taban
+        /// barikatı otomatik onarmaz; oyuncu puan karşılığı tamir eder ve etmezse barikat
+        /// sökük kalır. Otomatik dönüş bizim kazara eklediğimiz bir sapmaydı — bu yüzden
+        /// M-02'ye ertelenmiyor, M-01'in içinde düzeltiliyor.</para>
+        ///
+        /// <para><b>Run sıfırlaması ŞART:</b> tur sıfırlaması kalkınca barikatı düzelten
+        /// başka hiçbir yol kalmıyordu. O hâliyle <c>R</c> ile başlayan ikinci run,
+        /// birincinin sökük pencereleriyle başlardı — M1-11'in AC-6'sının (sayılar
+        /// sızmaz) barikat karşılığı.</para>
+        ///
+        /// <para><b>Oyun testinde izlenecek:</b> eski yorumun uyarısı hâlâ geçerli
+        /// olabilir. 10 saniyelik mola dört pencereyi tamir etmeye yetmiyorsa mola bir
+        /// dinlenme değil ev ödevi olur. Bu gerilim çözülmedi, ölçülecek.</para>
         /// </summary>
-        private void OnRoundStarted(int round)
+        private void OnRunRestarted()
         {
             ResetBarricade();
         }

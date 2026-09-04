@@ -107,19 +107,32 @@ namespace Bunker.Gameplay
             if (tracer != null) tracer.enabled = false;
         }
 
-        private void OnEnable() => RoundSignals.RoundStarted += OnRoundStarted;
+        private void OnEnable() => RunSignals.RunRestarted += OnRunRestarted;
 
-        private void OnDisable() => RoundSignals.RoundStarted -= OnRoundStarted;
+        private void OnDisable() => RunSignals.RunRestarted -= OnRunRestarted;
 
         /// <summary>
-        /// Her turun basinda mermi tazelenir.
+        /// Yeni run: mermi başlangıç değerine döner.
         ///
-        /// <para><b>Neden:</b> M-01'de mermi kaynagi (duvar silahi, dagitici) henuz yok;
-        /// yedek bitince oyun bicakla oynanan baska bir oyuna donuyor ve tur temposu
-        /// olculemez hale geliyor. Bu bir denge karari degil, <b>eksik sistemin gecici
-        /// yerine gecen sey</b> - M1-10 duvar silahi gelince kaldirilacak.</para>
+        /// <para><b>Tur başında DEĞİL, RUN başında.</b> Önceki sürüm her tur başında
+        /// mermiyi tazeliyordu ve kendi yorumu bunu şöyle gerekçelendiriyordu:
+        /// <i>"M-01'de mermi kaynağı (duvar silahı, dağıtıcı) henüz yok... Bu bir denge
+        /// kararı değil, eksik sistemin geçici yerine geçen şey — <b>M1-10 duvar silahı
+        /// gelince kaldırılacak</b>."</i></para>
+        ///
+        /// <para><b>M1-10 geldi ve bu iskele kalmıştı.</b> Yani bedava mermi bir tasarım
+        /// tercihi değil, silinmesi unutulmuş bir geçici çözümdü — ve oyunu tam olarak
+        /// geliştiricinin 2026-09-04'te işaret ettiği kadar kolaylaştırıyordu.</para>
+        ///
+        /// <para><b>Sonucu küçük değil:</b> denge simülasyonu mermiyi satın alınan bir
+        /// kaynak varsayarak koştu ve gelirin %77–98'inin mermiye gittiğini buldu
+        /// (<c>design/economy/curves.md</c>). Yani oyun bugüne kadar simülasyonun
+        /// anlattığından <b>belirgin şekilde kolaydı</b>; bu satırla ikisi hizalanıyor.</para>
+        ///
+        /// <para><b>Run sıfırlaması ŞART:</b> tur sıfırlaması kalkınca <c>R</c> ile
+        /// başlayan ikinci run, birincinin kalan mermisiyle başlardı (M1-11 AC-6).</para>
         /// </summary>
-        private void OnRoundStarted(int round)
+        private void OnRunRestarted()
         {
             _state.Reset();
             _guard.Reset();
