@@ -134,6 +134,13 @@ $sw.Stop()
 if ($null -ne $sceneSetupBackup -and $sceneSetupBackup -notmatch 'sceneSetups:\s*\[\]') {
     try { Set-Content -LiteralPath $sceneSetupPath -Value $sceneSetupBackup -NoNewline -Encoding UTF8 } catch { }
 }
+else {
+    # KENDINI ONARMA. Yedek bossa geri yazacak bir sey yok demektir - ve onceki
+    # surum tam burada duruyordu, yani dosya bir kez bosaldiginda KALICI olarak
+    # bos kaliyordu. Korumak yetmez, onarmak gerek.
+    $fallback = "sceneSetups:`n- path: Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity`n  isLoaded: 1`n  isActive: 1`n  isSubScene: 0`n"
+    try { Set-Content -LiteralPath $sceneSetupPath -Value $fallback -NoNewline -Encoding UTF8 } catch { }
+}
 
 $code = $p.ExitCode
 if ($null -eq $code) { $code = 1 }
