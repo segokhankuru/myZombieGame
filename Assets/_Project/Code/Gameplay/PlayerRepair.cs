@@ -67,7 +67,7 @@ namespace Bunker.Gameplay
 
             // Run bitti: girdi kesilir (M1-11, AC-3). Hedef de temizlenir, yoksa
             // skor ekrani kapandiginda ekranda eski bir tamir ipucu asili kalir.
-            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen)
+            if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen)
             {
                 HasRepairTarget = false;
                 return;

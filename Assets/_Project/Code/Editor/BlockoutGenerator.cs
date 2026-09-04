@@ -585,6 +585,12 @@ namespace Bunker.Editor
             Transform buys = Group("Purchases", markers);
             Marker(buys, "WallBuy_A_Cheap", new Vector3(s.West + 0.5f, 1.4f, s.South + 2f));
             Marker(buys, "WallBuy_B_Mid", new Vector3(s.East - 0.5f, 1.4f, s.North - 2f));
+
+            // Tezgah (M-03): baslangic bolgesinde, duvar silahindan AYRI bir duvarda.
+            // Yan yana olsalardi hangi tusun ne actigi karisirdi; ayri yerlerde
+            // olmalari "buraya mermi icin, suraya yukseltme icin gidilir" ayrimini
+            // haritanin kendisine yaziyor.
+            Marker(buys, "Shop_Station", new Vector3(s.West + 0.5f, 1.4f, s.North - 3f));
             Marker(buys, "MysteryBox", new Vector3(s.Divider + 2f, s.UpperFloorY + 0.5f, midZ));
         }
 

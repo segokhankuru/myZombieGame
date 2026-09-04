@@ -96,6 +96,7 @@ namespace Bunker.Editor
         // kosede satin alma noktasini bulamamak M1-09 ve M1-10.u oynanamaz yapar.
         private static readonly Color DoorColor = new Color(0.78f, 0.45f, 0.12f);
         private static readonly Color WallBuyColor = new Color(0.16f, 0.62f, 0.68f);
+        private static readonly Color ShopColor = new Color(0.62f, 0.35f, 0.85f);
 
         // --------------------------------------------------------------- giris
 
@@ -211,6 +212,11 @@ namespace Bunker.Editor
                                               DoorColor * 0.35f, unlit: true);
             result["WallBuy"] = LoadOrCreate(ref changed, "mat_wallbuy_greybox", WallBuyColor,
                                              unlit: true);
+
+            // Tezgah kendi rengini tasir: duvar silahiyla ayni renkte olsalardi
+            // oyuncu ikisini karistirir ve "E ne yapacak" belirsizlesir.
+            result["Shop"] = LoadOrCreate(ref changed, "mat_shop_greybox", ShopColor,
+                                          unlit: true);
 
             return result;
         }
@@ -455,10 +461,12 @@ namespace Bunker.Editor
         {
             int changed = 0;
 
-            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid" })
+            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid", "Shop_Station" })
             {
                 GameObject marker = GameObject.Find(name);
                 if (marker == null) continue;
+
+                string materialKey = name == "Shop_Station" ? "Shop" : "WallBuy";
 
                 Transform plate = marker.transform.Find("Plate");
 
@@ -480,7 +488,7 @@ namespace Bunker.Editor
 
                 var renderer = plate.GetComponent<MeshRenderer>();
 
-                if (renderer != null && materials.TryGetValue("WallBuy", out Material mat)
+                if (renderer != null && materials.TryGetValue(materialKey, out Material mat)
                     && renderer.sharedMaterial != mat)
                 {
                     renderer.sharedMaterial = mat;

@@ -57,11 +57,29 @@ namespace Bunker.Gameplay
 
             // Run bitti: girdi kesilir (M1-11, AC-3). Olu bir oyuncunun kapi satin
             // almasi, yeniden baslatmada silinecek bir harcamadir.
-            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen)
+            if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen)
             {
                 // HasTarget bu ikisinden turetilir; ayrica yazilmaz.
                 CurrentPrompt = string.Empty;
                 CanAfford = false;
+                return;
+            }
+
+            // Tezgah istasyonu satin alinabilir bir sey DEGIL, bir menu acar. Ayni
+            // tusu paylasiyor: mermi almayi ogrenmis oyuncuya ikinci bir kural
+            // dayatmak yerine ayni "bak ve bas" aliskanligini kullaniyor.
+            ShopStation station = FindStation();
+
+            if (station != null)
+            {
+                CurrentPrompt = station.Prompt;
+                CanAfford = true;   // menu acmak bedava; fiyatlar iceride
+
+                if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                {
+                    station.Open();
+                }
+
                 return;
             }
 
@@ -99,6 +117,20 @@ namespace Bunker.Gameplay
 
             var purchasable = hit.collider.GetComponentInParent<IPurchasable>();
             return purchasable != null && purchasable.IsAvailable ? purchasable : null;
+        }
+
+        /// <summary>Bakilan tezgah istasyonu, yoksa null.</summary>
+        private ShopStation FindStation()
+        {
+            Transform cam = playerCamera != null ? playerCamera.transform : transform;
+
+            if (!Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, rangeMeters,
+                                 ~0, QueryTriggerInteraction.Collide))
+            {
+                return null;
+            }
+
+            return hit.collider.GetComponentInParent<ShopStation>();
         }
 
         [Command]

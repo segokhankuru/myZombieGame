@@ -196,7 +196,7 @@ namespace Bunker.Gameplay
             // Run bitti YA DA tur arasi ekrani acik: girdi kesilir. Ekran acikken
             // ates etmek, bakis cevirmek ya da satin almak, fareyle kart secmeyi
             // imkansiz kilardi.
-            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen) return;
+            if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen) return;
 
             ReadInput();
         }

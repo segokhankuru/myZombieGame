@@ -6,11 +6,13 @@ using UnityEngine;
 namespace Bunker.UI
 {
     /// <summary>
-    /// Tur arası ekranı: kart seçimi (üstte) ve tezgâh (altta). SYS-02 §7b, §7e.
+    /// Tur arası kart seçim ekranı. SYS-02 §7b.
     ///
-    /// <para><b>Neden tek ekran:</b> draft ve tezgâh ayrı iki ekran olsaydı her tur
-    /// iki kez menüye girilirdi. PILLAR-03 draft'ı "ritmin zirvesi" diye tanımlıyor;
-    /// arka arkaya iki menü zirve değil, ara verme olur.</para>
+    /// <para><b>Tezgâh burada DEĞİL</b> (geliştirici, 2026-09-04): <i>"tezgâh bence
+    /// kartlardan bağımsız, mermi doldurma yeri gibi duvarda olmalı; E'ye basınca
+    /// menüsü gelmeli."</i> Doğru ayrım: kart seçimi turun <b>ödülü</b> ve zorunlu bir
+    /// andır; tezgâh bir <b>harcama</b> ve oyuncunun gitmeyi seçtiği bir yerdir.
+    /// Aynı ekranda olmaları ikincisini birincisinin eklentisi gibi gösteriyordu.</para>
     ///
     /// <para><b>Fareyle</b> (geliştirici, 2026-09-04): <i>"Kartları fareyle seçeyim,
     /// tuşlar iyi olmuyor."</i> Ekran açıkken imleç serbest bırakılır ve oyuncunun
@@ -24,7 +26,6 @@ namespace Bunker.UI
     public sealed class CardDraftHud : MonoBehaviour
     {
         [SerializeField] private CardDraftController controller;
-        [SerializeField] private ShopController shop;
 
         private readonly StringBuilder _text = new StringBuilder(256);
 
@@ -138,8 +139,7 @@ namespace Bunker.UI
                 DrawSlot(i, new Rect(x + i * (cardWidth + gap), y, cardWidth, cardHeight));
             }
 
-            DrawLoadout(cx, y + cardHeight + 12f);
-            DrawShop(cx, y + cardHeight + 44f);
+            DrawLoadout(cx, y + cardHeight + 16f);
         }
 
         // ---------------------------------------------------------------- kart
@@ -158,10 +158,15 @@ namespace Bunker.UI
                 return;
             }
 
-            // Kartin TAMAMI bir dugme: kucuk bir "sec" dugmesine nisan almak, fareyle
-            // secmenin butun kolayligini goturur.
+            // Kartin GOVDESI bir dugme, ama ALT SERIT haric: yenileme dugmesi orada
+            // duruyor ve IMGUI'de once cizilen kontrol tiklamayi yutar. Ilk surumde
+            // kartin tamami dugmeydi ve "yenile"ye basmak karti SECIYORDU - oyun
+            // testinde ilk bulunan sey bu oldu.
+            const float rerollStrip = 40f;
+            var body = new Rect(rect.x, rect.y, rect.width, rect.height - rerollStrip);
+
             GUI.color = new Color(1f, 1f, 1f, 0.12f);
-            if (GUI.Button(rect, GUIContent.none, _buttonStyle)) controller.Pick(index);
+            if (GUI.Button(body, GUIContent.none, _buttonStyle)) controller.Pick(index);
             GUI.color = Color.white;
 
             GUI.color = TagColor(card.Tag);
@@ -212,77 +217,6 @@ namespace Bunker.UI
 
             _text.Append("   ").Append(label).Append(' ').Append(count);
             if (loadout.HasTagBonus(tag)) _text.Append(" *BONUS*");
-        }
-
-        // ---------------------------------------------------------------- tezgah
-
-        private void DrawShop(float cx, float y)
-        {
-            if (shop == null || shop.Shop == null) return;
-
-            GUI.Label(new Rect(cx - 300f, y, 600f, 26f), "TEZGAH", _hintStyle);
-
-            int points = _score != null ? _score.Spendable : 0;
-            GUI.color = new Color(1f, 1f, 1f, 0.7f);
-            GUI.Label(new Rect(cx - 300f, y + 22f, 600f, 22f), $"puan: {points}", _hintStyle);
-            GUI.color = Color.white;
-
-            const float lineWidth = 190f;
-            const float lineHeight = 74f;
-            const float gap = 12f;
-
-            var lines = new[] { ShopLine.Health, ShopLine.Damage, ShopLine.FireRate, ShopLine.Magazine };
-
-            float totalWidth = lines.Length * lineWidth + (lines.Length - 1) * gap;
-            float x = cx - totalWidth / 2f;
-            float top = y + 50f;
-
-            for (int i = 0; i < lines.Length; i++)
-            {
-                DrawShopLine(lines[i], new Rect(x + i * (lineWidth + gap), top, lineWidth, lineHeight));
-            }
-        }
-
-        private void DrawShopLine(ShopLine line, Rect rect)
-        {
-            ShopState state = shop.Shop;
-
-            int tier = state.Tier(line);
-            int max = state.MaxTier(line);
-            bool maxed = state.IsMaxed(line);
-            bool affordable = shop.CanAfford(line, _score);
-
-            GUI.color = new Color(1f, 1f, 1f, 0.10f);
-            GUI.DrawTexture(rect, _pixel);
-            GUI.color = Color.white;
-
-            var inner = new Rect(rect.x + 10f, rect.y + 6f, rect.width - 20f, 20f);
-
-            GUI.Label(inner, $"{ShopState.DisplayName(line)}  {tier}/{max}", _bodyStyle);
-
-            GUI.color = new Color(1f, 1f, 1f, 0.55f);
-            GUI.Label(new Rect(inner.x, inner.y + 18f, inner.width, 18f),
-                      ShopState.Description(line), _bodyStyle);
-            GUI.color = Color.white;
-
-            var button = new Rect(rect.x + 10f, rect.yMax - 28f, rect.width - 20f, 22f);
-
-            if (maxed)
-            {
-                GUI.color = new Color(1f, 1f, 1f, 0.35f);
-                GUI.Label(button, "  tavanda", _bodyStyle);
-                GUI.color = Color.white;
-                return;
-            }
-
-            // Puan yetmiyorsa dugme SOLUK ve kapali. Fiyat yaninda yaziyor, yani
-            // bilgi renkle tek basina tasinmiyor (ui-code.md).
-            bool wasEnabled = GUI.enabled;
-            GUI.enabled = affordable;
-
-            if (GUI.Button(button, $"{state.CostFor(line)} puan")) shop.Buy(line, _score);
-
-            GUI.enabled = wasEnabled;
         }
 
         // ---------------------------------------------------------------- yardimci

@@ -26,6 +26,29 @@ namespace Bunker.Systems.Cards
 
         public static bool IsDraftOpen => Draft != null && Draft.IsOpen;
 
+        /// <summary>
+        /// Tezgah menusu acik mi (duvardaki istasyon, E ile).
+        ///
+        /// <para>Draft'tan AYRI: draft turun zorunlu odulu, tezgah oyuncunun gitmeyi
+        /// sectigi bir harcama noktasi. Ikisi ayni bayragi paylassaydi tezgahi acmak
+        /// turu durdururdu.</para>
+        /// </summary>
+        public static bool IsShopOpen { get; private set; }
+
+        /// <summary>Tezgah menusu acildi ya da kapandi.</summary>
+        public static event Action<bool> ShopVisibilityChanged;
+
+        public static void SetShopOpen(bool open)
+        {
+            if (IsShopOpen == open) return;
+
+            IsShopOpen = open;
+            ShopVisibilityChanged?.Invoke(open);
+        }
+
+        /// <summary>Herhangi bir menu acik mi - girdi kesme noktasi.</summary>
+        public static bool IsAnyMenuOpen => IsDraftOpen || IsShopOpen;
+
         /// <summary>Bir draft açıldı — arayüz burayı dinler.</summary>
         public static event Action<CardDraft> DraftOpened;
 
@@ -69,6 +92,8 @@ namespace Bunker.Systems.Cards
             DraftOpened = null;
             DraftClosed = null;
             LoadoutChanged = null;
+            ShopVisibilityChanged = null;
+            IsShopOpen = false;
             Draft = null;
             Loadout.Reset();
         }

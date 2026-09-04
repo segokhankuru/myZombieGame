@@ -384,6 +384,24 @@ namespace Bunker.Editor
             }
 
             // --- duvar silahlari
+            // --- tezgah istasyonu (M-03)
+            GameObject shopMarker = GameObject.Find("Shop_Station");
+
+            if (shopMarker != null)
+            {
+                if (shopMarker.GetComponent<ShopStation>() == null)
+                {
+                    shopMarker.AddComponent<ShopStation>();
+                }
+
+                EnsureInteractionTrigger(shopMarker, new Vector3(1.4f, 1.6f, 0.8f));
+            }
+            else
+            {
+                Debug.LogWarning("[Zombi] 'Shop_Station' isareti yok - tezgah acilamaz. " +
+                                 "Gri kutu yeniden uretilmeli.");
+            }
+
             foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid" })
             {
                 GameObject marker = GameObject.Find(name);
@@ -587,7 +605,11 @@ namespace Bunker.Editor
 
             SetPrivateField(shopController, "shopConfig", LoadConfigAsset("shop"));
             SetPrivateField(draftHud, "controller", draft);
-            SetPrivateField(draftHud, "shop", shopController);
+
+            var shopHud = host.GetComponent<ShopHud>();
+            if (shopHud == null) shopHud = host.AddComponent<ShopHud>();
+
+            SetPrivateField(shopHud, "shop", shopController);
         }
 
         // ---------------------------------------------------------------- sahne
