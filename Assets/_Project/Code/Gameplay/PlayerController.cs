@@ -1,3 +1,4 @@
+using Bunker.Systems.Cards;
 using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
@@ -241,7 +242,13 @@ namespace Bunker.Gameplay
             Vector3 input = new Vector3(x, 0f, z);
             if (input.sqrMagnitude > 1f) input.Normalize();
 
-            Vector3 horizontal = _transform.TransformDirection(input) * moveSpeedMetersPerSecond;
+            // Kart etkisi: Tempo etiketi hizi buradan artirir (SYS-02). Carpan
+            // CardLoadout'ta zaten toplanmis duruyor - bes kart carpimsal olsaydi
+            // hiz kacar ve NavMesh takibi anlamsizlasirdi.
+            float speed = moveSpeedMetersPerSecond *
+                          CardSignals.Loadout.Multiplier(CardStat.MoveSpeed);
+
+            Vector3 horizontal = _transform.TransformDirection(input) * speed;
 
             if (_controller.isGrounded)
             {

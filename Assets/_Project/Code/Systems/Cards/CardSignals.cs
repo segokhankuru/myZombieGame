@@ -1,0 +1,84 @@
+using System;
+
+namespace Bunker.Systems.Cards
+{
+    /// <summary>
+    /// Kart sisteminin yayın noktası. <c>RoundSignals</c> ve <c>RunSignals</c> ile
+    /// aynı desen ve aynı gerekçe: draft ekranı <c>Bunker.UI</c>'de, turu yürüten
+    /// <c>ZombieDirector</c> <c>Bunker.AI</c>'da, silah ve can <c>Bunker.Gameplay</c>'de
+    /// yaşıyor. Üçünün de gördüğü tek yer <c>Bunker.Systems</c>.
+    ///
+    /// <para><b>Statik olmanın iki kuralı aynen geçerli:</b> her abone
+    /// <c>OnDisable</c>'da bırakır ve <see cref="Clear"/> yalnızca açılışta
+    /// <c>RoundSignalsBootstrap</c>'ten çağrılır.</para>
+    ///
+    /// <para><b>Draft açıkken tur ilerlemez.</b> <see cref="IsDraftOpen"/> bunu
+    /// söyler; <c>ZombieDirector</c> okur. Aksi hâlde oyuncu kart seçerken bir sonraki
+    /// tur başlar ve seçim ekranının arkasından sürü gelir.</para>
+    /// </summary>
+    public static class CardSignals
+    {
+        /// <summary>Bu run'da toplanan kartlar. Yeniden başlatma bunu sıfırlar.</summary>
+        public static CardLoadout Loadout { get; } = new CardLoadout();
+
+        /// <summary>Açık draft, yoksa <c>null</c>.</summary>
+        public static CardDraft Draft { get; private set; }
+
+        public static bool IsDraftOpen => Draft != null && Draft.IsOpen;
+
+        /// <summary>Bir draft açıldı — arayüz burayı dinler.</summary>
+        public static event Action<CardDraft> DraftOpened;
+
+        /// <summary>Draft kapandı (kart seçildi ya da atlandı).</summary>
+        public static event Action<CardDefinition> DraftClosed;
+
+        /// <summary>Yığın değişti — silah, can ve ekonomi burayı dinleyip kendini tazeler.</summary>
+        public static event Action<CardLoadout> LoadoutChanged;
+
+        /// <summary>
+        /// Bir draft açar. <b>Yalnızca sunucuda çağrılmalı</b> (ADR-0004): hangi üç
+        /// kartın çıktığı kalıcı sonucu olan bir şeydir.
+        /// </summary>
+        public static void OpenDraft(CardDraft draft)
+        {
+            Draft = draft ?? throw new ArgumentNullException(nameof(draft));
+            DraftOpened?.Invoke(draft);
+        }
+
+        /// <summary>Seçim yapıldı; yığın güncellendi.</summary>
+        public static void NotifyPicked(in CardDefinition card)
+        {
+            Draft = null;
+            DraftClosed?.Invoke(card);
+            LoadoutChanged?.Invoke(Loadout);
+        }
+
+        /// <summary>Seçim yapılmadan kapandı.</summary>
+        public static void NotifySkipped()
+        {
+            Draft = null;
+            DraftClosed?.Invoke(default);
+        }
+
+        /// <summary>
+        /// Her şeyi siler. <b>Yalnızca oyun başlarken</b>, hiçbir sahne nesnesi
+        /// uyanmadan önce.
+        /// </summary>
+        public static void Clear()
+        {
+            DraftOpened = null;
+            DraftClosed = null;
+            LoadoutChanged = null;
+            Draft = null;
+            Loadout.Reset();
+        }
+
+        /// <summary>Yeni run: yığın sıfırlanır, açık draft kapanır.</summary>
+        public static void ResetRun()
+        {
+            Draft = null;
+            Loadout.Reset();
+            LoadoutChanged?.Invoke(Loadout);
+        }
+    }
+}

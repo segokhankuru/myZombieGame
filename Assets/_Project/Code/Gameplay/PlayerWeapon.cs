@@ -1,5 +1,6 @@
 using System;
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
 using Bunker.Systems.Rounds;
@@ -136,6 +137,35 @@ namespace Bunker.Gameplay
         {
             _state.Reset();
             _guard.Reset();
+        }
+
+        /// <summary>
+        /// Kart etkileriyle son hasar (SYS-02 §3.1).
+        ///
+        /// <para><b>Kartlar arasında toplama, katmanlar arasında çarpma.</b> Kart
+        /// çarpanı <see cref="CardLoadout"/>'ta zaten toplanmış olarak duruyor; burada
+        /// yalnızca silahın taban hasarıyla <i>çarpılıyor</i>. Beş adet +%20 kart 2.00x
+        /// eder, 2.49x değil.</para>
+        ///
+        /// <para><b>Kafa çarpanı ayrı eklenir:</b> "Keskin Nişan" kartı 2x'i 3x yapar.
+        /// Hasarla aynı torbaya atılsaydı kafa vuruşu olmayan atışları da güçlendirirdi
+        /// ve kartın metni yalan söylerdi.</para>
+        ///
+        /// <para><b>Sunucuda hesaplanır.</b> <c>_guard</c> istemcinin iddiasını değil
+        /// kendi sayısını kullanır (ADR-0004, BUG-002).</para>
+        /// </summary>
+        private float CardModifiedDamage(bool headshot)
+        {
+            CardLoadout loadout = CardSignals.Loadout;
+
+            float damage = _config.FireDamage * loadout.Multiplier(CardStat.WeaponDamage);
+
+            if (!headshot) return damage;
+
+            float multiplier = _config.FireHeadshotMultiplier
+                               + loadout.Total(CardStat.HeadshotMultiplier);
+
+            return damage * multiplier;
         }
 
         // ---------------------------------------------------------------- kare dongusu
@@ -345,7 +375,7 @@ namespace Bunker.Gameplay
             bool headshot = target.CountsAsHeadshot;
 
             DamageResult result = target.ApplyDamage(
-                new DamageInfo(_guard.DamageFor(headshot), DamageKind.Bullet, headshot));
+                new DamageInfo(CardModifiedDamage(headshot), DamageKind.Bullet, headshot));
 
             TargetReportHit(sender, headshot, result.Killed);
 

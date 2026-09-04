@@ -1,0 +1,192 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0f4053a0d91c904193c4d4093b8a403, type: 3}
+  m_Name: cards
+  m_EditorClassIdentifier: Bunker.Config::Bunker.Config.CardCatalogAsset
+  version: 1
+  cards:
+  - id: card.ballistics.damage.1
+    displayName: Sert Cekirdek
+    text: Silah hasari +%20.
+    tag: 0
+    stat: 1
+    value: 0.2
+    soloValid: 1
+    coopValid: 1
+  - id: card.ballistics.damage.2
+    displayName: Sert Cekirdek II
+    text: Silah hasari +%30.
+    tag: 0
+    stat: 1
+    value: 0.3
+    soloValid: 1
+    coopValid: 1
+  - id: card.ballistics.firerate.1
+    displayName: Hizli Tetik
+    text: Atis hizi +%15.
+    tag: 0
+    stat: 2
+    value: 0.15
+    soloValid: 1
+    coopValid: 1
+  - id: card.ballistics.firerate.2
+    displayName: Hizli Tetik II
+    text: Atis hizi +%25.
+    tag: 0
+    stat: 2
+    value: 0.25
+    soloValid: 1
+    coopValid: 1
+  - id: card.ballistics.headshot
+    displayName: Keskin Nisan
+    text: Kafa vurusu carpani 2x yerine 3x.
+    tag: 0
+    stat: 6
+    value: 1
+    soloValid: 1
+    coopValid: 1
+  - id: card.ballistics.penetration
+    displayName: Penetrasyon
+    text: Mermi bir sonraki zombiye gecer.
+    tag: 0
+    stat: 16
+    value: 1
+    soloValid: 1
+    coopValid: 1
+  - id: card.ballistics.magazine
+    displayName: Genis Sarjor
+    text: Sarjor +6 mermi.
+    tag: 0
+    stat: 4
+    value: 6
+    soloValid: 1
+    coopValid: 1
+  - id: card.ballistics.reserve
+    displayName: Fisekik
+    text: Yedek mermi tavani +120.
+    tag: 0
+    stat: 5
+    value: 120
+    soloValid: 1
+    coopValid: 1
+  - id: card.blood.maxhealth.1
+    displayName: Kalin Deri
+    text: Maksimum can +%25.
+    tag: 2
+    stat: 9
+    value: 0.25
+    soloValid: 1
+    coopValid: 1
+  - id: card.blood.maxhealth.2
+    displayName: Kalin Deri II
+    text: Maksimum can +%35.
+    tag: 2
+    stat: 9
+    value: 0.35
+    soloValid: 1
+    coopValid: 1
+  - id: card.blood.armor.1
+    displayName: Yelek
+    text: Alinan hasar %20 azalir.
+    tag: 2
+    stat: 10
+    value: 0.25
+    soloValid: 1
+    coopValid: 1
+  - id: card.blood.armor.2
+    displayName: Yelek II
+    text: Alinan hasar daha da azalir.
+    tag: 2
+    stat: 10
+    value: 0.35
+    soloValid: 1
+    coopValid: 1
+  - id: card.blood.regen
+    displayName: Cabuk Toparlanma
+    text: Can yenilenmesi %40 daha erken baslar.
+    tag: 2
+    stat: 11
+    value: 0.4
+    soloValid: 1
+    coopValid: 1
+  - id: card.tempo.movespeed.1
+    displayName: Hafif Ayak
+    text: Yurume hizi +%20.
+    tag: 3
+    stat: 8
+    value: 0.2
+    soloValid: 1
+    coopValid: 1
+  - id: card.tempo.movespeed.2
+    displayName: Hafif Ayak II
+    text: Yurume hizi +%30.
+    tag: 3
+    stat: 8
+    value: 0.3
+    soloValid: 1
+    coopValid: 1
+  - id: card.tempo.reload
+    displayName: Tetik Parmagi
+    text: Dolum %40 daha hizli.
+    tag: 3
+    stat: 3
+    value: 0.4
+    soloValid: 1
+    coopValid: 1
+  - id: card.tempo.slow
+    displayName: Yavaslatma
+    text: Vurdugun zombi %10 yavaslar.
+    tag: 3
+    stat: 15
+    value: 0.1
+    soloValid: 1
+    coopValid: 1
+  - id: card.tempo.knife
+    displayName: Keskin Bicak
+    text: Bicak hasari +%50.
+    tag: 3
+    stat: 7
+    value: 0.5
+    soloValid: 1
+    coopValid: 1
+  - id: card.loot.killpoints.1
+    displayName: Kelle Avcisi
+    text: Oldurme puani +%25.
+    tag: 4
+    stat: 12
+    value: 0.25
+    soloValid: 1
+    coopValid: 1
+  - id: card.loot.killpoints.2
+    displayName: Kelle Avcisi II
+    text: Oldurme puani +%35.
+    tag: 4
+    stat: 12
+    value: 0.35
+    soloValid: 1
+    coopValid: 1
+  - id: card.loot.repairpoints
+    displayName: Copcu
+    text: Barikat tamiri iki kati puan.
+    tag: 4
+    stat: 13
+    value: 1
+    soloValid: 1
+    coopValid: 1
+  - id: card.loot.repairspeed
+    displayName: Usta Elleri
+    text: Barikat tamiri %50 daha hizli.
+    tag: 4
+    stat: 14
+    value: 0.5
+    soloValid: 1
+    coopValid: 1

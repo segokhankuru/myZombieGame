@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Bunker.Config;
 using Bunker.Systems.Ai;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
 using Bunker.Systems.Rounds;
@@ -202,6 +203,10 @@ namespace Bunker.AI
         private void Update()
         {
             if (!_ready || !_authoritative || !autoRun) return;
+
+            // Draft acikken tur ilerlemez: oyuncu kart secerken bir sonraki turun
+            // baslamasi, secim ekraninin arkasindan surunun gelmesi demek olurdu.
+            if (CardSignals.IsDraftOpen) return;
 
             // Run bitti: tur ilerlemez, zombi dogmaz (AC-3). Skor ekrani acikken
             // arkada bir sonraki turun baslamasi, ekrani kapatan oyuncuyu surunun

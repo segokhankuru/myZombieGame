@@ -571,6 +571,18 @@ namespace Bunker.Editor
             // kurulum araci ikisini ayri ayri bulmak zorunda kalirdi ve biri eksik
             // kaldiginda hata sessiz olurdu - olen oyuncu bos ekrana bakar.
             if (host.GetComponent<GameOverHud>() == null) host.AddComponent<GameOverHud>();
+
+            // M-03 kart draft'i: denetleyici ve ekran ayni HUD nesnesinde. Ayri bir
+            // nesne olsaydi biri unutuldugunda kart sistemi SESSIZCE hic acilmazdi.
+            var draft = host.GetComponent<CardDraftController>();
+            if (draft == null) draft = host.AddComponent<CardDraftController>();
+
+            SetPrivateField(draft, "catalog", LoadConfigAsset("cards"));
+
+            var draftHud = host.GetComponent<CardDraftHud>();
+            if (draftHud == null) draftHud = host.AddComponent<CardDraftHud>();
+
+            SetPrivateField(draftHud, "controller", draft);
         }
 
         // ---------------------------------------------------------------- sahne

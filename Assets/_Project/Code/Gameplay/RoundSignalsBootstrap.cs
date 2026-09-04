@@ -1,3 +1,4 @@
+using Bunker.Systems.Cards;
 using Bunker.Systems.Rounds;
 using UnityEngine;
 
@@ -31,6 +32,9 @@ namespace Bunker.Gameplay
             // burada olmazsa ikinci Play oturumu, birincinin bitmis run'iyla acilir -
             // yani oyun daha ilk karede skor ekraninda baslar.
             RunSignals.Clear();
+
+            // M-03: kart yigini da statiktir ve ayni sizinti riskini tasir.
+            CardSignals.Clear();
         }
     }
 }
