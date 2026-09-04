@@ -113,7 +113,7 @@ mermiden başka alacak bir şey yok.
 Puan biriktiren ama harcayamayan bir oyuncu için skor bir sayaç hâline gelir — SYS-01'in
 "kazanılan her puan görünür" sözü, puanın **bir şeye yaradığı** varsayımına dayanıyor.
 
-Bu da M-02'nin işi (kart draft'ı, kutu, silah çeşitliliği). **M-01'de kapatılmıyor**,
+Bu da **M-03**'ün işi (kart draft'ı, kutu, silah çeşitliliği). **M-01'de kapatılmıyor**,
 kayda geçiriliyor.
 
 ---

@@ -208,7 +208,9 @@ for ($n = 1; $n -le $Rounds; $n++) {
     $balance = $earned - $spend
     if ($n -eq 10) { $reach10 = $totalSeconds }
 
-    $mmss = '{0}:{1:00}' -f [int]($totalSeconds/60), [int]($totalSeconds%60)
+    # [int] PowerShell'de YUVARLAR, kirpmaz: [int](54.8/60) = 1, yani 0:54 "1:54"
+    # gorunuyordu. Floor sart.
+    $mmss = '{0}:{1:00}' -f [Math]::Floor($totalSeconds/60), [Math]::Floor($totalSeconds%60)
 
     Write-Host ("{0,4}  {1,6}  {2,7:N0}  {3,6}  {4,6:N0}  {5,7}  {6,7:N0}  {7,7:N0}  {8,5:N0}%  {9}" -f `
         $n, $count, $health, $shotsPerKill, $roundTime, $mmss, $gain, $balance, $ammoShare, ($events -join ', '))

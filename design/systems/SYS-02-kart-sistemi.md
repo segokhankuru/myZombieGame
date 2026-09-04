@@ -208,6 +208,48 @@ oyuncuları birbirinden uzaklaştıran bir kart, co-op'u aynı odadaki dört tek
 
 ---
 
+## 7b. Draft sıklığı — turda ne zaman gelir
+
+**Her 3 turda bir: tur 3, 6, 9, 12…** Ayrıca boss sonrası garanti bir nadir kart.
+3 karttan 1 seçim, 4 oyuncu eşzamanlı.
+
+> **Bu sayı 2026-09-04'e kadar yalnızca `docs/reference/zombi-coop-kapsam-dokumani.md`
+> §3.3'te yaşıyordu** — bir *referans* dokümanında. Sistemin kendi spesifikasyonu (bu
+> dosya) sıklığı hiç söylemiyordu. SSoT kuralı gereği buraya taşındı; referans doküman
+> artık bunun kopyası, kaynağı değil.
+
+### Turda değil, DAKİKADA ne kadar sık
+
+Sıklık turda sabit ama **dakikada değil.** `balance-sim.ps1`'in tur sürelerine göre
+(ortalama oyuncu profili):
+
+| Draft | Tur | Oyunun kaçıncı dakikası | Bir öncekinden fark |
+|---|---|---|---|
+| 1. | 3 | 1:35 | — |
+| 2. | 6 | 4:42 | +3:07 |
+| 3. | 9 | 10:05 | +5:23 |
+| 4. | 12 | 18:47 | **+8:42** |
+| 5. | 15 | 33:07 | **+14:20** |
+| 6. | 18 | 56:52 | **+23:45** |
+
+**Bu bir PILLAR-03 sorusudur ve henüz cevaplanmadı.** Sütun draft'ı *"ritmin zirvesi"*
+diye tanımlıyor. İlk üç zirve 3–5 dakika arayla geliyor; altıncısı bir öncekinden
+**24 dakika** sonra. Zirveler arası mesafe bu kadar açılınca, geç turlarda oyuncu
+"bir sonraki kart ne zaman" diye bekler hâle gelir — ritim değil, bekleyiş.
+
+**Karar `game-designer` ve `creative-director`'ın.** Seçenekler:
+
+| Yaklaşım | Ne olur |
+|---|---|
+| Turda sabit kalsın (şimdiki) | Basit ve okunur: "her üç tur". Geç oyunda zirveler seyrekleşir |
+| Süreye göre ayarla (ör. her ~4 dk) | Ritim sabit kalır; ama "kaçıncı turda draft var" tahmin edilemez olur |
+| Turda sabit + geç turlarda sıklaşan | Tur 12'den sonra her 2 turda bir. Karma, ama kural iki parçalı olur |
+
+Bu tablo **M-01'in tur sürelerine** dayanıyor ve o süreler oyun testiyle değişecek.
+Kararı vermeden önce gerçek telemetriyi bekle — model, oyuncu değil.
+
+---
+
 ## 8. Açık kalanlar
 
 - Toplam kart sayısı — `<tbd>` (kapsam kararı ertelendi)
