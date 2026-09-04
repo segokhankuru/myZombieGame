@@ -193,7 +193,7 @@ gerekmez. Kart metni oyuncuya yine "%20 daha az hasar" der — matematik arkada 
 |---|---|---|
 | Takım arkadaşının **canı** | Her zaman, duvar ardından | PILLAR-02'nin ön şartı: kimin yardıma ihtiyacı olduğunu görmeden yardım edemezsin |
 | Takım arkadaşının **konumu** | Her zaman, duvar ardından | Sürüyü bir hatta tutmak koordinasyon ister; nerede olduğunu bilmeden koordine olunmaz |
-| Takım arkadaşının **mermisi** | Her zaman, ama **daha soluk** | Aciliyeti candan düşük; aynı belirginlikte gösterilirse ikisi de okunmaz olur (PILLAR-04) |
+| Takım arkadaşının **mermisi** | **Duvar ardından GÖRÜNMEZ** | *"Mermiler duvar arkasından gözükmesin, gereksiz"* (geliştirici, 2026-09-04). Doğru: mermi acil bir bilgi değil, ve her şeyi göstermek PILLAR-04'ün reddettiği ekran kalabalığını üretir. Yakındayken/görüş hattındayken görünür |
 | **Düşmüş** oyuncu | Her zaman, **en belirgin** işaret | Diriltme co-op'un can damarı; bunu kaçırmak bir tasarım hatasıdır, bir zorluk değil |
 
 **PILLAR-04 kısıtı:** bu işaretler dört oyuncu × sürekli açık demek. Kırk zombinin
@@ -364,12 +364,22 @@ tur 15'te hiçbir şey.
 değerini `systems-designer` verecek — **burada sayı yazmıyorum**, çünkü bu bir denge
 kararı ve oynanmadan verilmez.
 
-### Açık soru
+### Sıfırlanma (karar: geliştirici, 2026-09-04)
 
-Ücretsiz yenileme **yuva başına 1** mi, yoksa **draft başına 1** mi? Yukarıdaki tablo
-yuva başına diye okudu (senin cümlen "üç seçenek için ayrı ayrı" öyle diyor). Draft
-başına olsaydı yenileme çok daha kısıtlı ve karar daha ağır olurdu. **Onayına ihtiyaç
-var.**
+> *"Ücretsiz yenileme yuva başına, her tur bu özellik sıfırlanır."*
+
+Yani **her draft'ta yeniden 3 ücretsiz yenileme** (yuva başına bir tane). Biriktirilmez,
+devredilmez.
+
+Bu, her tur draft kararıyla birlikte okunmalı: draft artık her tur geldiği için ücretsiz
+yenileme de her tur yenileniyor. Toplamda tur 20'lik bir run'da 60 ücretsiz yenileme
+hakkı — kulağa çok geliyor ama **kullanılmak zorunda değil** ve asıl işlevi şu: kötü bir
+üçlü gördüğün turda takılıp kalmıyorsun.
+
+**İzlenecek risk:** yenileme ücretsiz ve her tur sıfırlanıyorsa, oyuncunun "beğenene
+kadar çevir" alışkanlığı geliştirmesi mümkün — ki bu draft süresini uzatır ve §7b'deki
+%15 eşiğini zorlar. Yuva başına **tek** ücretsiz hak bunu sınırlıyor (üç yuvayı da
+çevirdiğinde elinde yine üç kart var, seçmek zorundasın), ama oyun testinde bakılacak.
 
 ---
 
@@ -390,7 +400,7 @@ Kart ekonomisi tam olarak o boşluğa oturuyor.
 | Kapı | Harita | Her biri bir kez | Sabit bant | Harita büyümesi (mevcut) |
 | Rastgele dağıtıcı | Harita | Her zaman | Sabit | Kumar (mevcut, mekaniği `<tbd>`) |
 | **Kart yenileme** | Draft ekranı | Yuva başına 1 | **Turla artar** | Draft'ta ajans |
-| **Kart satın alma** | Tezgâh, tur arası | Her zaman | **Turla artar, pahalı** | **Geç oyun sink'i** |
+| **Temel yükseltmeler** | Tezgâh, tur arası | Her zaman | **Her alışta artar** | **Geç oyun sink'i** (§7e) |
 | **Kart unutma** | Tezgâh | Her zaman | Orta | Yanlış build'i düzeltme |
 
 ### İki kural
@@ -400,9 +410,9 @@ Kart ekonomisi tam olarak o boşluğa oturuyor.
 oyuncu daha çok kart alır ve makas açılır — PILLAR-02'nin açıkça reddettiği şey:
 *"iyi oynayanı güçlendirip zorlananı geride bırakan ödül yapıları"*.
 
-**2. Tezgâhtan alınan kart havuzdan gelir, sonsuz değildir.** Tezgâh her tur **2 kart**
-gösterir, seçilirse gider. Sınırsız satın alma, yeterince puan biriktiren herkesi aynı
-build'e götürür — GOAL-02'yi doğrudan çürütür.
+**2. Tezgâh KART SATMAZ.** Tezgâhın işi temel yükseltmeler (§7e); kimlik kartlardan
+gelir, tezgâhtan değil. Tezgâh kart satsaydı yeterince puan biriktiren herkes aynı
+build'e giderdi — GOAL-02'yi doğrudan çürütür.
 
 ### Kart unutma neden var
 
@@ -415,6 +425,127 @@ tamamlayabilirsin.
 hesaplanması demek. M-03 için **isteğe bağlı** işaretli; kesilirse ilk kesilecek şey bu.
 
 ---
+## 7e. Tezgâh — temel yükseltmeler (2026-09-04)
+
+> **Karar (geliştirici):** *"Bazı temel özellikleri satın alabiliyor olacaksın. Maks can
+> artımı, hasar artımı, saldırı hızı artımı, mermi kapasitesi artımı. Bunlar minör artış
+> olmalı ve her alışta puan etkisi artmalı ki tamamen oraya odaklanılmasın — ama bir tık
+> 'şunu da alayım' dedirtmeli."*
+
+Tur arası açılan tezgâh. Dört hat, her biri bağımsız sayaç tutar.
+
+| Hat | Ne artar | Neden bu dört |
+|---|---|---|
+| **Dayanıklılık** | Maks can | Hayatta kalma tabanı |
+| **Güç** | Hasar | Zombi canı bileşik büyüyor; taban hasarın da büyümesi gerek |
+| **Tetik** | Atış hızı | Kalabalık temizleme hızı |
+| **Şarjör** | Mermi kapasitesi | **Mermi seferleri sorununa doğrudan dokunur** (`design/economy/curves.md`) |
+
+### Artışlar KÜÇÜK olmalı, fiyat ARTAN
+
+Bu, tasarımın kalbi ve senin cümlen zaten doğru kuralı söylüyor:
+
+```
+n. alımın fiyatı = temelFiyat × büyüme^n
+```
+
+**Neden artan fiyat:** sabit fiyatta oyuncu bir hattı sonuna kadar basar ve tek boyutlu
+bir güç eğrisi çıkar. Artan fiyat, dördüncü Güç alımını beşinciden daha cazip yapar ve
+oyuncuyu ya yaymaya ya durmaya iter — yani **her alış bir karar kalır**, alışkanlık
+olmaz.
+
+**Neden küçük artış:** tezgâh **kimlik vermemeli.** SYS-02 §1'in üç katmanı (kart /
+silah alışkanlığı / drop) birbirine dik duruyor ve tezgâh dördüncü bir katman. Karışmaması
+için tezgâhın rolü açıkça **taban** olmalı, tepe değil: sıkıcı, küçük, kümülatif. "Ben
+yanıcı-kan build'iyim" cümlesi kartlardan gelir; tezgâh o cümleyi değiştirmez, altını
+sağlamlaştırır.
+
+**Sayılar burada yazmıyor.** Temel fiyat, büyüme çarpanı, artış adımı ve hat başına tavan
+`config/balance/shop.json`'a girecek ve değerini `systems-designer` verecek. Şema
+açıklamaları "aralığın dışına çıkarsan oyuncu ne hisseder" cümlesini taşıyacak.
+
+### Tavan gerekli mi — açık soru
+
+Artan fiyat tek başına yumuşak bir tavan üretiyor. Ama geç turlarda puan da bileşik
+büyüdüğü için "pahalı" göreli bir kavram: tur 20'de 10.000 puanı olan oyuncu için
+5.000'lik bir alım ucuz. **Öneri:** hat başına sert bir tavan (ör. 10 kademe) ve tavana
+ulaşınca hattın kapanması. Karar `systems-designer` + oyun testi.
+
+---
+
+## 7f. Yıpranma ekonomisi — tur sonu kısmi yenilenme
+
+> **Karar (geliştirici, 2026-09-04):** *"Ekonomiyi zorlu ve heyecanlı kılmak için her tur
+> sonu barikatlar, mermiler ve canlar %100 değil %40–60 falan olmalı. Piyasadakilere
+> kıyasla var mı böyle bir mekanik?"*
+
+**Var, ve iyi çalışıyor.** Ayrıca şu an bizde tam tersi yapılıyor.
+
+### Şu an ne oluyor
+
+`WindowBarricade` her tur başında `ResetBarricade()` çağırıyor ve barikat
+`boards.startingCount: 4 / perWindow: 4` ile **%100'e** dönüyor. Yani tur içinde yapılan
+tamir bir sonraki tura taşınmıyor; tamir etmemenin bedeli yalnızca o turla sınırlı.
+
+### Piyasada karşılığı
+
+| Oyun | Mekanik | Ne öğretiyor |
+|---|---|---|
+| **Deep Rock Galactic** | İkmal kapsülü her kullanımda **~%50** mermi verir; kapsülün 4 hakkı var ve nitra ile çağrılır | En yakın örnek ve **co-op**: "bu ikmali kim alsın" gerçek bir takım anı üretiyor — doğrudan PILLAR-02 |
+| **Darktide / Vermintide 2** | İki katman: **toughness** hızlı yenilenir, **health** yenilenmez — yalnızca kısmi iyileştirilir | Yıpranmayı hız kaybetmeden üretmenin yolu: bir katman affeder, biri affetmez |
+| **Left 4 Dead** | Haplar geçici ve azalan can; çanta %80 iyileştirir, %100 değil | Tam iyileşme yoksa her hasar bir borç bırakır |
+| **Killing Floor 2** | Dalga arası tüccar: mermi **satın alınır**, bedava gelmez | Bizim duvar silahımızın aynısı |
+| **CoD Zombies (klon tabanı)** | Barikat otomatik onarılmaz, oyuncu tamir eder; can **tam** yenilenir | **Bizim şu anki modelimiz** — ve senin değiştirmek istediğin şey |
+
+### Canla çelişki — çözülmesi gerekiyor
+
+Bir sorun var: **3 Eylül'de "vurulmayınca can tam yenilenir" kararını sen verdin**
+(`player.json`, gerekçe ÇK-17: kalıcı hasar birikimi 20 dakikalık oturumda ceza hissi
+yaratır). Tur sonu %40–60 can, tam yenilenmeyle **bağdaşmaz** — zaten yenileniyorsa tur
+sonu tavanının hiçbir etkisi olmaz.
+
+İki karar birbirini iptal ediyor. Üç çıkış yolu:
+
+| Yol | Ne olur | Bedeli |
+|---|---|---|
+| **A — İki katman** *(önerilen)* | Hızlı yenilenen bir **kalkan** + yavaş/kısmi yenilenen **can**. Kalkan kaçmayı ödüllendirmeye devam eder; can run boyunca yıpranır | Yeni bir sistem, yeni HUD. Darktide'ın kanıtlanmış modeli |
+| **B — Yenilenmeyi kaldır** | Can yalnızca tur sonu kısmi dolar | 3 Eylül'ün gerekçesi geri gelir: ceza hissi, ÇK-17 riski |
+| **C — Yenilenme tavanı** | Can yenilenir ama yalnızca "tur tavanına" kadar; tavan her tur düşer | Tek sistem, ama oyuncuya anlatması zor: neden dolmayı bıraktı? |
+
+**A öneriliyor** çünkü ikisini de koruyor: kaçmanın ödülü (kalkan) ve yıpranma (can).
+Ama **karar senin** ve bu bir tasarım kararı, bir uygulama detayı değil.
+
+### Barikat ve mermi
+
+Bunlarda çelişki yok, tasarım doğrudan uygulanabilir:
+
+| | Öneri |
+|---|---|
+| **Barikat** | Tur başında **%100'e dönmez**; eksik tahtaların bir kısmı geri gelir (ör. +2/4). Oyuncunun tamir ettiği tahta **kalır** — yani tamir etmek artık bu turu değil, bütün run'ı etkiler |
+| **Mermi** | Tur sonu **ücretsiz kısmi ikmal** (kapasitenin %40–60'ı). Duvar satın almasının yerine geçmez, tabanını kurar |
+
+**Barikatta önemli nüans:** tur başında %40–60'a **düşürmek** yanlış olur — tamir eden
+oyuncuyu cezalandırır. Doğrusu eksiği **kısmen kapatmak**: 0/4 ile bitiren 2/4 ile
+başlar, 4/4 ile bitiren 4/4 kalır. Böylece tamir etmek ödüllendirilir, ihmal etmek
+birikir.
+
+**Mermide beklenmedik bir yan fayda:** simülasyon tur 14'te oyuncunun duvara **15 ayrı
+sefer** yaptığını gösterdi (`design/economy/curves.md`, KIRILMA 1). Tur sonu kısmi ikmal
+o sefer sayısını doğrudan düşürüyor — yani bu karar iki sorunu birden çözüyor.
+
+### Kapsam uyarısı — M-01'e GİRMEZ
+
+Bunların hiçbiri M-01'e girmemeli. Sebebi süre değil, **ölçüm**: M-01 bilerek bir
+**kontrol grubu** ("klon taban"). Yukarıdaki tablonun son satırı bunun klasik modelden
+ayrıldığını gösteriyor — yani bu bir **farklılaştırıcı**, tam da projenin ihtiyacı olan
+şey. Ama farklılaştırıcıyı kontrol grubunun içine koyarsan, karşılaştıracak bir taban
+kalmaz ve ÇK-17'nin cevabı yorumlanamaz olur.
+
+**Hedef: M-02.** M-01 önce oynanır, ÇK-17 cevaplanır, sonra bu gelir ve "bundan daha iyi
+mi?" sorusu sorulabilir hâle gelir.
+
+---
+
 
 ## 8. Açık kalanlar
 
@@ -423,6 +554,11 @@ hesaplanması demek. M-03 için **isteğe bağlı** işaretli; kesilirse ilk kes
 - Nadirlik kademeleri ve draft'taki dağılımı — `<tbd>`
 - Yenileme ve kart satın alma fiyat eğrisi — `systems-designer`, `cards.json`
 - **Kart unutma** M-03'te isteğe bağlı; kesilecek ilk madde (§7d)
+- **Can modeli çelişkisi (§7f)** — tur sonu kısmi can, 3 Eylül'deki "tam yenilenme"
+  kararıyla bağdaşmıyor. Üç yol sunuldu (iki katman / yenilenmeyi kaldır / tavan);
+  **A önerildi, karar geliştiricinin**
+- Tezgâhta hat başına sert tavan olsun mu (§7e) — `systems-designer` + oyun testi
+- Tezgâh fiyat eğrisi ve artış adımları — `config/balance/shop.json`, henüz yok
 - Rastgele silah dağıtıcısının (mystery box) mekaniği hiç tarif edilmedi — yalnızca bir
   fiyatı var. **Kasa Hırsızı** kartı ona bağlı olduğu için o da askıda
 - Draft ekranında geçen sürenin tur süresine oranı ölçülecek; %15'i aşarsa yenileme
