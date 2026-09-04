@@ -4,7 +4,7 @@
   "title": "Ekonomi",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "awards", "penalty", "prices"],
+  "required": ["version", "_meta", "awards", "penalty", "prices", "ammo"],
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
 
@@ -73,6 +73,19 @@
         "wallWeaponCheap": { "type": "integer", "minimum": 100, "maximum": 2000, "description": "Baslangic silahindan ilk yukseltme." },
         "wallWeaponMid":   { "type": "integer", "minimum": 300, "maximum": 4000, "description": "Orta sinif duvar silahi." },
         "mysteryBox":      { "type": "integer", "minimum": 300, "maximum": 3000, "description": "Rastgele silah dagiticisi. Kumar oldugu icin duvar silahindan pahali olmali; ucuzsa duvar silahlari hic satin alinmaz." }
+      }
+    },
+
+    "ammo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["magazinesPerPurchase"],
+      "description": "Duvardan bir alimda ne kadar mermi gelir. Fiyat 'prices' altinda; burada MIKTAR var. Ikisi birlikte mermi ekonomisinin musluk debisini belirler.",
+      "properties": {
+        "magazinesPerPurchase": {
+          "type": "integer", "minimum": 1, "maximum": 40,
+          "description": "Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md."
+        }
       }
     }
   }

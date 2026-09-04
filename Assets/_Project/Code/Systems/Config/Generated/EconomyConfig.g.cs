@@ -68,12 +68,16 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 300 .. 3000 | JSON: prices.mysteryBox</remarks>
         public readonly int PricesMysteryBox;
 
+        /// <summary>Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md.</summary>
+        /// <remarks>Aralik: 1 .. 40 | JSON: ammo.magazinesPerPurchase</remarks>
+        public readonly int AmmoMagazinesPerPurchase;
+
         /// <summary>
         /// Varsayilanlar <c>config/balance/economy.json</c> dosyasindan URETILDI.
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public EconomyConfig(
-            int version = 1,
+            int version = 2,
             int awardsHit = 10,
             int awardsBodyKill = 60,
             int awardsHeadshotKill = 100,
@@ -85,7 +89,8 @@ namespace Bunker.Systems.Config
             int pricesDoorExpensive = 2000,
             int pricesWallWeaponCheap = 500,
             int pricesWallWeaponMid = 1200,
-            int pricesMysteryBox = 950)
+            int pricesMysteryBox = 950,
+            int ammoMagazinesPerPurchase = 5)
         {
             Version = version;
             AwardsHit = awardsHit;
@@ -100,6 +105,7 @@ namespace Bunker.Systems.Config
             PricesWallWeaponCheap = pricesWallWeaponCheap;
             PricesWallWeaponMid = pricesWallWeaponMid;
             PricesMysteryBox = pricesMysteryBox;
+            AmmoMagazinesPerPurchase = ammoMagazinesPerPurchase;
         }
     }
 }

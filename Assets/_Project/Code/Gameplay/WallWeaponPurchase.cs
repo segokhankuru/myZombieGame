@@ -28,13 +28,20 @@ namespace Bunker.Gameplay
         [Tooltip("Ucuz mu orta mi. Sayilar economy.json'da.")]
         [SerializeField] private bool midTier;
 
-        [Tooltip("Bir alimda verilen yedek mermi. Denge degeri DEGIL - sarjor " +
-                 "kapasitesinin katidir ve weapon.json'dan turer.")]
-        [SerializeField] private int magazinesPerPurchase = 5;
-
         [SerializeField] private string displayName = "MERMI";
 
         private int _cost;
+
+        /// <summary>
+        /// Bir alımda verilen şarjör sayısı. <c>economy.json → ammo.magazinesPerPurchase</c>.
+        ///
+        /// <para><b>2026-09-04'e kadar bu bir <c>[SerializeField]</c>'di</b> ve tooltip'i
+        /// "denge değeri DEĞİL" diyordu. Denge simülasyonu tersini gösterdi: bu sayı
+        /// turun ritmini doğrudan belirliyor — 5 ile oyuncu tur 14'te duvara <b>on beş
+        /// ayrı sefer</b> yapıyor, ki PILLAR-03'ün açıkça reddettiği şey. Ritmi belirleyen
+        /// bir sayı <c>config-data.md</c>'ye göre C# içinde duramaz.</para>
+        /// </summary>
+        private int _magazinesPerPurchase;
 
         public bool IsAvailable => true;   // kaynak, karar degil: tekrar alinabilir
         public int Cost => _cost;
@@ -55,6 +62,7 @@ namespace Bunker.Gameplay
 
             EconomyConfig config = economyConfig.ToRuntime();
             _cost = midTier ? config.PricesWallWeaponMid : config.PricesWallWeaponCheap;
+            _magazinesPerPurchase = config.AmmoMagazinesPerPurchase;
         }
 
         /// <summary>
@@ -66,7 +74,7 @@ namespace Bunker.Gameplay
         {
             if (_lastBuyer == null) return;
 
-            _lastBuyer.ServerAddReserve(magazinesPerPurchase * _lastBuyer.MagazineCapacity);
+            _lastBuyer.ServerAddReserve(_magazinesPerPurchase * _lastBuyer.MagazineCapacity);
             _lastBuyer = null;
         }
     }

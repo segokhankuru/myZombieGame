@@ -170,3 +170,21 @@ kutuda ölçülebilir; renk dili her iki durumda da açık kalır (o cila değil
 dili kurduğunda bu palet yerini bırakır. Kalıcı olan renk değil, ayrımın kendisi.
 
 Detay: `docs/art/GREYBOX-PALETTE.md`
+
+## 2026-09-04 — `magazinesPerPurchase` config'e taşındı (economy şema v2)
+
+**Karar:** duvardan bir alımda verilen şarjör sayısı, `WallWeaponPurchase`'daki bir
+`[SerializeField]` olmaktan çıktı; `config/balance/economy.json → ammo.magazinesPerPurchase`
+oldu. **Değer değişmedi (5).**
+
+**Neden:** alanın tooltip'i *"Denge değeri DEĞİL — şarjör kapasitesinin katıdır"* diyordu.
+Denge simülasyonu (`design/economy/curves.md`) tersini kanıtladı: bu sayı **turun ritmini
+doğrudan belirliyor.** 5 ile oyuncu tur 14'te duvara **on beş ayrı sefer** yapıyor —
+PILLAR-03'ün açıkça reddettiği "menü işi yapıyorum" modu. Ritmi belirleyen bir sayı,
+`config-data.md` gereği C# içinde duramaz.
+
+**Şema sürümü 1 → 2.** Kayıtlı bir anahtar değil, migration gerekmiyor.
+
+**Not:** bu bir `/tune` değil. Değer aynı kaldı; yalnızca yaşadığı yer değişti — böylece
+oyun testinden sonra ayarlanabilir hâle geldi. Aralık (1–40) ve şema açıklaması,
+oynamadan önce hangi yönün neyi bozacağını yazıyor.

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14994113a835cc94e9df290a67fb77fa, type: 3}
   m_Name: economy
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.EconomyConfigAsset
-  version: 1
+  version: 2
   awardsHit: 10
   awardsBodyKill: 60
   awardsHeadshotKill: 100
@@ -25,3 +25,4 @@ MonoBehaviour:
   pricesWallWeaponCheap: 500
   pricesWallWeaponMid: 1200
   pricesMysteryBox: 950
+  ammoMagazinesPerPurchase: 5

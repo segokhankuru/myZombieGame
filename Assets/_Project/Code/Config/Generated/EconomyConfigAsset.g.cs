@@ -19,7 +19,7 @@ namespace Bunker.Config
     /// </summary>
     public sealed class EconomyConfigAsset : ScriptableObject
     {
-        [SerializeField] private int version = 1;
+        [SerializeField] private int version = 2;
 
         [Header("awards")]
         [Tooltip("Oldurmeyen her isabet. Bu deger oyuncunun 'silahim ise yariyor' hissinin ekonomik karsiligi - sifira yakinsa gec turlarda kalin canli zombilere ates etmek bedava is gibi hissettirir.")]
@@ -72,6 +72,11 @@ namespace Bunker.Config
         [Range(300, 3000)]
         [SerializeField] private int pricesMysteryBox = 950;
 
+        [Header("ammo")]
+        [Tooltip("Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md.")]
+        [Range(1, 40)]
+        [SerializeField] private int ammoMagazinesPerPurchase = 5;
+
         /// <summary>Saf C# karsiligini uretir. Boot bunu bir kez cagirir.</summary>
         public EconomyConfig ToRuntime()
         {
@@ -88,7 +93,8 @@ namespace Bunker.Config
                 pricesDoorExpensive,
                 pricesWallWeaponCheap,
                 pricesWallWeaponMid,
-                pricesMysteryBox);
+                pricesMysteryBox,
+                ammoMagazinesPerPurchase);
         }
     }
 }

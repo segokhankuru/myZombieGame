@@ -115,7 +115,9 @@ $doorCheap = $e.prices.doorCheap
 $doorMid   = $e.prices.doorMid
 $doorExp   = $e.prices.doorExpensive
 $ammoCost  = $e.prices.wallWeaponCheap
-$ammoPerBuy = 5 * $magCap
+# Config'ten okunur, sabit DEGIL: ayrisirlarsa simulasyon oyunun oynamadigi
+# bir ekonomiyi modeller.
+$ammoPerBuy = $e.ammo.magazinesPerPurchase * $magCap
 
 $doorsOpen = 0
 $reach10 = $null

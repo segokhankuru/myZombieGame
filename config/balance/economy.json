@@ -1,13 +1,13 @@
 {
   "$schema": "../schema/economy.schema.json",
-  "version": 1,
+  "version": 2,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-ekonomi",
-    "lastTuned": "2026-08-31"
+    "lastTuned": "2026-09-04"
   },
 
-  "_note": "Klon tabani baslangic degerleri. Kapi fiyatlari LVL-01 bolge sirasi netlestiginde kalibre edilecek; su an bant olarak duruyorlar.",
+  "_note": "Klon tabani baslangic degerleri. Kapi fiyatlari LVL-01 bolge sirasi netlestiginde kalibre edilecek; su an bant olarak duruyorlar. v2 (2026-09-04): ammo.magazinesPerPurchase koddan buraya tasindi - DEGERI DEGISMEDI, yalnizca yasadigi yer. Simulasyon bu sayinin turun ritmini belirledigini gosterdi (curves.md), yani config-data.md geregi C# icinde duramazdi.",
 
   "awards": {
     "hit": 10,
@@ -28,5 +28,9 @@
     "wallWeaponCheap": 500,
     "wallWeaponMid": 1200,
     "mysteryBox": 950
+  },
+
+  "ammo": {
+    "magazinesPerPurchase": 5
   }
 }
