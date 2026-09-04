@@ -92,3 +92,40 @@ Reddedilen şey belirsiz süreli bekleme, beklemenin kendisi değil. §3'teki ka
 bunu sağlıyor.
 
 `design/PILLARS.md` bu ifadeyle güncellendi.
+
+---
+
+## 6. Yenileme ve sıklık değişikliği (2026-09-04)
+
+Bu doküman her 3 turda bir draft varsayımıyla yazılmıştı. **Değişti: artık her tur
+sonu** (`SYS-02` §7b). İki sonucu var ve ikisi de bu ekranı ilgilendiriyor.
+
+### Slot makinesi dönüşü artık daha kritik
+
+Dönüş, her 3 turda bir gelen bir olay için tasarlanmıştı. Her turda gelen bir şeyde
+dönüş süresi doğrudan tur ritmine biniyor. **Atlanabilir olma** zorunluluğu artık
+"iyi olur" değil, şart — ve atlama ipucu ikinci run'dan değil **ikinci draft'tan**
+itibaren gösterilmeli.
+
+### Yenileme yuvaları
+
+Her yuvanın altında iki durumlu bir yenileme düğmesi:
+
+```
+   [ KART ]        [ KART ]        [ KART ]
+   ↻ ücretsiz      ↻ ücretsiz      ↻ 250 puan
+```
+
+- İlk yenileme ücretsiz, yuva başına bir kez
+- İkincisi puanla, yuva başına bir kez, **fiyat turla artar**
+- Üçüncü yok
+
+**Okunabilirlik kısıtı:** üç yuva × iki yenileme = altı ek karar, her tur. Ekranın
+oyuncuyu bu kararlara *zorlamaması* lazım — yenileme düğmeleri seçim kartlarından
+görsel olarak geride durmalı. Varsayılan eylem hâlâ "birini seç".
+
+### Ölçülecek
+
+Draft ekranında geçen sürenin tur süresine oranı. **%15'i aşarsa** tasarım geri
+alınacak: ya yenileme kısılır ya draft seyrekleşir. Bu sayı `SYS-02` §7b'de
+kayıtlı ve oyun testinin çıktısı.

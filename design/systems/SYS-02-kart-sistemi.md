@@ -88,7 +88,10 @@ gerekmez. Kart metni oyuncuya yine "%20 daha az hasar" der — matematik arkada 
 
 ## 4. Kart havuzu
 
-`[S]` = senin fikrin · `[+]` = eklenen öneri · **kalın** = kural değiştiren
+`[S]` = senin fikrin · `[+]` = ilk turda eklenen öneri · `[G]` = 2026-09-04 genişletmesi ·
+**kalın** = kural değiştiren (salt istatistik değil)
+
+**55 kart.** Her tur draft GOAL-02 için havuzu zorluyor (§7b): yayın hedefi **70+**.
 
 ### Balistik
 
@@ -99,7 +102,11 @@ gerekmez. Kart metni oyuncuya yine "%20 daha az hasar" der — matematik arkada 
 - `[+]` **Sekme** — mermi öldürdüğü zombiden en yakına seker
 - `[+]` **Son Mermi** — şarjörün son mermisi 5x hasar *(bilinçli mermi yönetimi üretir)*
 - `[+]` **Şarjör Yok** — sürekli dolum, ama %40 yavaş ateş
-- `[+]` **Delik Deşik** — aynı zombiye üst üste isabet hasarı yığar *(odaklı ateşi ödüllendirir)*
+- `[+]` **Delik Deşik** — aynı zombiye ARKA ARKAYA isabet ettikçe o zombiye verdiğin hasar artar (55 -> 60 -> 66...); başka hedefe geçince sıfırlanır *(kalabalığa sıkmak yerine tek hedefe odaklanmayı ödüllendirir; geç turlarda kalın canlı zombiler için, kalabalıkta işe yaramaz)*
+- `[G]` **Çifte Namlu** — her atış iki mermi harcar, iki kat hasar verir *(mermi ekonomisiyle doğrudan pazarlık: hızlı öldür, sık duvara git)*
+- `[G]` **Sıcak Namlu** — arka arkaya isabet ettikçe atış hızı artar, ıskalayınca sıfırlanır
+- `[G]` **Keskin Nişan** — kafa vuruşu çarpanı 2x yerine 3x
+- `[G]` **Sekme Ustası** — sekme sayısı +2 *(yalnızca Sekme elindeyken havuzda çıkar — koşullu kart)*
 
 ### Yıkım
 
@@ -108,6 +115,10 @@ gerekmez. Kart metni oyuncuya yine "%20 daha az hasar" der — matematik arkada 
 - `[+]` **Zincir** — patlamayla ölen zombi de patlar
 - `[+]` **Basınç** — dar alanda (koridor, küçük oda) patlama hasarı 2x *(harita bilgisini ödüllendirir)*
 - `[+]` **Şarapnel** — patlamaların parçaları barikatları tamir eder *(takıma yarayan ters mantık)*
+- `[G]` **Fitil** — öldürdüğün zombi hemen patlamaz; 1 sn daha yürür, sonra patlar *(sürüyü kendi içine çekmek için zamanlama gerektirir)*
+- `[G]` **Ateş Topu** — patlamalar 3 sn yanan bir alan bırakır
+- `[G]` **Sarsıntı** — patlama zombileri 1 sn devirir *(hasar değil KONTROL — barikat tamiri için pencere açar)*
+- `[G]` **Ağır Sanayi** — patlama yarıçapı +%50, hasarı −%20 *(kalabalık temizleyici, tekil hedefte zayıf)*
 
 ### Kan
 
@@ -117,6 +128,11 @@ gerekmez. Kart metni oyuncuya yine "%20 daha az hasar" der — matematik arkada 
 - `[+]` **Kan Bedeli** — can %50'nin altındayken hasar 2x
 - `[+]` **İkinci Nefes** — düştükten sonra 3 sn içinde 5 öldürme = kendini kaldırırsın
   *(solo'daki tek kendini kurtarma — bkz. §6)*
+- `[G]` **Kan Kaybı** — vurduğun zombi 3 sn boyunca can kaybetmeye devam eder
+- `[G]` **Adrenalin** — can %25 altına inince 5 sn hız ve dolum +%50; tur başına bir kez
+- `[G]` **Kalkan** — her tur başında bir vuruşu tamamen emen kalkan
+- `[G]` **Ölüm İnadı** — düşerken 3 sn daha ateş edebilirsin *(solo ve co-op)*
+- `[G]` **Kan Nakli** — takım arkadaşına kendi canından verebilirsin *(co-op'a özel)*
 
 ### Tempo
 
@@ -126,6 +142,10 @@ gerekmez. Kart metni oyuncuya yine "%20 daha az hasar" der — matematik arkada 
   *(kamp kurmayı cezalandırır — PILLAR-02'ye doğrudan hizmet eder)*
 - `[+]` **Kaygan** — kayarken hasar almazsın, zombileri devirirsin
 - `[+]` **Bıçak Refleksi** — bıçakla öldürme şarjörü anında doldurur
+- `[G]` **Tetik Parmağı** — dolum %40 hızlı
+- `[G]` **Buz** — Yavaşlatma üst üste yığılır (5 kata kadar); beşincide zombi 1 sn donar
+- `[G]` **Sürat Koşusu** — 3 sn kesintisiz koşunca bir hız kademesi atlarsın
+- `[G]` **Kayış** — silah değiştirme anında olur
 
 ### Ganimet
 
@@ -133,14 +153,63 @@ gerekmez. Kart metni oyuncuya yine "%20 daha az hasar" der — matematik arkada 
 - `[+]` **Mıknatıs** — drop toplama yarıçapı 3x, otomatik toplanır
 - `[+]` **Faizci** — harcanmamış puan her tur %2 faiz getirir *(ekonomi build'i)*
 - `[+]` **Çöpçü** — barikat tahtası tamiri iki katı puan
-- `[+]` **Kasa Hırsızı** — rastgele silah dağıtıcısı %30 indirimli
+- `[+]` **Kasa Hırsızı** — rastgele silah dağıtıcısından (mystery box) çekiş %30 ucuz *(salt istatistik — PILLAR-01'in zayıf saydığı türden; kutu mekaniği tanımlanana kadar askıda)*
+- `[G]` **Kumbara** — tur sonunda kalan her mermi puana çevrilir *(mermi biriktirmeyi bir tercih yapar)*
+- `[G]` **Pazarlık** — duvardan mermi alımları %25 ucuz *(mermi seferleri sorununa doğrudan dokunur — bkz. design/economy/curves.md)*
+- `[G]` **Toplayıcı** — öldürülen her 10. zombi mermi düşürür
+- `[G]` **Ganimet Avcısı** — drop'lar iki kat uzun süre yerde kalır
+- `[G]` **Vergi Memuru** — takım arkadaşının her öldürmesinden %10 puan alırsın *(co-op'a özel; başkasının iyi oynamasını senin de kazancın yapar — PILLAR-02)*
 
 ### Takım kartları (nadir, dördünü birden etkiler, yalnızca co-op)
 
-- `[+]` **Ortak Cüzdan** — bir sonraki kapı herkese ücretsiz açılır
 - `[+]` **Kan Bağı** — biri düştüğünde diğer üçü 10 sn boyunca %30 hasar bonusu alır
-- `[+]` **Telsiz** — herkes birbirinin canını, mermisini ve konumunu duvar ardından görür
 - `[+]` **Sigorta** — biri öldüğünde puan cezası yarıya iner
+- `[G]` **Omuz Omuza** — 5 m içinde takım arkadaşın varken herkes +%15 hasar
+  *(PILLAR-02'ye en doğrudan hizmet eden kart: birlikte durmayı mekanik olarak ödüllendirir)*
+- `[G]` **Kalkan Duvarı** — biri barikat tamir ederken 3 m içindekiler hasar almaz
+  *(tamir eden savunmasızdır; bu kart onu korumayı bir role dönüştürür)*
+- `[G]` **Ortak Kasa** — herkesin kazandığı puanın %10'u ortak havuza gider; kapılar
+  yalnızca oradan açılır *(kapı artık kimsenin cebinden çıkmaz — "kim ödeyecek"
+  tartışması biter, "ne zaman açalım" tartışması başlar)*
+
+---
+
+## 4b. Kart olmayan şeyler — varsayılana alındı (2026-09-04)
+
+İki kart silindi. İkisi de aynı hatayı yapıyordu: **oyunun kartsız hâlini kötü kılan bir
+şeyi kart olarak satmak.** Bir kart oyuna bir şey *eklemeli*, eksikliği kapatmamalı.
+
+| Silinen kart | Ne oldu |
+|---|---|
+| ~~**Telsiz**~~ | Takım arkadaşının canı, mermisi ve konumu artık **varsayılan olarak görünür** — duvar ardından da |
+| ~~**Ortak Cüzdan**~~ | Silindi. Kapı **zaten** herkese açılıyor (aşağıya bak); kartın gerçek etkisi "bir sonraki kapı bedava" idi, yani salt indirim — PILLAR-01'in reddettiği türden |
+
+### Varsayılan co-op görünürlüğü
+
+> **Karar (geliştirici, 2026-09-04):** *"Birimin canını hepsi zaten görebilmeli, duvar
+> arkasından da varsayılanda görünür olmalı. Co-op için önemli, zaten bu."*
+
+| Bilgi | Görünürlük | Neden |
+|---|---|---|
+| Takım arkadaşının **canı** | Her zaman, duvar ardından | PILLAR-02'nin ön şartı: kimin yardıma ihtiyacı olduğunu görmeden yardım edemezsin |
+| Takım arkadaşının **konumu** | Her zaman, duvar ardından | Sürüyü bir hatta tutmak koordinasyon ister; nerede olduğunu bilmeden koordine olunmaz |
+| Takım arkadaşının **mermisi** | Her zaman, ama **daha soluk** | Aciliyeti candan düşük; aynı belirginlikte gösterilirse ikisi de okunmaz olur (PILLAR-04) |
+| **Düşmüş** oyuncu | Her zaman, **en belirgin** işaret | Diriltme co-op'un can damarı; bunu kaçırmak bir tasarım hatasıdır, bir zorluk değil |
+
+**PILLAR-04 kısıtı:** bu işaretler dört oyuncu × sürekli açık demek. Kırk zombinin
+ortasında ekranı doldurmamalı — mesafeyle küçülür, doğrudan görüş hattında sönükleşir
+(zaten görüyorsun), duvar ardında belirginleşir. Bu bir UX işi:
+`design/ux/hud.md`'ye düşer.
+
+### Kapı zaten herkese açılıyor
+
+Geliştirici *"kapıyı kim açarsa açsın diğerlerine de açılmış olmalı, diğer türlü saçma"*
+dedi. **Öyle zaten:** `PurchasableDoor` açık durumunu `SyncVar` ile taşıyor ve geç katılan
+bir istemci bile kapıyı açık buluyor (M1-09, ADR-0004). Tasarım niyeti buydu ve kod da
+öyle yazıldı.
+
+Açık kalan tek soru **kim öder** — ve ona **Ortak Kasa** kartı bir cevap veriyor
+(yukarıda).
 
 ---
 
@@ -208,52 +277,156 @@ oyuncuları birbirinden uzaklaştıran bir kart, co-op'u aynı odadaki dört tek
 
 ---
 
-## 7b. Draft sıklığı — turda ne zaman gelir
+## 7b. Draft sıklığı — HER TUR SONU
 
-**Her 3 turda bir: tur 3, 6, 9, 12…** Ayrıca boss sonrası garanti bir nadir kart.
-3 karttan 1 seçim, 4 oyuncu eşzamanlı.
+> **Karar (geliştirici, 2026-09-04):** *"Her tur sonu kart seçimi olmalı bence."*
+> Önceki tasarım her 3 turda birdi (tur 3, 6, 9…). Değişti.
 
-> **Bu sayı 2026-09-04'e kadar yalnızca `docs/reference/zombi-coop-kapsam-dokumani.md`
-> §3.3'te yaşıyordu** — bir *referans* dokümanında. Sistemin kendi spesifikasyonu (bu
-> dosya) sıklığı hiç söylemiyordu. SSoT kuralı gereği buraya taşındı; referans doküman
-> artık bunun kopyası, kaynağı değil.
+**Her tur sonunda, molada.** 3 karttan 1 seçim, 4 oyuncu eşzamanlı. Boss sonrası
+garanti nadir kart kuralı duruyor.
 
-### Turda değil, DAKİKADA ne kadar sık
+### Neyi düzeltiyor
 
-Sıklık turda sabit ama **dakikada değil.** `balance-sim.ps1`'in tur sürelerine göre
-(ortalama oyuncu profili):
+Her 3 turda bir sabit görünüyordu ama **dakikada değildi**. Tur süreleri büyüdüğü için
+draft'lar arası mesafe açılıyordu:
 
-| Draft | Tur | Oyunun kaçıncı dakikası | Bir öncekinden fark |
+| Draft | Tur | Dakika | Öncekinden fark |
 |---|---|---|---|
-| 1. | 3 | 1:35 | — |
-| 2. | 6 | 4:42 | +3:07 |
 | 3. | 9 | 10:05 | +5:23 |
-| 4. | 12 | 18:47 | **+8:42** |
 | 5. | 15 | 33:07 | **+14:20** |
 | 6. | 18 | 56:52 | **+23:45** |
 
-**Bu bir PILLAR-03 sorusudur ve henüz cevaplanmadı.** Sütun draft'ı *"ritmin zirvesi"*
-diye tanımlıyor. İlk üç zirve 3–5 dakika arayla geliyor; altıncısı bir öncekinden
-**24 dakika** sonra. Zirveler arası mesafe bu kadar açılınca, geç turlarda oyuncu
-"bir sonraki kart ne zaman" diye bekler hâle gelir — ritim değil, bekleyiş.
+PILLAR-03 draft'ı *"ritmin zirvesi"* diye tanımlıyor. Zirveler arası 24 dakika, ritim
+değil bekleyiştir. Her tur sonu bunu kökten çözüyor: **her zirve bir tur uzaklıkta.**
 
-**Karar `game-designer` ve `creative-director`'ın.** Seçenekler:
+### Bedeli — GOAL-02 ile aritmetik gerilim
 
-| Yaklaşım | Ne olur |
-|---|---|
-| Turda sabit kalsın (şimdiki) | Basit ve okunur: "her üç tur". Geç oyunda zirveler seyrekleşir |
-| Süreye göre ayarla (ör. her ~4 dk) | Ritim sabit kalır; ama "kaçıncı turda draft var" tahmin edilemez olur |
-| Turda sabit + geç turlarda sıklaşan | Tur 12'den sonra her 2 turda bir. Karma, ama kural iki parçalı olur |
+`design/00-brief.md`'deki GOAL-02: *"aynı run'da 4 oyuncunun kart yığınları arasındaki
+örtüşme **< %40**"*, ölçüm M-03 sonu.
 
-Bu tablo **M-01'in tur sürelerine** dayanıyor ve o süreler oyun testiyle değişecek.
-Kararı vermeden önce gerçek telemetriyi bekle — model, oyuncu değil.
+Tur 20'ye kadar (~57 dakika) her tur draft = oyuncu başına **20 kart**.
+
+| Havuz | Beklenen ikili örtüşme | GOAL-02 |
+|---|---|---|
+| 45 kart | %44 | ✗ kalıyor |
+| **55 kart (şu anki havuz)** | **%36** | ✓ ama payı dar |
+| 70 kart | %29 | ✓ rahat |
+
+*(Kaba tahmin: N kart / P havuz. Etiket ağırlıklandırması oyuncuları birbirinden
+uzaklaştırdığı için gerçek örtüşmeyi **düşürür**; oyuncu tercihi "en iyi kart"ta
+yoğunlaştığı için **yükseltir**. İkincisi genelde daha güçlüdür — yani %36 iyimser bir
+tahmin.)*
+
+**Sonuç: her tur draft, havuzu 70'e çıkarmayı zorunlu kılıyor.** Kapsam dokümanındaki
+"MVP 25 → yayında 45" hedefi her 3 turda bir için yazılmıştı; her tur draft'la birlikte
+o sayı yetmiyor. Şu anki havuz 55 — yayın hedefi **70+** olmalı.
+
+### İkinci bedeli — PILLAR-03 ile gerilim
+
+Draft artık **her turda** araya giriyor. PILLAR-03 kart ekranını *"oyunun tek beklemeli
+anı"* olarak kabul ediyor, ama o kabul üç turda bir içindi. Her turda bir bekleme,
+"kesintisiz tur" sözünü sıklık üzerinden aşındırabilir.
+
+Bunu yönetmenin yolu **draft'ı hızlı tutmak**, ve bu doğrudan §7c'deki yenileme
+tasarımıyla çelişiyor: yuva başına iki yenileme × üç yuva = tur başına altı ek karar.
+**Bu gerilim çözülmedi;** oyun testinde ölçülecek. İlk ölçüt: draft ekranında geçen
+sürenin tur süresine oranı. %15'i aşıyorsa ya yenileme kısılır ya draft seyrekleşir.
+
+---
+
+## 7c. Yenileme (reroll) — 2026-09-04
+
+> **Karar (geliştirici):** *"Kartı beğenmezse yenileme hakkı olmalı, üç seçenek için
+> ayrı ayrı. Beğenmezse yenilediği hâlde bu sefer puan harcayarak yenileyebilir.
+> Puanlı yenileme sınırı 1 kere olmalı."*
+
+**Yuva başına**, tüm ekranı birden değil. Üç yuvanın her biri bağımsız yenilenir.
+
+| Sıra | Ne | Bedel | Sınır |
+|---|---|---|---|
+| 1 | İlk yenileme | **Ücretsiz** | Yuva başına 1 |
+| 2 | İkinci yenileme | **Puan** | Yuva başına 1 |
+| 3 | Üçüncü | — | **Yok** |
+
+Yani bir draft'ta en fazla: 3 ücretsiz + 3 puanlı yenileme.
+
+**Neden yuva başına, hepsi birden değil:** "üçü de kötü" ile "ikisi iyi, biri kötü"
+farklı durumlar. Hepsini birden yenilemek, beğendiğin iki kartı da atmaya zorlar —
+yani yenileme bir çözüm değil, bir kumar olur.
+
+### Puanlı yenilemenin fiyatı TURLA ARTMALI
+
+Sabit bir fiyat geç turlarda bedavaya döner: simülasyona göre tur 15'te oyuncunun
+elinde binlerce puan birikiyor. 200 puanlık bir yenileme tur 3'te gerçek bir karar,
+tur 15'te hiçbir şey.
+
+Öneri: `yenilemeBedeli = temel × tur`. Sayılar `config/balance/cards.json`'a girecek ve
+değerini `systems-designer` verecek — **burada sayı yazmıyorum**, çünkü bu bir denge
+kararı ve oynanmadan verilmez.
+
+### Açık soru
+
+Ücretsiz yenileme **yuva başına 1** mi, yoksa **draft başına 1** mi? Yukarıdaki tablo
+yuva başına diye okudu (senin cümlen "üç seçenek için ayrı ayrı" öyle diyor). Draft
+başına olsaydı yenileme çok daha kısıtlı ve karar daha ağır olurdu. **Onayına ihtiyaç
+var.**
+
+---
+
+## 7d. Puan harcama düzeni — tek tablo
+
+> **Karar (geliştirici):** *"Puanla alınabilecek kart gibi özellikler, varsayılan
+> alışveriş düzeni oluşturmak lazım — hem kart seçiminde hem de shop için."*
+
+Puan tek para birimi. Bugün üç musluğu var (mermi, kapı, kutu) ve **hepsi erken oyun
+için**. Simülasyon geç oyunda harcanacak bir şey kalmadığını gösterdi: iyi oyuncu tur
+15'te 15.620 puanla oturuyor (`design/economy/curves.md`, KIRILMA 2).
+
+Kart ekonomisi tam olarak o boşluğa oturuyor.
+
+| Harcama | Nerede | Ne zaman | Fiyat davranışı | Amacı |
+|---|---|---|---|---|
+| Mermi | Duvar | Her zaman | Sabit | Erken oyun musluğu (mevcut) |
+| Kapı | Harita | Her biri bir kez | Sabit bant | Harita büyümesi (mevcut) |
+| Rastgele dağıtıcı | Harita | Her zaman | Sabit | Kumar (mevcut, mekaniği `<tbd>`) |
+| **Kart yenileme** | Draft ekranı | Yuva başına 1 | **Turla artar** | Draft'ta ajans |
+| **Kart satın alma** | Tezgâh, tur arası | Her zaman | **Turla artar, pahalı** | **Geç oyun sink'i** |
+| **Kart unutma** | Tezgâh | Her zaman | Orta | Yanlış build'i düzeltme |
+
+### İki kural
+
+**1. Draft ücretsiz kalır.** Tur başına bir kart, her zaman, puansız. Puan yalnızca
+*daha iyi seçenek* satın alır (yenileme), *daha fazla kart* değil. Aksi hâlde iyi oynayan
+oyuncu daha çok kart alır ve makas açılır — PILLAR-02'nin açıkça reddettiği şey:
+*"iyi oynayanı güçlendirip zorlananı geride bırakan ödül yapıları"*.
+
+**2. Tezgâhtan alınan kart havuzdan gelir, sonsuz değildir.** Tezgâh her tur **2 kart**
+gösterir, seçilirse gider. Sınırsız satın alma, yeterince puan biriktiren herkesi aynı
+build'e götürür — GOAL-02'yi doğrudan çürütür.
+
+### Kart unutma neden var
+
+20 kartlık bir run'da erken alınan kötü bir kart 50 dakika taşınıyor. Unutma, o kararı
+geri alınabilir yapıyor — ama bedelli, yani hâlâ bir karar. Etiket bonusları (3 kart =
+bonus) yüzünden ayrıca taktiksel: iki etiket arasında kalmışsan birini bırakıp diğerini
+tamamlayabilirsin.
+
+**Kapsam uyarısı:** unutma yeni bir ekran, yeni bir akış ve etiket bonuslarının yeniden
+hesaplanması demek. M-03 için **isteğe bağlı** işaretli; kesilirse ilk kesilecek şey bu.
 
 ---
 
 ## 8. Açık kalanlar
 
-- Toplam kart sayısı — `<tbd>` (kapsam kararı ertelendi)
+- **Ücretsiz yenileme yuva başına mı, draft başına mı?** (§7c) — **onayına ihtiyaç var**
+- Toplam kart sayısı: havuzda **55** var, her tur draft için hedef **70+** (§7b)
 - Nadirlik kademeleri ve draft'taki dağılımı — `<tbd>`
+- Yenileme ve kart satın alma fiyat eğrisi — `systems-designer`, `cards.json`
+- **Kart unutma** M-03'te isteğe bağlı; kesilecek ilk madde (§7d)
+- Rastgele silah dağıtıcısının (mystery box) mekaniği hiç tarif edilmedi — yalnızca bir
+  fiyatı var. **Kasa Hırsızı** kartı ona bağlı olduğu için o da askıda
+- Draft ekranında geçen sürenin tur süresine oranı ölçülecek; %15'i aşarsa yenileme
+  kısılır ya da draft seyrekleşir (§7b)
 - Denge sayıları `config/balance/cards.json` içinde yaşar, C# içinde değil
 - **Temizlik** (50 öldürmede nuke) sayacı oyuncu başına mı, takım toplamı mı? Öneri:
   oyuncu başına — takım toplamı olursa 4 kat sık patlar ve kişisel build olmaktan çıkar
