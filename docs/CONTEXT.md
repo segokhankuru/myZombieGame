@@ -78,8 +78,22 @@ silahı · M1-11 ölüm/skor ekranı · M1-12 telemetri · M1-13 vuruş hissi
 
 **Sıradaki: kod değil, oynamak.** Protokol hazır:
 `docs/qa/playtests/PT-01-ck17-tekrar-oynatiyor-mu.md` — üç seans (shakedown → kapalı
-zarflı öz test → arkadaşlar). **SEANS B bir build gerektiriyor ve bu projede hiç build
-alınmadı.**
+zarflı öz test → arkadaşlar). **Build hazır:** `Bunker.exe` çıkıyor ve açılıyor.
+
+**Çıkış kriterleri (2026-09-04):**
+
+| | Durum |
+|---|---|
+| ÇK-12 kesintisiz oynanıyor | oyun testi bekliyor |
+| ÇK-13 tur 10'a ~15 dk | 🔶 modelde hedefte (12.5 dk) — telemetri doğrulayacak |
+| ÇK-14 üç bölge açılıyor | 🔶 modelde karşılanıyor, **iki kırılma var** |
+| ÇK-15 40 zombi bütçede | ✅ **ölçüldü** — p99 bütçenin %8.5'i |
+| ÇK-16 Unity'siz test | ✅ 234 test yeşil |
+| **ÇK-17 tekrar oynatıyor mu** | **oyun testi bekliyor — milestone'un asıl sorusu** |
+
+**Oyun testinde aranacak iki bulgu** (`design/economy/curves.md`): mermi seferleri turu
+parçalıyor (tur 14'te 15 sefer, PILLAR-03 ihlali) ve geç oyunda harcanacak bir şey
+kalmıyor. İkisi de simülasyondan çıktı, hiçbir değer değiştirilmedi.
 
 **Not:** M1-06 bir `Feel` işi; DoD'si `/feel-check` notunu zorunlu kılıyor
 **Altyapı:** config importer (ADR-0005) — denge sayıları tek kaynakta ·

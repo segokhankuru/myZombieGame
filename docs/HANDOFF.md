@@ -1,3 +1,25 @@
+# Handoff — 2026-09-04
+
+> **2026-09-04 eki (geliştirici AFK'yken yapılanlar).** Aşağıdaki 09-03 özeti hâlâ
+> geçerli; bunlar üstüne eklendi:
+>
+> | Ne | Sonuç |
+> |---|---|
+> | **Gri kutu görünümü** | Okunabilirlik paleti + atmosfer. F10 atmosferi kapatır (ÇK-17'yi temiz ölçmek için). `docs/art/GREYBOX-PALETTE.md` |
+> | **İlk build** | `Bunker.exe` çıkıyor, açılıyor, `Player.log` temiz. `build.ps1`'de iki hata düzeltildi |
+> | **NavMesh borcu** | Kapandı: 25 yetim dosya → 1, sebep düzeltildi |
+> | **ÇK-15 ölçüldü** | 40 zombi, build'de, gerçek haritada: p99 bütçenin **%8.5**'i. `PerfRunner` otomatik |
+> | **ÇK-13 / ÇK-14 modellendi** | `balance-sim.ps1`. İkisi de modelde karşılanıyor — ama **iki kırılma** çıktı |
+>
+> **Oyun testinde özellikle bunlara bak** (`design/economy/curves.md`):
+> 1. **Mermi seferleri.** Model tur 14'te duvara **15 ayrı sefer** öngörüyor. "Tur 10
+>    civarında sıkıldım" dersen sebebi büyük olasılıkla budur.
+> 2. **Geç oyunda harcanacak şey yok.** İyi oyuncu tur 15'te 15.620 puanla oturuyor.
+>
+> **Hiçbir denge değeri değiştirilmedi** — simülasyon oyuncunun modeli, oyuncu değil.
+
+---
+
 # Handoff — 2026-09-03
 
 Bir sonraki oturumun ilk okuyacağı özet. Çalışma ağacı temiz, 234 EditMode testi yeşil.
