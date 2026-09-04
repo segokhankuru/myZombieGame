@@ -303,9 +303,15 @@ namespace Bunker.AI
                 return false;
             }
 
-            // Dogum noktasi pencerenin DISINDA: zombinin gorunur sekilde hiclikten
-            // belirmesi PILLAR-04'u cigner (LVL-01 spec'i).
-            Vector3 wanted = window.OutsidePoint + window.transform.forward * 2f;
+            // Dogum noktasi pencerenin COK DISINDA: zombinin gorunur sekilde hiclikten
+            // belirmesi PILLAR-04'u cigner (LVL-01 spec'i), ve barikatin DIBINDE
+            // belirmesi disarisini savunmayi anlamsiz kilar (gelistirici, 2026-09-04).
+            //
+            // Mesafe artik pencerenin kendisinden geliyor (BlockoutSettings ->
+            // WindowEntry.SpawnPoint). Onceki surumde burada hesaplaniyordu ve
+            // uretecin sahneye koydugu Spawn_XX isaretleri baska bir yeri
+            // gosteriyordu - iki ayri dogru, biri yalan.
+            Vector3 wanted = window.SpawnPoint;
 
             // Yaricap KUCUK tutuluyor. SamplePosition duvarlari umursamaz: genis bir
             // yaricapla, disarida NavMesh bulunamayan bir noktadan ICERIDEKI zemine

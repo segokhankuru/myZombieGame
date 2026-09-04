@@ -49,6 +49,82 @@ namespace Bunker.Editor
         [MenuItem("Bunker/Level/LVL-01 Gri Kutu Uret", false, 100)]
         public static void GenerateFromMenu() => Generate(LoadOrCreateSettings());
 
+        /// <summary>
+        /// Dış alan düzenini ayar varlığına uygular (2026-09-04).
+        ///
+        /// <para><b>Neden ayrı bir adım gerekiyor:</b> C# içindeki varsayılanı
+        /// değiştirmek <b>var olan bir <c>ScriptableObject</c> varlığını
+        /// değiştirmez</b> — Unity diskte yazılı değeri okur. <c>WindowSpacingMeters</c>
+        /// varlıkta <c>8</c> olarak duruyordu ve sınıftaki yeni varsayılan (<c>12</c>)
+        /// hiçbir şey yapmıyordu. Harita yeniden üretildi, pencere sayısı değişmedi,
+        /// araç da "üretildi" dedi — sessiz başarısızlığın bir başka kılığı.</para>
+        ///
+        /// <para><b>Yalnızca bu oturumda değişen alanı yazar.</b> Elle ayarlanmış başka
+        /// hiçbir ölçüye dokunmaz.</para>
+        /// </summary>
+        [MenuItem("Bunker/Level/Dis Alan Duzenini Uygula", false, 102)]
+        public static void ApplyOutdoorLayout()
+        {
+            BlockoutSettings settings = LoadOrCreateSettings();
+            var defaults = ScriptableObject.CreateInstance<BlockoutSettings>();
+
+            var so = new SerializedObject(settings);
+            int changed = 0;
+
+            // Yalnizca 2026-09-04'te degisen alan. Digerleri (ApronWidth,
+            // PerimeterWallHeight, GateWidth, SpawnStandoffMeters) varlikta hic
+            // yazili olmadigi icin sinif varsayilanini zaten aliyor.
+            changed += SyncFloat(so, "WindowSpacingMeters", defaults.WindowSpacingMeters);
+
+            if (changed > 0)
+            {
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssets();
+            }
+
+            Object.DestroyImmediate(defaults);
+
+            Debug.Log($"[Blockout] Dis alan duzeni uygulandi. {changed} alan guncellendi. " +
+                      "Simdi 'Bunker/Zombi/Test Alanini Kur' calistir - harita yeniden " +
+                      "uretilmeli ve NavMesh yeniden bake edilmeli.");
+        }
+
+        private static int SyncFloat(SerializedObject so, string field, float wanted)
+        {
+            SerializedProperty p = so.FindProperty(field);
+
+            if (p == null)
+            {
+                Debug.LogError($"[Blockout] '{field}' alani bulunamadi - alan adi degismis olabilir.");
+                return 0;
+            }
+
+            if (Mathf.Approximately(p.floatValue, wanted)) return 0;
+
+            Debug.Log($"[Blockout] {field}: {p.floatValue} -> {wanted}");
+            p.floatValue = wanted;
+            return 1;
+        }
+
+        /// <summary>Başsız giriş: ayar güncellemesi + harita üretimi.</summary>
+        public static void ApplyOutdoorLayoutBatch()
+        {
+            const string scenePath = "Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity";
+
+            try
+            {
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                ApplyOutdoorLayout();
+                EditorApplication.Exit(0);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Blockout] Dis alan duzeni uygulanamadi: {e}");
+                EditorApplication.Exit(1);
+            }
+        }
+
         [MenuItem("Bunker/Level/LVL-01 Gri Kutuyu Sil", false, 101)]
         public static void Clear()
         {
@@ -233,6 +309,67 @@ namespace Bunker.Editor
             Slab(apron, "Apron_North", s, s.West - w, s.East + w, s.North, s.North + w, y);
             Slab(apron, "Apron_West", s, s.West - w, s.West, s.South, s.North, y);
             Slab(apron, "Apron_East", s, s.East, s.East + w, s.South, s.North, y);
+
+            BuildPerimeter(zone, s);
+        }
+
+        /// <summary>
+        /// Yaklaşma bölgesini çevreleyen dış duvar ve geçitleri.
+        ///
+        /// <para><b>Neden var</b> (geliştirici, 2026-09-04): <i>"Dışarıya bakınca bir
+        /// ortam görelim ve zombiler barikata gelirken bir yoldan doğru geldiği
+        /// gözüksün."</i> Sonsuz düz bir zemin, dışarısı diye bir yer olmadığını söyler;
+        /// duvar dünyaya bir kenar verir ve geçitler zombinin nereden geleceğini
+        /// <b>önceden</b> okunur kılar.</para>
+        ///
+        /// <para><b>Duvar NavMesh'i keser, geçitler açar.</b> Yani zombi rastgele bir
+        /// yönden değil, dört geçidin birinden gelir — dışarısını savunmak artık bir
+        /// anlam taşır (PILLAR-04: neyin nereden geldiğini bilmek).</para>
+        ///
+        /// <para><b>Geçitler kenarların ORTASINDA.</b> Köşeye koymak iki geçidi
+        /// birbirine yakınlaştırır ve sürüyü tek noktaya yığar.</para>
+        /// </summary>
+        private static void BuildPerimeter(Transform zone, BlockoutSettings s)
+        {
+            if (s.PerimeterWallHeight <= 0.1f) return;
+
+            Transform group = Group("Perimeter_Outside", zone);
+
+            float w = s.ApronWidth;
+            float h = s.PerimeterWallHeight;
+            float t = s.WallThickness;
+            float y = h / 2f;
+
+            float minX = s.West - w;
+            float maxX = s.East + w;
+            float minZ = s.South - w;
+            float maxZ = s.North + w;
+
+            float midX = (minX + maxX) / 2f;
+            float midZ = (minZ + maxZ) / 2f;
+            float half = s.GateWidth / 2f;
+
+            // Guney ve kuzey: X boyunca, ortada gecit.
+            Box(group, "Perimeter_South_A", new Vector3((minX + midX - half) / 2f, y, minZ),
+                new Vector3(midX - half - minX, h, t));
+            Box(group, "Perimeter_South_B", new Vector3((midX + half + maxX) / 2f, y, minZ),
+                new Vector3(maxX - midX - half, h, t));
+
+            Box(group, "Perimeter_North_A", new Vector3((minX + midX - half) / 2f, y, maxZ),
+                new Vector3(midX - half - minX, h, t));
+            Box(group, "Perimeter_North_B", new Vector3((midX + half + maxX) / 2f, y, maxZ),
+                new Vector3(maxX - midX - half, h, t));
+
+            // Bati ve dogu: Z boyunca, ortada gecit.
+            Box(group, "Perimeter_West_A", new Vector3(minX, y, (minZ + midZ - half) / 2f),
+                new Vector3(t, h, midZ - half - minZ));
+            Box(group, "Perimeter_West_B", new Vector3(minX, y, (midZ + half + maxZ) / 2f),
+                new Vector3(t, h, maxZ - midZ - half));
+
+            Box(group, "Perimeter_East_A", new Vector3(maxX, y, (minZ + midZ - half) / 2f),
+                new Vector3(t, h, midZ - half - minZ));
+            Box(group, "Perimeter_East_B", new Vector3(maxX, y, (midZ + half + maxZ) / 2f),
+                new Vector3(t, h, maxZ - midZ - half));
         }
 
         private static void BuildRamp(Transform zone, BlockoutSettings s)
@@ -420,11 +557,13 @@ namespace Bunker.Editor
                 // yarisindan buyuk bir standoff sart, yoksa bekleme noktasi duvarin
                 // icinde kalir ve NavMesh orada yoktur.
                 var entry = marker.AddComponent<Bunker.AI.WindowEntry>();
-                entry.Configure(s.WindowSill, Mathf.Max(1f, s.WallThickness * 2f + 0.8f));
+                entry.Configure(s.WindowSill, Mathf.Max(1f, s.WallThickness * 2f + 0.8f),
+                                Mathf.Clamp(s.SpawnStandoffMeters, 2f, Mathf.Max(2f, s.ApronWidth - 2f)));
 
-                Vector3 outside = w.Position + w.Outward * 3f;
-                outside.y = 0.1f;
-                Marker(spawns, $"Spawn_{i:D2}", outside);
+                // Isaret GERCEK dogum noktasinda durur. Onceki surumde sabit 3 m
+                // ilerideydi ve yonetmen bambaska bir yer kullaniyordu - yani
+                // sahnedeki isaret yalan soyluyordu.
+                Marker(spawns, $"Spawn_{i:D2}", entry.SpawnPoint + Vector3.up * 0.1f);
             }
 
             Transform doors = Group("Doors", markers);

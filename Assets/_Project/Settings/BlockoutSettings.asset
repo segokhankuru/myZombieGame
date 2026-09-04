@@ -17,6 +17,10 @@ MonoBehaviour:
   South: -8
   North: 8
   Divider: 4
+  ApronWidth: 18
+  PerimeterWallHeight: 3.5
+  GateWidth: 6
+  SpawnStandoffMeters: 14
   WallHeight: 4
   UpperFloorY: 4.5
   FloorThickness: 0.5
@@ -26,7 +30,7 @@ MonoBehaviour:
   WindowWidth: 1.5
   WindowSill: 1
   WindowTop: 2.3
-  WindowSpacingMeters: 8
+  WindowSpacingMeters: 12
   Partitions:
   - Axis: 0
     Position: 12

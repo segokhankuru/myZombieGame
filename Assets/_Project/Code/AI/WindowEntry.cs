@@ -22,6 +22,12 @@ namespace Bunker.AI
                  "Duvar kalinligindan buyuk olmali, yoksa nokta duvarin icinde kalir.")]
         [SerializeField] private float standoffMeters = 1.1f;
 
+        [Tooltip("Zombinin DOGDUGU mesafe (pencereden disariya, metre). Bekleme " +
+                 "noktasindan cok daha uzak olmali: barikatin dibinde dogan zombi " +
+                 "disarisini savunmayi anlamsiz kilar. BlockoutSettings'teki " +
+                 "SpawnStandoffMeters uretecte buraya gecirilir.")]
+        [SerializeField] private float spawnStandoffMeters = 14f;
+
         [Tooltip("Pencerenin alt kenari (zeminden). Zombi tirmanirken bu yuksekligin " +
                  "biraz ustunden gecer - tirmanis yayinin tepesi.")]
         [SerializeField] private float sillHeightMeters = 1f;
@@ -40,6 +46,30 @@ namespace Bunker.AI
             get
             {
                 Vector3 p = _transform.position + _transform.forward * standoffMeters;
+                p.y = 0f;
+                return p;
+            }
+        }
+
+        /// <summary>
+        /// Zombinin <b>doğduğu</b> nokta — pencerenin çok daha uzağında.
+        ///
+        /// <para><b>Neden ayrı bir mesafe</b> (geliştirici, 2026-09-04): <i>"Zombilerin
+        /// direkt barikatın dibinde doğması barikat dışını savunmayı anlamsız
+        /// kılıyor."</i> Doğru: önceki sürümde doğum noktası pencereden yalnızca ~3.4 m
+        /// uzaktaydı ve dışarısı 6 m genişliğindeydi — yani zombi pratikte barikatın
+        /// dibinde beliriyordu.</para>
+        ///
+        /// <para><b>Sayı tek yerde:</b> önceden <c>ZombieDirector</c> kendi mesafesini
+        /// hesaplıyordu (<c>OutsidePoint + forward * 2</c>) ve üretecin koyduğu
+        /// <c>Spawn_XX</c> işaretleri <b>hiç kullanılmıyordu</b> — iki ayrı doğru,
+        /// biri yalan. Artık ölçü buradan, <c>BlockoutSettings</c>'ten geliyor.</para>
+        /// </summary>
+        public Vector3 SpawnPoint
+        {
+            get
+            {
+                Vector3 p = _transform.position + _transform.forward * spawnStandoffMeters;
                 p.y = 0f;
                 return p;
             }
@@ -73,10 +103,11 @@ namespace Bunker.AI
         private void OnValidate() => _transform = transform;
 
         /// <summary>Üretecin ölçüleri geçirdiği yer. Elle Inspector'dan da ayarlanabilir.</summary>
-        public void Configure(float sill, float standoff)
+        public void Configure(float sill, float standoff, float spawnStandoff)
         {
             sillHeightMeters = sill;
             standoffMeters = standoff;
+            spawnStandoffMeters = spawnStandoff;
         }
 
         public void SetOpen(bool value) => open = value;

@@ -62,7 +62,23 @@ namespace Bunker.Editor
                  "burada dogar ve pencereye buradan yurur - NavMesh binanin disinda da " +
                  "olmak zorunda. Sifir yaparsan zombilerin duracagi zemin kalmaz. " +
                  "Cok genis yapmak bake suresini ve NavMesh boyutunu bosuna buyutur.")]
-        public float ApronWidth = 6f;
+        public float ApronWidth = 18f;
+
+        [Header("Dis alan — yaklasma bolgesi (2026-09-04)")]
+        [Tooltip("Disaridaki cevre duvari yuksekligi. Dunyanin bir kenari olmasi icin: " +
+                 "sonsuz duz bir zemin 'disarisi' diye bir yer olmadigini soyler. " +
+                 "Sifir yaparsan duvar uretilmez.")]
+        public float PerimeterWallHeight = 3.5f;
+
+        [Tooltip("Cevre duvarindaki gecit genisligi. Zombiler buralardan girer ve " +
+                 "pencereye dogru yurur - 'bir yoldan geliyorlar' hissi buradan gelir.")]
+        public float GateWidth = 6f;
+
+        [Tooltip("Zombinin dogdugu nokta, binanin duvarindan kac metre disarida. " +
+                 "ApronWidth'ten KUCUK olmali, yoksa dogum noktasi cevre duvarinin " +
+                 "disinda kalir ve NavMesh bulunamaz. Kucultursen zombiler barikatin " +
+                 "dibinde belirir ve disarisini savunmak anlamsizlasir.")]
+        public float SpawnStandoffMeters = 14f;
 
         [Header("Yukseklikler")]
         [Tooltip("Zemin kat tavan yuksekligi. 3 m basik hissettirir; 4 m nefes aldirir.")]
@@ -81,7 +97,7 @@ namespace Bunker.Editor
         [Tooltip("Kac metrede bir pencere. Pencereler duvar boyunca ESIT araliklarla " +
                  "dagitilir, sabit konumlarla degil - ayak izi degisince kaymasinlar diye. " +
                  "Kucultursen pencere sayisi artar ve savunma zorlasir.")]
-        public float WindowSpacingMeters = 8f;
+        public float WindowSpacingMeters = 12f;
 
         [Header("Ic bolmeler (odalari boler, darbogaz uretir)")]
         public Partition[] Partitions = new Partition[]

@@ -386,6 +386,10 @@ namespace Bunker.Editor
             if (name.StartsWith("Apron", System.StringComparison.Ordinal))
                 return Get(materials, "Apron_");
 
+            // Cevre duvari: duvar dilini paylasir - oyuncu icin de "duvar"dir.
+            if (name.StartsWith("Perimeter", System.StringComparison.Ordinal))
+                return Get(materials, "Wall_");
+
             if (name.StartsWith("DropLip", System.StringComparison.Ordinal))
                 return Get(materials, "DropLip_");
 
