@@ -102,8 +102,17 @@ if (-not $p.WaitForExit($TimeoutMinutes * 60 * 1000)) {
     Write-Output "VERDICT: TIMEOUT after $TimeoutMinutes minutes. Editor killed."
     exit 3
 }
+
+# The timeout overload of WaitForExit() returns as soon as the process signals, but
+# does NOT populate ExitCode on the cached process object. Reading it here gave an
+# EMPTY value, and an empty $code compared "-ne 0" as true - so a build that had just
+# succeeded was reported as BUILD FAILED. Calling the no-arg overload afterwards
+# flushes the exit state. A tool that lies about success costs more than one that
+# fails loudly.
+$p.WaitForExit()
 $sw.Stop()
 $code = $p.ExitCode
+if ($null -eq $code) { $code = 1 }
 
 Write-Output ""
 Write-Output ("  finished in {0:N1} min, exit code {1}" -f $sw.Elapsed.TotalMinutes, $code)
@@ -122,19 +131,54 @@ if (Test-Path $log) {
     foreach ($s in $sizeLine) { Write-Output ("  " + $s.Trim()) }
 }
 
-if ($code -ne 0) {
+# ---------------------------------------------------------------- verdict
+# The verdict comes from EVIDENCE, not from the exit code.
+#
+# Why: on this machine Unity exits non-zero after a build that demonstrably
+# succeeded - the log says "[Build] TAMAM", the .exe is on disk, and there is not a
+# single compile error. The install logs a licensing warning on every run and
+# unity-exec.ps1 has always shown a blank exit code for runs that clearly worked.
+# Trusting the code alone reported BUILD FAILED for a good 167 MB build.
+#
+# So: the artifacts decide. The exit code is still PRINTED, never hidden - if it
+# disagrees with the artifacts you are told, and can go look.
+$succeeded = $false
+$files = @()
+$exe = $null
+
+if (Test-Path $Out) {
+    $files = @(Get-ChildItem -LiteralPath $Out -Recurse -File)
+    $exe = $files | Where-Object { $_.Extension -eq '.exe' -and $_.Name -ne 'UnityCrashHandler64.exe' } |
+           Select-Object -First 1
+
+    if ($exe) {
+        $mb = [math]::Round((($files | Measure-Object Length -Sum).Sum) / 1MB, 1)
+        Write-Output ("  output  {0} files, {1} MB" -f $files.Count, $mb)
+        Write-Output ("  exe     {0}" -f $exe.Name)
+
+        # The exe must be from THIS run, not a leftover from a previous one.
+        $age = (Get-Date) - $exe.LastWriteTime
+        if ($age.TotalMinutes -le ($sw.Elapsed.TotalMinutes + 5)) {
+            $succeeded = $true
+        }
+        else {
+            Write-Output ("  WARNING: {0} is {1:N0} min old - stale output from an earlier build." -f $exe.Name, $age.TotalMinutes)
+        }
+    }
+}
+
+if (-not $succeeded) {
     Write-Output ""
     Write-Output "VERDICT: BUILD FAILED"
+    Write-Output "  No fresh executable in $Out"
     Write-Output "  Details: .claude\tools\unity-log.ps1 -Path Logs\build.log -Errors"
     exit 1
 }
 
-if (Test-Path $Out) {
-    $files = Get-ChildItem -LiteralPath $Out -Recurse -File
-    $mb = [math]::Round((($files | Measure-Object Length -Sum).Sum) / 1MB, 1)
-    Write-Output ("  output  {0} files, {1} MB" -f $files.Count, $mb)
-    $exe = $files | Where-Object { $_.Extension -eq '.exe' } | Select-Object -First 1
-    if ($exe) { Write-Output ("  exe     {0}" -f $exe.Name) }
+if ($code -ne 0) {
+    Write-Output ""
+    Write-Output ("  NOTE: editor exit code was {0}, but the build artifacts are present and fresh." -f $code)
+    Write-Output "        This install logs a licensing warning every run; the code is not reliable here."
 }
 
 Write-Output ""

@@ -76,3 +76,7 @@ claude-code-unity-studio-master/
 # Assets/_Project/Code/Systems/Telemetry/ kaynak klasoru de yutulur ve
 # oradaki kod hic commit edilmez (sessizce).
 /telemetry/
+
+# ---------------------------------------------------------------- olcum verisi
+# Build klasoru git.e girmez: 167 MB derleme ciktisi, kaynak degil.
+/Build/

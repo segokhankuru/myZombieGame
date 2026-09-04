@@ -39,8 +39,33 @@ evet/hayır tek başına yetmez.
 | **A-Doğrulama** | geliştirici, editörde, 20-25 dk | İlk dürüst ÇK-17 okuması, kapalı zarf tahminleriyle | A temiz |
 | **B — Asıl test** | **en az 2 arkadaş** | ÇK-17'nin kendisi | A-Doğrulama + **standalone build** |
 
-> **SEANS B'nin ön koşulu bir build.** Arkadaşlar senin editöründe oynayamaz ve bu
-> projede **hiç build alınmadı**. `/build` SEANS A temiz çıktıktan sonra koşulmalı.
+> **SEANS B'nin ön koşulu bir build.** Arkadaşlar senin editöründe oynayamaz.
+> **Build artık var** (2026-09-04) — aşağıya bak.
+
+### Build ve veri toplama (2026-09-04)
+
+```bash
+powershell -NoProfile -File .claude/tools/build.ps1 -Target StandaloneWindows64 -Config Development -Method Bunker.Editor.BuildPipelineEntry.BuildFromArgs
+```
+
+Çıktı: `Build/windows64-development/Bunker.exe` — 314 dosya, 167 MB. Klasörün
+**tamamını** zipleyip gönder; tek başına `.exe` çalışmaz.
+
+Pencereli açılır (1600×900, yeniden boyutlanabilir), yani arkadaşlar alt-tab yapabilir
+ve pencereyi kapatarak çıkabilir. Ayrı bir çıkış tuşu yok — M-01'de menü yok.
+
+**Arkadaşların telemetrisi senin proje klasörüne yazılmaz.** Build'de kayıtlar buraya
+gider:
+
+```
+%USERPROFILE%\AppData\LocalLow\DefaultCompany\Bunker\telemetry\runs.jsonl
+```
+
+Seans sonunda o dosyayı iste. Kendi `telemetry/runs.jsonl` dosyanla **birleştirme** —
+ayrı tut, çünkü senin run'ların yazarın run'ları ve karışırsa ikisi de değersizleşir.
+
+> **Doğrulandı:** build açılıyor, 20 saniye çalıştı, `Player.log`'da tek hata yok.
+> Bu bir **duman testi**, oynanabilirlik testi değil — onu SEANS A yapacak.
 
 ---
 
