@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Bunker.AI;
 using Bunker.Gameplay;
@@ -776,6 +777,10 @@ namespace Bunker.Editor
                     EditorUtility.SetDirty(surfaces[i]);
                 }
 
+                // Sebep duzeldikten SONRA birikmis borcu da kapat: temizlenmeyen bir
+                // yetim, bir dahaki sefere "acaba bu lazim mi" diye duraksatir.
+                CleanOrphanNavMeshAssets(dataProperty, surfaces);
+
                 // Baglanti olcumu TAM BURADA yapilir: bake yeni, kanatlar hala kapali,
                 // yani olculen sey haritanin topolojisi. Ayri bir oturumda olcmek
                 // kapali kapilarin oymasini geri almayi gerektiriyor ve o geri alma
@@ -818,10 +823,83 @@ namespace Bunker.Editor
                 AssetDatabase.CreateFolder(folder, sceneName);
             }
 
-            string path = AssetDatabase.GenerateUniqueAssetPath(
-                $"{dataFolder}/NavMesh-{sceneName}-{index}.asset");
+            // SABIT yol. Onceki surum GenerateUniqueAssetPath kullaniyordu ve o
+            // metodun isi TANIMI GEREGI her cagrida yeni bir yol uretmek: her bake
+            // "NavMesh-M0-Sandbox-0 1", " 2", " 3" ... biriktiriyordu ve eskisi yetim
+            // kaliyordu. 25 tane birikmisti. editor-tools.md'nin ilk kurali:
+            // "araci iki kez calistirmak bir kez calistirmakla ayni sonucu verir".
+            string path = $"{dataFolder}/NavMesh-{sceneName}-{index}.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<NavMeshData>(path);
+
+            if (existing != null)
+            {
+                // Icerigi mevcut varliga KOPYALA, dosyayi silip yeniden yaratma.
+                // CreateAsset ayni yola yazsaydi eski varligi silip yenisini
+                // yaratirdi; GUID degisir ve sahnedeki referans her bake'te
+                // yenilenirdi - yani sahne dosyasi durup dururken kirlenirdi.
+                EditorUtility.CopySerialized(data, existing);
+                dataProperty.SetValue(surface, existing);
+                EditorUtility.SetDirty(existing);
+                return;
+            }
 
             AssetDatabase.CreateAsset(data, path);
+        }
+
+        /// <summary>
+        /// Sahne klasöründe hiçbir <c>NavMeshSurface</c>'in kullanmadığı NavMesh
+        /// varlıklarını siler.
+        ///
+        /// <para><b>Neden gerekli:</b> <see cref="PersistNavMeshData"/> düzelmeden önceki
+        /// her bake bir yetim bırakmıştı. Yalnızca sebebi düzeltmek birikmiş 25 dosyayı
+        /// temizlemez, ve temizlenmeyen bir borç bir dahaki sefere "acaba bu lazım mı"
+        /// diye duraksatır.</para>
+        ///
+        /// <para><b>Referans kontrolü sahneden yapılır</b>, ada bakarak değil: adına
+        /// bakıp silmek, ileride farklı adlandırılan geçerli bir varlığı silme riski
+        /// taşır.</para>
+        /// </summary>
+        private static int CleanOrphanNavMeshAssets(PropertyInfo dataProperty,
+                                                    UnityEngine.Object[] surfaces)
+        {
+            Scene scene = EditorSceneManager.GetActiveScene();
+            string folder = System.IO.Path.GetDirectoryName(scene.path)?.Replace('\\', '/');
+            string sceneName = System.IO.Path.GetFileNameWithoutExtension(scene.path);
+
+            if (string.IsNullOrEmpty(folder)) return 0;
+
+            string dataFolder = $"{folder}/{sceneName}";
+            if (!AssetDatabase.IsValidFolder(dataFolder)) return 0;
+
+            // Halen kullanilan varliklarin yollari.
+            var inUse = new HashSet<string>();
+
+            for (int i = 0; i < surfaces.Length; i++)
+            {
+                if (dataProperty?.GetValue(surfaces[i]) is not NavMeshData used) continue;
+
+                string usedPath = AssetDatabase.GetAssetPath(used);
+                if (!string.IsNullOrEmpty(usedPath)) inUse.Add(usedPath);
+            }
+
+            int deleted = 0;
+
+            foreach (string guid in AssetDatabase.FindAssets("t:NavMeshData", new[] { dataFolder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+
+                if (inUse.Contains(path)) continue;
+
+                if (AssetDatabase.DeleteAsset(path)) deleted++;
+            }
+
+            if (deleted > 0)
+            {
+                Debug.Log($"[Zombi] {deleted} yetim NavMesh varligi silindi ({dataFolder}).");
+            }
+
+            return deleted;
         }
 
         // ---------------------------------------------------------------- yardimcilar
