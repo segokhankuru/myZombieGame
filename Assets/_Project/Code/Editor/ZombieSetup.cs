@@ -640,8 +640,13 @@ namespace Bunker.Editor
 
             if (asset == null)
             {
-                Debug.LogWarning($"[Zombi] Config varligi yok: {path}. " +
-                                 "'Bunker/Config/Ice Aktar' calistirilmali.");
+                // Uyari DEGIL, hata. Eksik config sessizce null olarak baglaniyordu ve
+                // yarim bagli bir prefab uretiyordu; sonuc, Play'e basildiginda
+                // sebebi cok uzakta olan bir NullReference. Kurulum zamaninda yuksek
+                // sesle patlamak, oyun zamaninda sasirmaktan ucuz.
+                Debug.LogError($"[Zombi] Config varligi yok: {path}. Once " +
+                               "'Bunker/Config/Ice Aktar' calistir - bu varlik " +
+                               "olmadan kurulum yarim kalir ve hata Play'de cikar.");
             }
 
             return asset;
@@ -719,8 +724,13 @@ namespace Bunker.Editor
                 return false;
             }
 
-            UnityEngine.Object[] surfaces =
-                UnityEngine.Object.FindObjectsByType(surfaceType, FindObjectsSortMode.None);
+            // FindObjectsInactive.Include ZORUNLU. Iki argumanli asiri yuk KAPALI
+            // nesneleri ATLAR; oyle olsaydi kapali bir NavMeshSurface bu listeye
+            // girmez, varligi CleanOrphanNavMeshAssets'in "kullanimda" kumesine
+            // yazilmaz ve HALA REFERANS EDILEN bir varlik silinirdi. Yikici bir
+            // sessiz hata: sahne acilir, NavMesh yoktur, sebebi hicbir yerde yazmaz.
+            UnityEngine.Object[] surfaces = UnityEngine.Object.FindObjectsByType(
+                surfaceType, FindObjectsInactive.Include, FindObjectsSortMode.None);
 
             if (surfaces.Length == 0)
             {
@@ -879,6 +889,16 @@ namespace Bunker.Editor
 
             string dataFolder = $"{folder}/{sceneName}";
             if (!AssetDatabase.IsValidFolder(dataFolder)) return 0;
+
+            // Emniyet: hic yuzey bulunamadiysa HICBIR SEY SILME. Bos bir "kullanimda"
+            // kumesi, klasordeki her varligi yetim gosterir - yani bir arama hatasi
+            // butun NavMesh'leri silerdi. Silme geri alinamaz; supheliyken durur.
+            if (surfaces == null || surfaces.Length == 0)
+            {
+                Debug.LogWarning("[Zombi] NavMeshSurface bulunamadi; yetim temizligi " +
+                                 "ATLANDI. Silme yapmak yerine dokunmamak dogru olan.");
+                return 0;
+            }
 
             // Halen kullanilan varliklarin yollari.
             var inUse = new HashSet<string>();

@@ -139,6 +139,15 @@ namespace Bunker.Editor
             changed += EnsureLighting();
             changed += EnsureAtmosphere();
 
+            // SART: yukaridaki SaveAssets yalnizca materyal blogunun finally'sindeydi
+            // ve atmosfer ondan SONRA kosuyor. Bu satir olmadan VolumeProfile'a
+            // yazilan her sey (bloom, vinyet, tonemapping, kontrast) yalnizca
+            // "dirty" isaretlenip DISKE HIC YAZILMIYORDU: profil dosyasi 19 satir
+            // ve icinde tek efekt yoktu, yani atmosfer katmani kuruldugundan beri
+            // hicbir sey yapmiyordu. Sessiz basarisizligin ders kitabi ornegi -
+            // arac "uygulandi" diyordu, git temizdi, ekranda hicbir sey yoktu.
+            AssetDatabase.SaveAssets();
+
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
             EditorSceneManager.SaveOpenScenes();
 
@@ -407,6 +416,24 @@ namespace Bunker.Editor
                 && Mathf.Abs(a.a - b.a) < epsilon;
         }
 
+        /// <summary>Materyal rengini <b>yalnızca farklıysa</b> yazar.</summary>
+        private static bool SetIfDifferent(Material material, string property, Color value)
+        {
+            if (Same(material.GetColor(property), value)) return false;
+
+            material.SetColor(property, value);
+            return true;
+        }
+
+        /// <summary>Materyal sayısını <b>yalnızca farklıysa</b> yazar.</summary>
+        private static bool SetIfDifferent(Material material, string property, float value)
+        {
+            if (Mathf.Approximately(material.GetFloat(property), value)) return false;
+
+            material.SetFloat(property, value);
+            return true;
+        }
+
         private static Material Get(Dictionary<string, Material> materials, string key)
         {
             return materials.TryGetValue(key, out Material material) ? material : null;
@@ -520,11 +547,16 @@ namespace Bunker.Editor
 
             if (sky != null)
             {
-                sky.SetColor("_SkyTint", new Color(0.22f, 0.24f, 0.30f));
-                sky.SetColor("_GroundColor", new Color(0.10f, 0.10f, 0.11f));
-                sky.SetFloat("_AtmosphereThickness", 0.75f);
-                sky.SetFloat("_Exposure", 0.85f);
-                EditorUtility.SetDirty(sky);
+                // Materyallerde oldugu gibi ONCE KARSILASTIR: kosulsuz SetDirty,
+                // "iki kez calistirmak bir kez calistirmakla ayni" iddiasini koda
+                // degil sansa birakir. Materyal tarafinda bir kez isirilmistik.
+                bool skyDirty = false;
+                skyDirty |= SetIfDifferent(sky, "_SkyTint", new Color(0.22f, 0.24f, 0.30f));
+                skyDirty |= SetIfDifferent(sky, "_GroundColor", new Color(0.10f, 0.10f, 0.11f));
+                skyDirty |= SetIfDifferent(sky, "_AtmosphereThickness", 0.75f);
+                skyDirty |= SetIfDifferent(sky, "_Exposure", 0.85f);
+
+                if (skyDirty) { EditorUtility.SetDirty(sky); changed++; }
 
                 if (RenderSettings.skybox != sky)
                 {
@@ -547,11 +579,24 @@ namespace Bunker.Editor
 
             // Alcak ve yandan: uzun golgeler mesafe ipucu verir. Tepeden gelen isik
             // her yuzeyi ayni parlaklikta gosterir ve sahne duzlesir.
-            key.transform.rotation = Quaternion.Euler(38f, 145f, 0f);
-            key.color = new Color(1f, 0.94f, 0.84f);
-            key.intensity = 1.15f;
-            key.shadows = LightShadows.Soft;
-            EditorUtility.SetDirty(key);
+            // Isikta da ONCE KARSILASTIR: kosulsuz SetDirty sahneyi her kosuda
+            // kirletir ve "hicbir sey degismedi" raporunu dogrulanamaz yapar.
+            var keyRotation = Quaternion.Euler(38f, 145f, 0f);
+            var keyColor = new Color(1f, 0.94f, 0.84f);
+            bool keyDirty = key.transform.rotation != keyRotation
+                            || key.color != keyColor
+                            || !Mathf.Approximately(key.intensity, 1.15f)
+                            || key.shadows != LightShadows.Soft;
+
+            if (keyDirty)
+            {
+                key.transform.rotation = keyRotation;
+                key.color = keyColor;
+                key.intensity = 1.15f;
+                key.shadows = LightShadows.Soft;
+                EditorUtility.SetDirty(key);
+                changed++;
+            }
 
             // --- ortam ve sis
             RenderSettings.ambientMode = AmbientMode.Trilight;
@@ -577,7 +622,10 @@ namespace Bunker.Editor
 
             // Sahnede zaten bir yonlu isik varsa YENISINI YARATMA - iki yonlu isik,
             // iki golge yonu demektir ve nereden geldigi okunmaz olur.
-            foreach (Light light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            // Kapali nesneler de dahil: kapali bir yonlu isik atlanirsa arac IKINCI
+            // bir tane yaratir ve iki golge yonu olusur.
+            foreach (Light light in Object.FindObjectsByType<Light>(
+                         FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (light.type == LightType.Directional) return light;
             }
@@ -600,8 +648,11 @@ namespace Bunker.Editor
                 changed++;
             }
 
-            ConfigureProfile(profile);
-            EditorUtility.SetDirty(profile);
+            if (ConfigureProfile(profile))
+            {
+                EditorUtility.SetDirty(profile);
+                changed++;
+            }
 
             GameObject host = GameObject.Find(AtmosphereObjectName);
 
@@ -615,10 +666,15 @@ namespace Bunker.Editor
             var volume = host.GetComponent<Volume>();
             if (volume == null) volume = host.AddComponent<Volume>();
 
-            volume.isGlobal = true;
-            volume.priority = 0f;
-            volume.sharedProfile = profile;
-            EditorUtility.SetDirty(volume);
+            if (!volume.isGlobal || !Mathf.Approximately(volume.priority, 0f)
+                || volume.sharedProfile != profile)
+            {
+                volume.isGlobal = true;
+                volume.priority = 0f;
+                volume.sharedProfile = profile;
+                EditorUtility.SetDirty(volume);
+                changed++;
+            }
 
             // F10 anahtari: HUD nesnesinde yasar, cunku o nesne her kurulumda zaten
             // var ve ayri bir nesne unutulmaya acik.
@@ -661,52 +717,99 @@ namespace Bunker.Editor
         /// tam ekran bulanıklık değil — okunabilirliği düşüren bir atmosfer, atmosfer
         /// değil hasardır.</para>
         /// </summary>
-        private static void ConfigureProfile(VolumeProfile profile)
+
+        private static bool ConfigureProfile(VolumeProfile profile)
         {
+            bool dirty = false;
+
             // Tonemapping: HDR renkleri ekrana makul indirir. Olmadan emisyonlu kapi
             // ve satin alma levhasi patlar ve yanindaki her seyi yutar.
-            if (!profile.TryGet(out Tonemapping tonemapping))
-                tonemapping = profile.Add<Tonemapping>(true);
+            Tonemapping tonemapping = GetOrAdd<Tonemapping>(profile, ref dirty);
 
-            tonemapping.active = true;
-            tonemapping.mode.overrideState = true;
-            tonemapping.mode.value = TonemappingMode.Neutral;
+            dirty |= SetActive(tonemapping);
+            dirty |= Set(tonemapping.mode, TonemappingMode.Neutral);
 
             // Bloom: yalnizca emisyonlu yuzeyleri parlatir. Esik yuksek tutuldu -
             // dusuk esik butun sahneyi sisler ve tehdidi gizler (PILLAR-04'un
             // reddettigi sey).
-            if (!profile.TryGet(out Bloom bloom)) bloom = profile.Add<Bloom>(true);
+            Bloom bloom = GetOrAdd<Bloom>(profile, ref dirty);
 
-            bloom.active = true;
-            bloom.threshold.overrideState = true;
-            bloom.threshold.value = 1.1f;
-            bloom.intensity.overrideState = true;
-            bloom.intensity.value = 0.55f;
-            bloom.scatter.overrideState = true;
-            bloom.scatter.value = 0.62f;
+            dirty |= SetActive(bloom);
+            dirty |= Set(bloom.threshold, 1.1f);
+            dirty |= Set(bloom.intensity, 0.55f);
+            dirty |= Set(bloom.scatter, 0.62f);
 
             // Vinyet: gozu ekranin ortasina, nisangaha toplar. Hafif - agir bir vinyet
             // cevre gorusunu keser ve arkadan gelen zombiyi gizler.
-            if (!profile.TryGet(out Vignette vignette)) vignette = profile.Add<Vignette>(true);
+            Vignette vignette = GetOrAdd<Vignette>(profile, ref dirty);
 
-            vignette.active = true;
-            vignette.intensity.overrideState = true;
-            vignette.intensity.value = 0.28f;
-            vignette.smoothness.overrideState = true;
-            vignette.smoothness.value = 0.45f;
+            dirty |= SetActive(vignette);
+            dirty |= Set(vignette.intensity, 0.28f);
+            dirty |= Set(vignette.smoothness, 0.45f);
 
             // Renk derecelendirme: hafif soguk ve kontrastli. Kontrast okunabilirlige
             // HIZMET eder - duz gri bir goruntude silueti ayirmak zordur.
-            if (!profile.TryGet(out ColorAdjustments color))
-                color = profile.Add<ColorAdjustments>(true);
+            ColorAdjustments color = GetOrAdd<ColorAdjustments>(profile, ref dirty);
 
-            color.active = true;
-            color.postExposure.overrideState = true;
-            color.postExposure.value = 0.15f;
-            color.contrast.overrideState = true;
-            color.contrast.value = 12f;
-            color.saturation.overrideState = true;
-            color.saturation.value = -8f;
+            dirty |= SetActive(color);
+            dirty |= Set(color.postExposure, 0.15f);
+            dirty |= Set(color.contrast, 12f);
+            dirty |= Set(color.saturation, -8f);
+
+            return dirty;
+        }
+
+        /// <summary>
+        /// Profildeki efekti bulur, yoksa ekler <b>ve varlığın alt nesnesi yapar</b>.
+        ///
+        /// <para><b>`AddObjectToAsset` olmadan efekt diske hiç yazılmaz.</b> URP'de
+        /// <c>VolumeProfile.Add&lt;T&gt;()</c> bileşeni bellekte yaratır; profil
+        /// varlığının bir parçası olması için ayrıca alt nesne olarak eklenmesi
+        /// gerekir. Bu satır eksikken <c>AtmosphereProfile.asset</c> <b>19 satır ve
+        /// içinde tek efekt yoktu</b> — yani bloom, vinyet, tonemapping ve kontrast
+        /// hiç çalışmıyordu. Araç "uygulandı" diyordu, git temizdi, ekranda hiçbir
+        /// şey yoktu; ve her koşuda yeniden ekleyip yeniden kaybediyordu.</para>
+        /// </summary>
+        private static T GetOrAdd<T>(VolumeProfile profile, ref bool dirty)
+            where T : VolumeComponent
+        {
+            if (profile.TryGet(out T existing)) return existing;
+
+            T component = profile.Add<T>(true);
+            component.name = typeof(T).Name;
+            component.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
+
+            AssetDatabase.AddObjectToAsset(component, profile);
+
+            dirty = true;
+            return component;
+        }
+
+        /// <summary>
+        /// Bir <c>Volume</c> geçersiz kılmasını <b>yalnızca farklıysa</b> yazar.
+        ///
+        /// <para>Koşulsuz yazmak profili her koşuda kirletirdi ve aracın "iki kez
+        /// çalıştırmak bir kez çalıştırmakla aynı" iddiasını doğrulanamaz yapardı.
+        /// Materyal tarafında bu hatadan bir kez ısırılmıştık; burada tekrarlanmıyor.</para>
+        /// </summary>
+        private static bool Set<T>(VolumeParameter<T> parameter, T value)
+        {
+            if (parameter.overrideState && EqualityComparer<T>.Default.Equals(parameter.value, value))
+            {
+                return false;
+            }
+
+            parameter.overrideState = true;
+            parameter.value = value;
+            return true;
+        }
+
+        private static bool SetActive(VolumeComponent component)
+        {
+            if (component.active) return false;
+
+            component.active = true;
+            return true;
         }
 
         // --------------------------------------------------------------- yardimci

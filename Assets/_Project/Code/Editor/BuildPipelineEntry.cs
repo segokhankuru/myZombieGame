@@ -78,7 +78,9 @@ namespace Bunker.Editor
                 return false;
             }
 
-            ApplyProductSettings();
+            bool development = config.Equals("Development", StringComparison.OrdinalIgnoreCase);
+
+            ApplyProductSettings(development);
 
             // Sahne listesi BUILD SIRASINDA belirlenir, EditorBuildSettings'ten
             // okunmaz. Sebep: o liste elle degistirilebilen bir editor ayari ve
@@ -95,9 +97,7 @@ namespace Bunker.Editor
                 locationPathName = exePath,
                 target = target,
                 targetGroup = BuildPipeline.GetBuildTargetGroup(target),
-                options = config.Equals("Development", StringComparison.OrdinalIgnoreCase)
-                    ? BuildOptions.Development
-                    : BuildOptions.None
+                options = development ? BuildOptions.Development : BuildOptions.None
             };
 
             Debug.Log($"[Build] {target} / {config} -> {exePath}");
@@ -126,12 +126,31 @@ namespace Bunker.Editor
         /// telemetri <c>AppData/LocalLow/DefaultCompany/My project</c> altına yazar —
         /// yani bir sonraki oyunun kayıtlarıyla aynı klasöre.</para>
         /// </summary>
-        private static void ApplyProductSettings()
+        /// <param name="development">
+        /// Pencere ayarları <b>yalnızca Development build'de</b> zorlanır.
+        ///
+        /// <para>İlk sürüm bunu <i>her</i> build için yapıyordu ve bu bir tuzaktı:
+        /// ileride buradan alınacak bir Release/Steam build'i, sırf "build aldım" diye
+        /// pencereli prototip ayarlarıyla çıkardı. <c>PlayerSettings</c> kalıcıdır —
+        /// build almanın yan etkisi olarak proje ayarını değiştirmek, sonucu
+        /// çağıranın görmediği bir yerde saklar.</para>
+        /// </param>
+        private static void ApplyProductSettings(bool development)
         {
             if (PlayerSettings.productName != ProductName)
             {
                 PlayerSettings.productName = ProductName;
                 Debug.Log($"[Build] productName -> {ProductName}");
+            }
+
+            // Calisma dizini disindan da acilsa dogru davransin. Her build icin
+            // dogru olan tek ayar bu.
+            PlayerSettings.runInBackground = true;
+
+            if (!development)
+            {
+                Debug.Log("[Build] Release: pencere ayarlarina DOKUNULMADI.");
+                return;
             }
 
             // Pencereli baslar: oyun testinde gozlemci ekrani gormeli ve oyuncu
@@ -141,9 +160,6 @@ namespace Bunker.Editor
             PlayerSettings.defaultScreenWidth = 1600;
             PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.resizableWindow = true;
-
-            // Calisma dizini disindan da acilsa dogru davransin.
-            PlayerSettings.runInBackground = true;
         }
 
         /// <summary>Komut satırı argümanı okur.</summary>

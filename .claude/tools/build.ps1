@@ -140,8 +140,27 @@ if (Test-Path $log) {
 # unity-exec.ps1 has always shown a blank exit code for runs that clearly worked.
 # Trusting the code alone reported BUILD FAILED for a good 167 MB build.
 #
-# So: the artifacts decide. The exit code is still PRINTED, never hidden - if it
-# disagrees with the artifacts you are told, and can go look.
+# So the PRIMARY signal is the log marker "[Build] TAMAM", which BuildPipelineEntry
+# emits ONLY when BuildReport.summary.result == Succeeded. That is the engine's own
+# verdict, not a guess from file timestamps. Fresh artifacts are the second check.
+# The exit code is still PRINTED, never hidden - if it disagrees you are told.
+#
+# An earlier version judged success from file freshness ALONE. Code review was right
+# that this weakens BuildPipelineEntry's contract: a build that failed after touching
+# output would have been reported as OK.
+$reportedSuccess = $false
+if (Test-Path $log) {
+    $reportedSuccess = [bool](Select-String -LiteralPath $log -Pattern '\[Build\] TAMAM' -Quiet)
+    $reportedFailure = [bool](Select-String -LiteralPath $log -Pattern '\[Build\] BASARISIZ' -Quiet)
+    if ($reportedFailure) {
+        Write-Output ""
+        Write-Output "VERDICT: BUILD FAILED"
+        Write-Output "  The build entry point reported BuildResult != Succeeded."
+        Write-Output "  Details: .claude\tools\unity-log.ps1 -Path Logs\build.log -Errors"
+        exit 1
+    }
+}
+
 $succeeded = $false
 $files = @()
 $exe = $null
@@ -164,8 +183,12 @@ if (Test-Path $Out) {
         $age = (Get-Date) - $newest.LastWriteTime
 
         if ($age.TotalMinutes -le ($sw.Elapsed.TotalMinutes + 5)) {
-            $succeeded = $true
+            # BOTH must hold: the engine said Succeeded AND the output is fresh.
+            $succeeded = $reportedSuccess
             Write-Output ("  newest  {0} ({1:N0} s ago)" -f $newest.Name, $age.TotalSeconds)
+            if (-not $reportedSuccess) {
+                Write-Output "  WARNING: output is fresh but the log has no '[Build] TAMAM' marker."
+            }
         }
         else {
             Write-Output ("  WARNING: newest output file is {0:N0} min old - nothing was written this run." -f $age.TotalMinutes)
