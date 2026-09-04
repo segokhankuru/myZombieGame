@@ -1,5 +1,6 @@
 using System;
 using Bunker.Systems.Ai;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Config;
 using Bunker.Systems.Combat;
 using UnityEngine;
@@ -67,6 +68,11 @@ namespace Bunker.AI
 
         private bool _simulated = true;
         private bool _initialized;
+
+        // Kart kaynakli yavaslatma. Havuzdan cikan zombi bunu TASIMAMALI -
+        // Reset'te sifirlanir (systems-code.md: havuzlanmis nesne onceki hayatindan
+        // durum tasiyamaz).
+        private float _cardSlowMultiplier = 1f;
 
         private float _baseSpeed;
         private bool _dying;
@@ -165,6 +171,12 @@ namespace Bunker.AI
             SetCollidersEnabled(true);
 
             _baseSpeed = speedMetersPerSecond;
+
+            // Havuzdan cikan zombi onceki hayatinin yavaslatmasini TASIMAZ
+            // (systems-code.md: pooled nesnenin sifirlama sozlesmesi). Bu satir
+            // olmasaydi bir saat oynadiktan sonra ortaya cikan turden bir hata olurdu:
+            // yeni dogan zombiler sebepsiz yavas.
+            _cardSlowMultiplier = 1f;
 
             // Once ajani KAPAT, sonra konumu yaz: acik bir ajan transform yazmasini
             // yok sayar ve nesneyi kendi ic konumuna geri ceker.
@@ -350,7 +362,11 @@ namespace Bunker.AI
             // Sendeleme hizi (M1-13). Taban hiz turdan gelir; carpani beyin verir.
             if (_navAgent.enabled)
             {
-                _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier;
+                // Kart etkisi: "Yavaslatma" karti vurulan zombiyi yavaslatir (M-03).
+                // Beynin sendeleme carpaniyla CARPILIR, toplanmaz: ikisi ayri
+                // katman (SYS-02 §3.1) ve toplansalardi sendeleme sirasinda
+                // yavaslatma etkisiz kalirdi.
+                _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier * _cardSlowMultiplier;
             }
 
             DriveMovement(thinkDelta);
@@ -539,6 +555,12 @@ namespace Bunker.AI
 
             // Hasar emilmediyse (olu hedef) tepki de yok.
             if (result.Absorbed <= 0f) return result;
+
+            // Kart etkisi: mermi degdikce zombi yavaslar. Carpan ISABET BASINA
+            // yeniden hesaplanir, birikmez - biriken bir yavaslatma zombiyi durdurur
+            // ve "Buz" karti (SYS-02) tam da o birikmeyi ayri bir kart olarak satar.
+            float slow = CardSignals.Loadout.Total(CardStat.SlowOnHit);
+            if (slow > 0f) _cardSlowMultiplier = Mathf.Clamp(1f - slow, 0.25f, 1f);
 
             // M1-13: vurusun bir karsiligi olmali. Sendeleme kararini beyin verir
             // (hazirlanan vurusu kesmek dahil), gorunur kismini burasi surer.

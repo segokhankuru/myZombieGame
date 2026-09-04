@@ -56,16 +56,39 @@ namespace Bunker.Systems.Combat
         private float _reloadRemaining;
         private float _bufferedFireRemaining;
 
+        private WeaponModifiers _mods = WeaponModifiers.None;
+
         public WeaponState(WeaponConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
 
-            MagazineCapacity = Math.Max(1, _config.MagazineCapacity);
             RoundsInMagazine = MagazineCapacity;
-            Reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
+            Reserve = Math.Min(_config.MagazineStartingReserve, ReserveCapacity);
         }
 
-        public int MagazineCapacity { get; }
+        /// <summary>
+        /// Kart etkilerini uygular (M-03).
+        ///
+        /// <para><b>Sarjordeki mermi TASINIR.</b> Kapasite buyudugunde silahi
+        /// kendiliginden doldurmak bedava bir dolum olurdu; kucultmek gerekirse
+        /// fazlasi kirpilir.</para>
+        /// </summary>
+        public void ApplyModifiers(in WeaponModifiers modifiers)
+        {
+            _mods = modifiers;
+
+            if (RoundsInMagazine > MagazineCapacity) RoundsInMagazine = MagazineCapacity;
+            if (Reserve > ReserveCapacity) Reserve = ReserveCapacity;
+        }
+
+        /// <summary>Kart etkileriyle sarjor kapasitesi.</summary>
+        public int MagazineCapacity => Math.Max(1, _config.MagazineCapacity + _mods.Magazine);
+
+        /// <summary>Kart etkileriyle yedek tavani.</summary>
+        public int ReserveCapacity => Math.Max(0, _config.MagazineReserveCapacity + _mods.Reserve);
+
+        /// <summary>Kart etkileriyle dolum suresi.</summary>
+        public float ReloadSeconds => _config.MagazineReloadSeconds / _mods.ReloadSpeedMultiplier;
         public int RoundsInMagazine { get; private set; }
         public int Reserve { get; private set; }
 
@@ -73,9 +96,9 @@ namespace Bunker.Systems.Combat
 
         /// <summary>Dolumun tamamlanma oranı (0..1). İlerleme çubuğu için.</summary>
         public float ReloadProgress01 =>
-            !IsReloading || _config.MagazineReloadSeconds <= 0f
+            !IsReloading || ReloadSeconds <= 0f
                 ? 0f
-                : 1f - _reloadRemaining / _config.MagazineReloadSeconds;
+                : 1f - _reloadRemaining / ReloadSeconds;
 
         public WeaponPhase Phase
         {
@@ -89,7 +112,9 @@ namespace Bunker.Systems.Combat
 
         /// <summary>Atışlar arası süre. <c>roundsPerMinute</c>'dan türetilir.</summary>
         public float SecondsBetweenShots =>
-            _config.FireRoundsPerMinute <= 0f ? 0f : 60f / _config.FireRoundsPerMinute;
+            _config.FireRoundsPerMinute <= 0f
+                ? 0f
+                : 60f / (_config.FireRoundsPerMinute * _mods.FireRateMultiplier);
 
         /// <summary>
         /// Zamanı ilerletir. <b>Tamponlanmış bir atış isteği varsa ve silah hazırsa
@@ -150,7 +175,7 @@ namespace Bunker.Systems.Combat
             if (Reserve <= 0) return false;
             if (RoundsInMagazine >= MagazineCapacity) return false;
 
-            _reloadRemaining = _config.MagazineReloadSeconds;
+            _reloadRemaining = ReloadSeconds;
             return true;
         }
 
@@ -170,7 +195,7 @@ namespace Bunker.Systems.Combat
             if (amount <= 0) return 0;
 
             int before = Reserve;
-            Reserve = Math.Min(Reserve + amount, _config.MagazineReserveCapacity);
+            Reserve = Math.Min(Reserve + amount, ReserveCapacity);
             return Reserve - before;
         }
 
@@ -185,8 +210,14 @@ namespace Bunker.Systems.Combat
         }
 
         /// <summary>Bir isabetin hasarı. Kafa çarpanı burada uygulanır, atış anında değil.</summary>
-        public float DamageFor(bool headshot) =>
-            headshot ? _config.FireDamage * _config.FireHeadshotMultiplier : _config.FireDamage;
+        public float DamageFor(bool headshot)
+        {
+            float damage = _config.FireDamage * _mods.DamageMultiplier;
+
+            return headshot
+                ? damage * (_config.FireHeadshotMultiplier + _mods.HeadshotMultiplier)
+                : damage;
+        }
 
         private void CompleteReload()
         {

@@ -25,6 +25,20 @@ namespace Bunker.Systems.Economy
     {
         private readonly EconomyConfig _config;
 
+        private float _killPointsMultiplier = 1f;
+        private float _repairPointsMultiplier = 1f;
+
+        /// <summary>
+        /// Kart etkilerini uygular (M-03). <b>Carpanlar AYRI</b>: "Kelle Avcisi"
+        /// oldurmeyi, "Copcu" tamiri buyutur; tek bir carpan ikisini birden
+        /// etkilerdi.
+        /// </summary>
+        public void ApplyModifiers(float killPointsBonus, float repairPointsBonus)
+        {
+            _killPointsMultiplier = Math.Max(0f, 1f + killPointsBonus);
+            _repairPointsMultiplier = Math.Max(0f, 1f + repairPointsBonus);
+        }
+
         public PlayerWallet(EconomyConfig config, int startingPoints = 0)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -62,7 +76,15 @@ namespace Bunker.Systems.Economy
         {
             if (times <= 0) return 0;
 
-            int amount = _config.AwardFor(pointEvent) * times;
+            // Kart etkisi (M-03): oldurme ve tamir puanlari ayri carpanlar tasir.
+            // Tek bir "puan carpani" olsaydi "Copcu" karti oldurmeyi de
+            // guclendirirdi ve kartin metni yalan soylerdi.
+            float multiplier = pointEvent == PointEvent.BarricadeBoardRepair
+                ? _repairPointsMultiplier
+                : _killPointsMultiplier;
+
+            int amount = (int)Math.Round(_config.AwardFor(pointEvent) * times * multiplier,
+                                         MidpointRounding.AwayFromZero);
             if (amount <= 0) return 0;
 
             SpendablePoints = AddClamped(SpendablePoints, amount);

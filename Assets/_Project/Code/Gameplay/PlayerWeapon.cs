@@ -108,9 +108,45 @@ namespace Bunker.Gameplay
             if (tracer != null) tracer.enabled = false;
         }
 
-        private void OnEnable() => RunSignals.RunRestarted += OnRunRestarted;
+        private void OnEnable()
+        {
+            RunSignals.RunRestarted += OnRunRestarted;
+            CardSignals.LoadoutChanged += OnLoadoutChanged;
+        }
 
-        private void OnDisable() => RunSignals.RunRestarted -= OnRunRestarted;
+        private void OnDisable()
+        {
+            RunSignals.RunRestarted -= OnRunRestarted;
+            CardSignals.LoadoutChanged -= OnLoadoutChanged;
+        }
+
+        /// <summary>
+        /// Kart yığını değişti: silahın türetilmiş sayıları yeniden kurulur.
+        ///
+        /// <para><b>İstemci ve sunucu AYNI anda güncellenir.</b> Biri güncellenip
+        /// diğeri kalsaydı doğrulayıcı meşru atışları reddederdi — BUG-002'nin
+        /// birebir tekrarı.</para>
+        ///
+        /// <para><b>Neden olayla, kare başına okumayla değil:</b> şarjör kapasitesi ve
+        /// dolum süresi silahın <i>durumuna</i> giriyor; her karede yeniden hesaplamak
+        /// hem gereksiz hem de dolum ortasında süreyi değiştirir.</para>
+        /// </summary>
+        private void OnLoadoutChanged(CardLoadout loadout)
+        {
+            WeaponModifiers mods = BuildModifiers(loadout);
+
+            _state?.ApplyModifiers(mods);
+            _guard?.ApplyModifiers(mods);
+        }
+
+        private static WeaponModifiers BuildModifiers(CardLoadout loadout) =>
+            new WeaponModifiers(
+                fireRate: loadout.Total(CardStat.FireRate),
+                reloadSpeed: loadout.Total(CardStat.ReloadSpeed),
+                damage: loadout.Total(CardStat.WeaponDamage),
+                magazine: Mathf.RoundToInt(loadout.Total(CardStat.MagazineCapacity)),
+                reserve: Mathf.RoundToInt(loadout.Total(CardStat.ReserveCapacity)),
+                headshotMultiplier: loadout.Total(CardStat.HeadshotMultiplier));
 
         /// <summary>
         /// Yeni run: mermi başlangıç değerine döner.
@@ -137,35 +173,6 @@ namespace Bunker.Gameplay
         {
             _state.Reset();
             _guard.Reset();
-        }
-
-        /// <summary>
-        /// Kart etkileriyle son hasar (SYS-02 §3.1).
-        ///
-        /// <para><b>Kartlar arasında toplama, katmanlar arasında çarpma.</b> Kart
-        /// çarpanı <see cref="CardLoadout"/>'ta zaten toplanmış olarak duruyor; burada
-        /// yalnızca silahın taban hasarıyla <i>çarpılıyor</i>. Beş adet +%20 kart 2.00x
-        /// eder, 2.49x değil.</para>
-        ///
-        /// <para><b>Kafa çarpanı ayrı eklenir:</b> "Keskin Nişan" kartı 2x'i 3x yapar.
-        /// Hasarla aynı torbaya atılsaydı kafa vuruşu olmayan atışları da güçlendirirdi
-        /// ve kartın metni yalan söylerdi.</para>
-        ///
-        /// <para><b>Sunucuda hesaplanır.</b> <c>_guard</c> istemcinin iddiasını değil
-        /// kendi sayısını kullanır (ADR-0004, BUG-002).</para>
-        /// </summary>
-        private float CardModifiedDamage(bool headshot)
-        {
-            CardLoadout loadout = CardSignals.Loadout;
-
-            float damage = _config.FireDamage * loadout.Multiplier(CardStat.WeaponDamage);
-
-            if (!headshot) return damage;
-
-            float multiplier = _config.FireHeadshotMultiplier
-                               + loadout.Total(CardStat.HeadshotMultiplier);
-
-            return damage * multiplier;
         }
 
         // ---------------------------------------------------------------- kare dongusu
@@ -375,7 +382,7 @@ namespace Bunker.Gameplay
             bool headshot = target.CountsAsHeadshot;
 
             DamageResult result = target.ApplyDamage(
-                new DamageInfo(CardModifiedDamage(headshot), DamageKind.Bullet, headshot));
+                new DamageInfo(_guard.DamageFor(headshot), DamageKind.Bullet, headshot));
 
             TargetReportHit(sender, headshot, result.Killed);
 

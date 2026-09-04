@@ -54,14 +54,6 @@ MonoBehaviour:
     value: 1
     soloValid: 1
     coopValid: 1
-  - id: card.ballistics.penetration
-    displayName: Penetrasyon
-    text: Mermi bir sonraki zombiye gecer.
-    tag: 0
-    stat: 16
-    value: 1
-    soloValid: 1
-    coopValid: 1
   - id: card.ballistics.magazine
     displayName: Genis Sarjor
     text: Sarjor +6 mermi.

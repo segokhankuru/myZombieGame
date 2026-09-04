@@ -1,5 +1,6 @@
 using System;
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Rounds;
 using Bunker.Systems.Config;
@@ -126,7 +127,11 @@ namespace Bunker.Gameplay
             var repairable = hit.collider.GetComponentInParent<IRepairable>();
             if (repairable == null || !repairable.NeedsRepair) return;
 
-            if (!repairable.Repair(deltaTime)) return;
+            // Kart etkisi: "Usta Elleri" tamiri hizlandirir. Gecen sureyi carpmak,
+            // tamir mantigina dokunmadan hizi degistirmenin en ucuz yolu.
+            float scaled = deltaTime * CardSignals.Loadout.Multiplier(CardStat.RepairSpeed);
+
+            if (!repairable.Repair(scaled)) return;
 
             // Puan tahtanin takildigi ANDA yazilir, tusa basili tutmaya degil.
             if (score != null) score.Award(Systems.Economy.PointEvent.BarricadeBoardRepair);

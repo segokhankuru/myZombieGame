@@ -10,6 +10,8 @@
 
   "_ids": "Id'ler KALICIDIR (config-data.md). Kaydedilen yigin, telemetri gecmisi ve ileride mod destegi bunlara baglanir. Gorunen ad degisebilir, id degisemez.",
 
+  "_beklemede": "Penetrasyon (card.ballistics.penetration) havuzdan CIKARILDI: ates yolunu RaycastAll'a cevirmeyi ve sunucu tarafinda cok hedefli dogrulama yapmayi gerektiriyor - kucuk bir is degil. Havuzda birakmak, oyuncunun secip hicbir sey hissetmedigi bir kart demekti. Ayni sebeple Yikim etiketi de bos.",
+
   "_tiers": "Bazi kartlarin iki kademesi var (I / II). Havuzu ucuza buyutur ve 'ayni seyi bir daha al' karari uretir - roguelite'larda kanitlanmis desen.",
 
   "cards": [
@@ -18,7 +20,6 @@
     { "id": "card.ballistics.firerate.1",  "name": "Hizli Tetik",       "tag": "Ballistics", "stat": "FireRate",           "value": 0.15, "text": "Atis hizi +%15." },
     { "id": "card.ballistics.firerate.2",  "name": "Hizli Tetik II",    "tag": "Ballistics", "stat": "FireRate",           "value": 0.25, "text": "Atis hizi +%25." },
     { "id": "card.ballistics.headshot",    "name": "Keskin Nisan",      "tag": "Ballistics", "stat": "HeadshotMultiplier", "value": 1.00, "text": "Kafa vurusu carpani 2x yerine 3x." },
-    { "id": "card.ballistics.penetration", "name": "Penetrasyon",       "tag": "Ballistics", "stat": "Penetration",        "value": 1.00, "text": "Mermi bir sonraki zombiye gecer." },
     { "id": "card.ballistics.magazine",    "name": "Genis Sarjor",      "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 6.00, "text": "Sarjor +6 mermi." },
     { "id": "card.ballistics.reserve",     "name": "Fisekik",           "tag": "Ballistics", "stat": "ReserveCapacity",    "value": 120.0, "text": "Yedek mermi tavani +120." },
 

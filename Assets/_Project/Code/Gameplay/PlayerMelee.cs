@@ -1,5 +1,6 @@
 using System;
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Rounds;
 using Bunker.Systems.Config;
@@ -184,7 +185,9 @@ namespace Bunker.Gameplay
             // Kafa kutusuna bicak carpani uygulanmaz: bicak zaten en yuksek puani
             // veriyor, ustune kafa carpani vermek silahi tamamen gereksiz kilardi.
             DamageResult result = best.ApplyDamage(
-                new DamageInfo(_config.SwingDamage, DamageKind.Melee));
+                new DamageInfo(_config.SwingDamage *
+                               CardSignals.Loadout.Multiplier(CardStat.MeleeDamage),
+                               DamageKind.Melee));
 
             if (result.Killed) KillConfirmed?.Invoke(DamageKind.Melee, false);
         }

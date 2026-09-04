@@ -21,7 +21,11 @@ namespace Bunker.Systems.Combat
     public sealed class RegeneratingHealth : IDamageable
     {
         private readonly HealthPool _pool;
-        private readonly float _regenDelaySeconds;
+        private readonly float _baseRegenDelaySeconds;
+        private readonly float _baseMaxPoints;
+
+        private float _regenDelaySeconds;
+        private float _damageTakenMultiplier = 1f;
         private readonly float _regenPerSecond;
         private readonly float _lowFraction;
 
@@ -40,7 +44,9 @@ namespace Bunker.Systems.Combat
                 throw new ArgumentOutOfRangeException(nameof(regenPerSecond), "Yenilenme hizi sifirdan buyuk olmali.");
 
             _pool = new HealthPool(maxPoints);
+            _baseRegenDelaySeconds = regenDelaySeconds;
             _regenDelaySeconds = regenDelaySeconds;
+            _baseMaxPoints = maxPoints;
             _regenPerSecond = regenPerSecond;
             _lowFraction = lowFraction;
 
@@ -100,7 +106,12 @@ namespace Bunker.Systems.Combat
 
         public DamageResult ApplyDamage(in DamageInfo damage)
         {
-            DamageResult result = _pool.ApplyDamage(damage);
+            // Kart etkisi: hasar EFEKTIF CAN uzerinden azalir (SYS-02 §3.2), yuzdeyle
+            // degil - yuzde olsaydi bes kart olumsuzluk yapardi.
+            var scaled = new DamageInfo(damage.Amount * _damageTakenMultiplier,
+                                        damage.Kind, damage.Headshot);
+
+            DamageResult result = _pool.ApplyDamage(scaled);
 
             // Emilen hasar sifirsa oyuncu zaten olu ya da hasar sifir: ikisinde de
             // gecikmeyi sifirlamak yanlis olur - olu bir oyuncuyu vurmak, dirildiginde
@@ -108,6 +119,30 @@ namespace Bunker.Systems.Combat
             if (result.Absorbed > 0f) _secondsSinceDamage = 0f;
 
             return result;
+        }
+
+        /// <summary>
+        /// Kart etkilerini uygular (M-03): maks can, hasar azaltma, yenilenme gecikmesi.
+        ///
+        /// <para><b>Mevcut can ORANI korunur.</b> Tavan buyudugunde cani otomatik
+        /// doldurmak bedava bir iyilesme olurdu; %40 canla kart alan oyuncu yine %40
+        /// canla devam eder, ama artik daha buyuk bir %40.</para>
+        /// </summary>
+        public void ApplyModifiers(float maxHealthBonus, float damageTakenMultiplier,
+                                   float regenDelayBonus)
+        {
+            float fraction = _pool.Fraction01;
+
+            _damageTakenMultiplier = damageTakenMultiplier <= 0f ? 1f : damageTakenMultiplier;
+            _regenDelaySeconds = _baseRegenDelaySeconds / (1f + Math.Max(-0.9f, regenDelayBonus));
+
+            float newMax = _baseMaxPoints * (1f + Math.Max(-0.9f, maxHealthBonus));
+
+            if (Math.Abs(newMax - _pool.Max) > 0.01f)
+            {
+                _pool.ResetTo(newMax);
+                _pool.ApplyDamage(new DamageInfo(newMax * (1f - fraction)));
+            }
         }
 
         /// <summary>Yeni bir run için tam cana döner (AC-5).</summary>

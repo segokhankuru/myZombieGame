@@ -1,4 +1,5 @@
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Economy;
 using Bunker.Systems.Rounds;
@@ -62,6 +63,7 @@ namespace Bunker.Gameplay
             if (melee != null) melee.KillConfirmed += OnKillConfirmed;
 
             RunSignals.RunRestarted += OnRunRestarted;
+            CardSignals.LoadoutChanged += OnLoadoutChanged;
         }
 
         public override void OnStopServer()
@@ -71,6 +73,7 @@ namespace Bunker.Gameplay
             if (melee != null) melee.KillConfirmed -= OnKillConfirmed;
 
             RunSignals.RunRestarted -= OnRunRestarted;
+            CardSignals.LoadoutChanged -= OnLoadoutChanged;
 
             base.OnStopServer();
         }
@@ -88,6 +91,13 @@ namespace Bunker.Gameplay
             RunSignals.Current.NoteKill(kind, headshot);
 
             Award(pointEvent);
+        }
+
+        /// <summary>Kart yiginin puan carpanlarini cuzdana gecirir (M-03).</summary>
+        private void OnLoadoutChanged(CardLoadout loadout)
+        {
+            _wallet?.ApplyModifiers(loadout.Total(CardStat.KillPoints),
+                                    loadout.Total(CardStat.RepairPoints));
         }
 
         /// <summary>Yeni run: cüzdan sıfırlanır (AC-5).</summary>

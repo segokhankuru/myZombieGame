@@ -1,4 +1,5 @@
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
 using Bunker.Systems.Rounds;
@@ -77,12 +78,14 @@ namespace Bunker.Gameplay
             base.OnStartServer();
 
             RunSignals.RunRestarted += OnRunRestarted;
+            CardSignals.LoadoutChanged += OnLoadoutChanged;
         }
 
         public override void OnStopServer()
         {
             // OnStartServer'in kurdugunu OnStopServer bozar (csharp-code.md).
             RunSignals.RunRestarted -= OnRunRestarted;
+            CardSignals.LoadoutChanged -= OnLoadoutChanged;
 
             base.OnStopServer();
         }
@@ -142,6 +145,23 @@ namespace Bunker.Gameplay
             if (_health == null) return;
 
             _health.ResetFull();
+            PublishState();
+        }
+
+        /// <summary>
+        /// Kart yigini degisti: maks can, hasar azaltma ve yenilenme gecikmesi tazelenir.
+        ///
+        /// <para><b>Yalnizca sunucuda</b> (ADR-0004): can otorite tarafinda yasar,
+        /// istemci gordugunu gosterir.</para>
+        /// </summary>
+        private void OnLoadoutChanged(CardLoadout loadout)
+        {
+            if (_health == null) return;
+
+            _health.ApplyModifiers(loadout.Total(CardStat.MaxHealth),
+                                   loadout.DamageTakenMultiplier,
+                                   loadout.Total(CardStat.RegenDelay));
+
             PublishState();
         }
     }
