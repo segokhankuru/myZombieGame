@@ -623,6 +623,14 @@ namespace Bunker.Editor
             if (sandbox == null) sandbox = sandboxHost.AddComponent<ZombieSandbox>();
 
             SetPrivateField(sandbox, "director", director);
+
+            // Otomatik kare suresi olcumu (CK-15). Yalnizca -perfRun argumaniyla
+            // uyanir; normal oyunda hicbir sey yapmaz. Sahnede DURMASI gerekiyor,
+            // cunku build'de calisacak ve build'e sonradan bilesen eklenemez.
+            var perf = sandboxHost.GetComponent<PerfRunner>();
+            if (perf == null) perf = sandboxHost.AddComponent<PerfRunner>();
+
+            SetPrivateField(perf, "director", director);
         }
 
         private static UnityEngine.Object LoadConfigAsset(string domain)

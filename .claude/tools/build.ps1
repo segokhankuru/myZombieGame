@@ -156,13 +156,19 @@ if (Test-Path $Out) {
         Write-Output ("  output  {0} files, {1} MB" -f $files.Count, $mb)
         Write-Output ("  exe     {0}" -f $exe.Name)
 
-        # The exe must be from THIS run, not a leftover from a previous one.
-        $age = (Get-Date) - $exe.LastWriteTime
+        # Freshness is judged on the NEWEST file in the output, not on the .exe.
+        # Unity builds incrementally: when only assets or scenes changed, the player
+        # binary is byte-identical and is NOT rewritten. Checking the .exe reported a
+        # perfectly good build as "stale output from an earlier build".
+        $newest = ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1)
+        $age = (Get-Date) - $newest.LastWriteTime
+
         if ($age.TotalMinutes -le ($sw.Elapsed.TotalMinutes + 5)) {
             $succeeded = $true
+            Write-Output ("  newest  {0} ({1:N0} s ago)" -f $newest.Name, $age.TotalSeconds)
         }
         else {
-            Write-Output ("  WARNING: {0} is {1:N0} min old - stale output from an earlier build." -f $exe.Name, $age.TotalMinutes)
+            Write-Output ("  WARNING: newest output file is {0:N0} min old - nothing was written this run." -f $age.TotalMinutes)
         }
     }
 }
