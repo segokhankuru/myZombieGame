@@ -158,9 +158,9 @@ namespace Bunker.Gameplay
         {
             if (_health == null) return;
 
-            _health.ApplyModifiers(loadout.Total(CardStat.MaxHealth),
-                                   loadout.DamageTakenMultiplier,
-                                   loadout.Total(CardStat.RegenDelay));
+            _health.ApplyModifiers(RunModifiers.Total(CardStat.MaxHealth),
+                                   RunModifiers.DamageTakenMultiplier,
+                                   RunModifiers.Total(CardStat.RegenDelay));
 
             PublishState();
         }

@@ -35,6 +35,7 @@ namespace Bunker.Gameplay
 
             // M-03: kart yigini da statiktir ve ayni sizinti riskini tasir.
             CardSignals.Clear();
+            RunModifiers.Clear();
         }
     }
 }

@@ -1,4 +1,5 @@
 using Bunker.Systems.Economy;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
@@ -56,7 +57,7 @@ namespace Bunker.Gameplay
 
             // Run bitti: girdi kesilir (M1-11, AC-3). Olu bir oyuncunun kapi satin
             // almasi, yeniden baslatmada silinecek bir harcamadir.
-            if (RunSignals.IsRunOver)
+            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen)
             {
                 // HasTarget bu ikisinden turetilir; ayrica yazilmaz.
                 CurrentPrompt = string.Empty;

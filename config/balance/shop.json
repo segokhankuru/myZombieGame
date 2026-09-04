@@ -1,0 +1,39 @@
+{
+  "$schema": "../schema/shop.schema.json",
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-02",
+    "lastTuned": "2026-09-04"
+  },
+
+  "_note": "M-03 tezgahi, BASLANGIC degerleri. Hicbiri kanit degil, hepsi hipotez - oynanarak ayarlanacak. Tasarim niyeti: artislar KUCUK, fiyat her alimda ARTIYOR. Tezgah taban kurar, kimlik vermez; kimlik kartlardan gelir. Ilk alimlar kapinin (750) altinda kalsin ki erken turda gercek bir tercih olsun, ama ucuncu-dorduncu alim kapiyla yarissin.",
+
+  "health": {
+    "baseCost": 400,
+    "costGrowth": 1.45,
+    "increment": 0.10,
+    "maxTier": 8
+  },
+
+  "damage": {
+    "baseCost": 500,
+    "costGrowth": 1.50,
+    "increment": 0.08,
+    "maxTier": 8
+  },
+
+  "firerate": {
+    "baseCost": 450,
+    "costGrowth": 1.50,
+    "increment": 0.06,
+    "maxTier": 6
+  },
+
+  "magazine": {
+    "baseCost": 350,
+    "costGrowth": 1.40,
+    "increment": 2,
+    "maxTier": 8
+  }
+}

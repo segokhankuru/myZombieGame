@@ -73,6 +73,14 @@ namespace Bunker.Systems.Cards
             Loadout.Reset();
         }
 
+        /// <summary>
+        /// Etkiler değişti — kart alındı ya da tezgâhtan yükseltme alındı.
+        ///
+        /// <para>Tezgâh da bu yayını kullanır: silah, can ve ekonomi <b>tek bir olayı</b>
+        /// dinler ve kaynağın hangisi olduğunu bilmek zorunda kalmaz.</para>
+        /// </summary>
+        public static void NotifyModifiersChanged() => LoadoutChanged?.Invoke(Loadout);
+
         /// <summary>Yeni run: yığın sıfırlanır, açık draft kapanır.</summary>
         public static void ResetRun()
         {

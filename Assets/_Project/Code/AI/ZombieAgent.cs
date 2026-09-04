@@ -559,7 +559,7 @@ namespace Bunker.AI
             // Kart etkisi: mermi degdikce zombi yavaslar. Carpan ISABET BASINA
             // yeniden hesaplanir, birikmez - biriken bir yavaslatma zombiyi durdurur
             // ve "Buz" karti (SYS-02) tam da o birikmeyi ayri bir kart olarak satar.
-            float slow = CardSignals.Loadout.Total(CardStat.SlowOnHit);
+            float slow = RunModifiers.Total(CardStat.SlowOnHit);
             if (slow > 0f) _cardSlowMultiplier = Mathf.Clamp(1f - slow, 0.25f, 1f);
 
             // M1-13: vurusun bir karsiligi olmali. Sendeleme kararini beyin verir

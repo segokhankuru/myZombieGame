@@ -582,7 +582,12 @@ namespace Bunker.Editor
             var draftHud = host.GetComponent<CardDraftHud>();
             if (draftHud == null) draftHud = host.AddComponent<CardDraftHud>();
 
+            var shopController = host.GetComponent<ShopController>();
+            if (shopController == null) shopController = host.AddComponent<ShopController>();
+
+            SetPrivateField(shopController, "shopConfig", LoadConfigAsset("shop"));
             SetPrivateField(draftHud, "controller", draft);
+            SetPrivateField(draftHud, "shop", shopController);
         }
 
         // ---------------------------------------------------------------- sahne

@@ -67,7 +67,7 @@ namespace Bunker.Gameplay
 
             // Run bitti: girdi kesilir (M1-11, AC-3). Hedef de temizlenir, yoksa
             // skor ekrani kapandiginda ekranda eski bir tamir ipucu asili kalir.
-            if (RunSignals.IsRunOver)
+            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen)
             {
                 HasRepairTarget = false;
                 return;
@@ -129,7 +129,7 @@ namespace Bunker.Gameplay
 
             // Kart etkisi: "Usta Elleri" tamiri hizlandirir. Gecen sureyi carpmak,
             // tamir mantigina dokunmadan hizi degistirmenin en ucuz yolu.
-            float scaled = deltaTime * CardSignals.Loadout.Multiplier(CardStat.RepairSpeed);
+            float scaled = deltaTime * RunModifiers.Multiplier(CardStat.RepairSpeed);
 
             if (!repairable.Repair(scaled)) return;
 

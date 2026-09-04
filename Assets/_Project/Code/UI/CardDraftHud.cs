@@ -2,26 +2,29 @@ using System.Text;
 using Bunker.Gameplay;
 using Bunker.Systems.Cards;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Bunker.UI
 {
     /// <summary>
-    /// Gri kutu kart draft ekranı. SYS-02 §7b, `design/ux/draft-ekrani.md`.
+    /// Tur arası ekranı: kart seçimi (üstte) ve tezgâh (altta). SYS-02 §7b, §7e.
     ///
-    /// <para><b>Neden IMGUI:</b> <see cref="CombatHud"/> ve <see cref="GameOverHud"/>
-    /// ile aynı gerekçe — bu bir arayüz değil, bir ölçüm aracı. Slot makinesi dönüşü,
-    /// dört oyuncunun yan yana yuvaları ve nadirlik gösterimi gerçek arayüzün işi.
-    /// Buradaki soru "güzel mi" değil, <b>"seçim bir karar gibi mi hissettiriyor"</b>.</para>
+    /// <para><b>Neden tek ekran:</b> draft ve tezgâh ayrı iki ekran olsaydı her tur
+    /// iki kez menüye girilirdi. PILLAR-03 draft'ı "ritmin zirvesi" diye tanımlıyor;
+    /// arka arkaya iki menü zirve değil, ara verme olur.</para>
     ///
-    /// <para><b>Varsayılan eylem seçmek, yenilemek değil</b> (draft-ekrani.md): yenileme
-    /// düğmeleri kartlardan görsel olarak geride durur. Aksi hâlde her tur altı ek
-    /// karar, PILLAR-03'ün "kesintisiz tur" sözünü sıklık üzerinden aşındırır.</para>
+    /// <para><b>Fareyle</b> (geliştirici, 2026-09-04): <i>"Kartları fareyle seçeyim,
+    /// tuşlar iyi olmuyor."</i> Ekran açıkken imleç serbest bırakılır ve oyuncunun
+    /// bakışı kilitlenir — yoksa kart seçmeye çalışırken kamera dönerdi.</para>
+    ///
+    /// <para><b>Neden IMGUI:</b> diğer HUD'larla aynı gerekçe — bu bir arayüz değil,
+    /// bir ölçüm aracı. Slot makinesi dönüşü, dört oyuncunun yuvaları ve nadirlik
+    /// gösterimi gerçek arayüzün işi.</para>
     /// </summary>
     [AddComponentMenu("Bunker/Card Draft HUD (gecici)")]
     public sealed class CardDraftHud : MonoBehaviour
     {
         [SerializeField] private CardDraftController controller;
+        [SerializeField] private ShopController shop;
 
         private readonly StringBuilder _text = new StringBuilder(256);
 
@@ -29,14 +32,16 @@ namespace Bunker.UI
         private GUIStyle _nameStyle;
         private GUIStyle _bodyStyle;
         private GUIStyle _hintStyle;
+        private GUIStyle _buttonStyle;
         private Texture2D _pixel;
 
         private CardDraft _draft;
+        private PlayerScore _score;
+        private float _searchTimer;
+        private bool _cursorWasLocked;
 
         private void Awake()
         {
-            // Tek piksellik doku bir kez yaratilir: OnGUI icinde doku yaratmak kare
-            // basina tahsis demektir (csharp-code.md).
             _pixel = new Texture2D(1, 1);
             _pixel.SetPixel(0, 0, Color.white);
             _pixel.Apply();
@@ -52,37 +57,57 @@ namespace Bunker.UI
             CardSignals.DraftOpened += OnDraftOpened;
             CardSignals.DraftClosed += OnDraftClosed;
 
-            // Bu nesne draft acildiktan SONRA etkinlesmis olabilir; olayi kacirmak
-            // ekranin hic gelmemesi demek olurdu.
-            if (CardSignals.IsDraftOpen) _draft = CardSignals.Draft;
+            if (CardSignals.IsDraftOpen) OnDraftOpened(CardSignals.Draft);
         }
 
         private void OnDisable()
         {
-            // Statik yayin noktasina abone olan herkes OnDisable'da birakir.
             CardSignals.DraftOpened -= OnDraftOpened;
             CardSignals.DraftClosed -= OnDraftClosed;
+
+            // Ekran kapanmadan bilesen kapanirsa imlec kilitli kalirdi ve oyuncu
+            // fare kullanamazdi.
+            if (_draft != null) ReleaseCursor();
         }
 
-        private void OnDraftOpened(CardDraft draft) => _draft = draft;
+        private void OnDraftOpened(CardDraft draft)
+        {
+            _draft = draft;
 
-        private void OnDraftClosed(CardDefinition picked) => _draft = null;
+            _cursorWasLocked = Cursor.lockState == CursorLockMode.Locked;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        private void OnDraftClosed(CardDefinition picked)
+        {
+            _draft = null;
+            ReleaseCursor();
+        }
+
+        /// <summary>İmleci ekran açılmadan önceki hâline döndürür.</summary>
+        private void ReleaseCursor()
+        {
+            if (!_cursorWasLocked) return;
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         private void Update()
         {
-            if (_draft == null || controller == null) return;
+            if (_draft == null || _score != null) return;
 
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard == null) return;
+            // Yerel oyuncu ag tarafindan gec gelir; her kare aramak yerine saniyede
+            // iki kez bakilir (csharp-code.md: kare basina Find yasak).
+            _searchTimer -= Time.unscaledDeltaTime;
+            if (_searchTimer > 0f) return;
+            _searchTimer = 0.5f;
 
-            // 1/2/3 secer, Q/W/E yeniler. Fare gerektirmez: imlec oyun sirasinda
-            // kilitli ve draft icin acip kapamak kare kaybettirir.
-            if (keyboard.digit1Key.wasPressedThisFrame) controller.Pick(0);
-            else if (keyboard.digit2Key.wasPressedThisFrame) controller.Pick(1);
-            else if (keyboard.digit3Key.wasPressedThisFrame) controller.Pick(2);
-            else if (keyboard.qKey.wasPressedThisFrame) controller.RerollSlot(0, null);
-            else if (keyboard.wKey.wasPressedThisFrame) controller.RerollSlot(1, null);
-            else if (keyboard.eKey.wasPressedThisFrame) controller.RerollSlot(2, null);
+            foreach (PlayerScore candidate in FindObjectsByType<PlayerScore>(FindObjectsSortMode.None))
+            {
+                if (candidate.isLocalPlayer) { _score = candidate; break; }
+            }
         }
 
         private void OnGUI()
@@ -91,34 +116,33 @@ namespace Bunker.UI
 
             EnsureStyles();
 
-            // Karartma: sahne gorunur kalir ama okunmaz olur.
-            GUI.color = new Color(0f, 0f, 0f, 0.78f);
+            GUI.color = new Color(0f, 0f, 0f, 0.80f);
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), _pixel);
             GUI.color = Color.white;
 
             float cx = Screen.width * 0.5f;
-            float top = Screen.height * 0.5f - 190f;
+            float top = Screen.height * 0.5f - 260f;
 
-            GUI.Label(new Rect(cx - 300f, top, 600f, 50f), "KART SEC", _titleStyle);
+            GUI.Label(new Rect(cx - 300f, top, 600f, 44f), "KART SEC", _titleStyle);
 
-            const float cardWidth = 240f;
-            const float cardHeight = 200f;
-            const float gap = 24f;
+            const float cardWidth = 250f;
+            const float cardHeight = 190f;
+            const float gap = 22f;
 
             float totalWidth = _draft.SlotCount * cardWidth + (_draft.SlotCount - 1) * gap;
             float x = cx - totalWidth / 2f;
-            float y = top + 60f;
+            float y = top + 52f;
 
             for (int i = 0; i < _draft.SlotCount; i++)
             {
                 DrawSlot(i, new Rect(x + i * (cardWidth + gap), y, cardWidth, cardHeight));
             }
 
-            GUI.Label(new Rect(cx - 300f, y + cardHeight + 26f, 600f, 24f),
-                      "1 / 2 / 3  sec        Q / W / E  yenile", _hintStyle);
-
-            DrawLoadout(cx, y + cardHeight + 60f);
+            DrawLoadout(cx, y + cardHeight + 12f);
+            DrawShop(cx, y + cardHeight + 44f);
         }
+
+        // ---------------------------------------------------------------- kart
 
         private void DrawSlot(int index, Rect rect)
         {
@@ -126,42 +150,42 @@ namespace Bunker.UI
 
             if (!card.IsValid)
             {
-                // Havuz tukendi. Bos yuvayi GIZLEMEK, uc secenek varmis gibi
-                // gostermekten daha durust.
-                GUI.color = new Color(1f, 1f, 1f, 0.15f);
+                GUI.color = new Color(1f, 1f, 1f, 0.10f);
                 GUI.DrawTexture(rect, _pixel);
+                GUI.color = new Color(1f, 1f, 1f, 0.5f);
+                GUI.Label(rect, "\n\n  (havuz tukendi)", _bodyStyle);
                 GUI.color = Color.white;
-                GUI.Label(rect, "\n\n(havuz tukendi)", _bodyStyle);
                 return;
             }
 
+            // Kartin TAMAMI bir dugme: kucuk bir "sec" dugmesine nisan almak, fareyle
+            // secmenin butun kolayligini goturur.
+            GUI.color = new Color(1f, 1f, 1f, 0.12f);
+            if (GUI.Button(rect, GUIContent.none, _buttonStyle)) controller.Pick(index);
+            GUI.color = Color.white;
+
             GUI.color = TagColor(card.Tag);
             GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 4f), _pixel);
-            GUI.color = new Color(1f, 1f, 1f, 0.10f);
-            GUI.DrawTexture(new Rect(rect.x, rect.y + 4f, rect.width, rect.height - 4f), _pixel);
             GUI.color = Color.white;
 
             var inner = new Rect(rect.x + 14f, rect.y + 16f, rect.width - 28f, rect.height - 28f);
 
-            GUI.Label(new Rect(inner.x, inner.y, inner.width, 26f),
-                      $"{index + 1}.  {card.DisplayName}", _nameStyle);
-
-            GUI.Label(new Rect(inner.x, inner.y + 34f, inner.width, 90f), card.Description, _bodyStyle);
-
-            // Etiket ve yenileme durumu, kartin altinda ve SOLUK: varsayilan eylem
-            // secmek, yenilemek degil.
-            string reroll = _draft.Reroll(index) switch
-            {
-                RerollState.FreeAvailable => "yenile: ucretsiz",
-                RerollState.PaidAvailable => "yenile: puanli",
-                _ => "yenileme bitti"
-            };
+            GUI.Label(new Rect(inner.x, inner.y, inner.width, 26f), card.DisplayName, _nameStyle);
+            GUI.Label(new Rect(inner.x, inner.y + 32f, inner.width, 80f), card.Description, _bodyStyle);
 
             GUI.color = new Color(1f, 1f, 1f, 0.55f);
-            GUI.Label(new Rect(inner.x, rect.yMax - 46f, inner.width, 20f),
-                      TagName(card.Tag), _bodyStyle);
-            GUI.Label(new Rect(inner.x, rect.yMax - 28f, inner.width, 20f), reroll, _bodyStyle);
+            GUI.Label(new Rect(inner.x, rect.yMax - 52f, inner.width, 18f), TagName(card.Tag), _bodyStyle);
             GUI.color = Color.white;
+
+            // Yenileme dugmesi kartin ALTINDA ve kucuk: varsayilan eylem secmek.
+            RerollState state = _draft.Reroll(index);
+
+            if (state == RerollState.Exhausted) return;
+
+            string label = state == RerollState.FreeAvailable ? "yenile (ucretsiz)" : "yenile (puanli)";
+            var button = new Rect(rect.x + 14f, rect.yMax - 32f, rect.width - 28f, 24f);
+
+            if (GUI.Button(button, label)) controller.RerollSlot(index, _score);
         }
 
         private void DrawLoadout(float cx, float y)
@@ -169,16 +193,15 @@ namespace Bunker.UI
             CardLoadout loadout = CardSignals.Loadout;
 
             _text.Clear();
-            _text.Append("ELINDE  ").Append(loadout.Count).Append(" kart");
+            _text.Append("ELINDE ").Append(loadout.Count).Append(" kart");
 
             AppendTag(loadout, CardTag.Ballistics, "Balistik");
-            AppendTag(loadout, CardTag.Demolition, "Yikim");
             AppendTag(loadout, CardTag.Blood, "Kan");
             AppendTag(loadout, CardTag.Tempo, "Tempo");
             AppendTag(loadout, CardTag.Loot, "Ganimet");
 
-            GUI.color = new Color(1f, 1f, 1f, 0.75f);
-            GUI.Label(new Rect(cx - 300f, y, 600f, 24f), _text.ToString(), _hintStyle);
+            GUI.color = new Color(1f, 1f, 1f, 0.7f);
+            GUI.Label(new Rect(cx - 400f, y, 800f, 22f), _text.ToString(), _hintStyle);
             GUI.color = Color.white;
         }
 
@@ -188,10 +211,81 @@ namespace Bunker.UI
             if (count == 0) return;
 
             _text.Append("   ").Append(label).Append(' ').Append(count);
-
-            // Etiket bonusu build kimliginin gorunur oldugu an - isaretlenmeli.
             if (loadout.HasTagBonus(tag)) _text.Append(" *BONUS*");
         }
+
+        // ---------------------------------------------------------------- tezgah
+
+        private void DrawShop(float cx, float y)
+        {
+            if (shop == null || shop.Shop == null) return;
+
+            GUI.Label(new Rect(cx - 300f, y, 600f, 26f), "TEZGAH", _hintStyle);
+
+            int points = _score != null ? _score.Spendable : 0;
+            GUI.color = new Color(1f, 1f, 1f, 0.7f);
+            GUI.Label(new Rect(cx - 300f, y + 22f, 600f, 22f), $"puan: {points}", _hintStyle);
+            GUI.color = Color.white;
+
+            const float lineWidth = 190f;
+            const float lineHeight = 74f;
+            const float gap = 12f;
+
+            var lines = new[] { ShopLine.Health, ShopLine.Damage, ShopLine.FireRate, ShopLine.Magazine };
+
+            float totalWidth = lines.Length * lineWidth + (lines.Length - 1) * gap;
+            float x = cx - totalWidth / 2f;
+            float top = y + 50f;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                DrawShopLine(lines[i], new Rect(x + i * (lineWidth + gap), top, lineWidth, lineHeight));
+            }
+        }
+
+        private void DrawShopLine(ShopLine line, Rect rect)
+        {
+            ShopState state = shop.Shop;
+
+            int tier = state.Tier(line);
+            int max = state.MaxTier(line);
+            bool maxed = state.IsMaxed(line);
+            bool affordable = shop.CanAfford(line, _score);
+
+            GUI.color = new Color(1f, 1f, 1f, 0.10f);
+            GUI.DrawTexture(rect, _pixel);
+            GUI.color = Color.white;
+
+            var inner = new Rect(rect.x + 10f, rect.y + 6f, rect.width - 20f, 20f);
+
+            GUI.Label(inner, $"{ShopState.DisplayName(line)}  {tier}/{max}", _bodyStyle);
+
+            GUI.color = new Color(1f, 1f, 1f, 0.55f);
+            GUI.Label(new Rect(inner.x, inner.y + 18f, inner.width, 18f),
+                      ShopState.Description(line), _bodyStyle);
+            GUI.color = Color.white;
+
+            var button = new Rect(rect.x + 10f, rect.yMax - 28f, rect.width - 20f, 22f);
+
+            if (maxed)
+            {
+                GUI.color = new Color(1f, 1f, 1f, 0.35f);
+                GUI.Label(button, "  tavanda", _bodyStyle);
+                GUI.color = Color.white;
+                return;
+            }
+
+            // Puan yetmiyorsa dugme SOLUK ve kapali. Fiyat yaninda yaziyor, yani
+            // bilgi renkle tek basina tasinmiyor (ui-code.md).
+            bool wasEnabled = GUI.enabled;
+            GUI.enabled = affordable;
+
+            if (GUI.Button(button, $"{state.CostFor(line)} puan")) shop.Buy(line, _score);
+
+            GUI.enabled = wasEnabled;
+        }
+
+        // ---------------------------------------------------------------- yardimci
 
         private static string TagName(CardTag tag) => tag switch
         {
@@ -220,24 +314,20 @@ namespace Bunker.UI
         private void EnsureStyles()
         {
             _titleStyle ??= new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 34, alignment = TextAnchor.MiddleCenter, richText = false
-            };
+            { fontSize = 32, alignment = TextAnchor.MiddleCenter, richText = false };
 
             _nameStyle ??= new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 18, alignment = TextAnchor.UpperLeft, richText = false
-            };
+            { fontSize = 18, alignment = TextAnchor.UpperLeft, richText = false };
 
             _bodyStyle ??= new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14, alignment = TextAnchor.UpperLeft, wordWrap = true, richText = false
-            };
+            { fontSize = 13, alignment = TextAnchor.UpperLeft, wordWrap = true, richText = false };
 
             _hintStyle ??= new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 16, alignment = TextAnchor.MiddleCenter, richText = false
-            };
+            { fontSize = 15, alignment = TextAnchor.MiddleCenter, richText = false };
+
+            // Kartin tamamini kaplayan seffaf dugme: cerceve cizmez, yalnizca tiklamayi
+            // yakalar. Uzerine kartin icerigi ayrica ciziliyor.
+            _buttonStyle ??= new GUIStyle(GUI.skin.box);
         }
     }
 }

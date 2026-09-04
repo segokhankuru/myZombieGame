@@ -133,20 +133,21 @@ namespace Bunker.Gameplay
         /// </summary>
         private void OnLoadoutChanged(CardLoadout loadout)
         {
-            WeaponModifiers mods = BuildModifiers(loadout);
+            WeaponModifiers mods = BuildModifiers();
 
             _state?.ApplyModifiers(mods);
             _guard?.ApplyModifiers(mods);
         }
 
-        private static WeaponModifiers BuildModifiers(CardLoadout loadout) =>
+        /// <summary>Kart VE tezgah etkileri tek noktadan okunur (RunModifiers).</summary>
+        private static WeaponModifiers BuildModifiers() =>
             new WeaponModifiers(
-                fireRate: loadout.Total(CardStat.FireRate),
-                reloadSpeed: loadout.Total(CardStat.ReloadSpeed),
-                damage: loadout.Total(CardStat.WeaponDamage),
-                magazine: Mathf.RoundToInt(loadout.Total(CardStat.MagazineCapacity)),
-                reserve: Mathf.RoundToInt(loadout.Total(CardStat.ReserveCapacity)),
-                headshotMultiplier: loadout.Total(CardStat.HeadshotMultiplier));
+                fireRate: RunModifiers.Total(CardStat.FireRate),
+                reloadSpeed: RunModifiers.Total(CardStat.ReloadSpeed),
+                damage: RunModifiers.Total(CardStat.WeaponDamage),
+                magazine: Mathf.RoundToInt(RunModifiers.Total(CardStat.MagazineCapacity)),
+                reserve: Mathf.RoundToInt(RunModifiers.Total(CardStat.ReserveCapacity)),
+                headshotMultiplier: RunModifiers.Total(CardStat.HeadshotMultiplier));
 
         /// <summary>
         /// Yeni run: mermi başlangıç değerine döner.
@@ -192,7 +193,10 @@ namespace Bunker.Gameplay
             // Run bitti: girdi kesilir (M1-11, AC-3). Skor ekraninin arkasindan ates
             // etmek, olumu bir sonuc olmaktan cikarir. Silahin kendi zamani (dolum,
             // geri bildirim) yukarida akmaya devam eder - durdurulan sey KOMUT.
-            if (RunSignals.IsRunOver) return;
+            // Run bitti YA DA tur arasi ekrani acik: girdi kesilir. Ekran acikken
+            // ates etmek, bakis cevirmek ya da satin almak, fareyle kart secmeyi
+            // imkansiz kilardi.
+            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen) return;
 
             ReadInput();
         }

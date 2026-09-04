@@ -96,8 +96,8 @@ namespace Bunker.Gameplay
         /// <summary>Kart yiginin puan carpanlarini cuzdana gecirir (M-03).</summary>
         private void OnLoadoutChanged(CardLoadout loadout)
         {
-            _wallet?.ApplyModifiers(loadout.Total(CardStat.KillPoints),
-                                    loadout.Total(CardStat.RepairPoints));
+            _wallet?.ApplyModifiers(RunModifiers.Total(CardStat.KillPoints),
+                                    RunModifiers.Total(CardStat.RepairPoints));
         }
 
         /// <summary>Yeni run: cüzdan sıfırlanır (AC-5).</summary>

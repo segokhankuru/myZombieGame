@@ -158,7 +158,10 @@ namespace Bunker.Gameplay
 
             // Run bitti: girdi kesilir (AC-3). Olu bir oyuncunun skor ekraninin
             // arkasinda dolasmaya devam etmesi, olumu bir sonuc olmaktan cikarir.
-            if (RunSignals.IsRunOver) return;
+            // Run bitti YA DA tur arasi ekrani acik: girdi kesilir. Ekran acikken
+            // ates etmek, bakis cevirmek ya da satin almak, fareyle kart secmeyi
+            // imkansiz kilardi.
+            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen) return;
 
             ReadLook();
             ReadMove();
@@ -246,7 +249,7 @@ namespace Bunker.Gameplay
             // CardLoadout'ta zaten toplanmis duruyor - bes kart carpimsal olsaydi
             // hiz kacar ve NavMesh takibi anlamsizlasirdi.
             float speed = moveSpeedMetersPerSecond *
-                          CardSignals.Loadout.Multiplier(CardStat.MoveSpeed);
+                          RunModifiers.Multiplier(CardStat.MoveSpeed);
 
             Vector3 horizontal = _transform.TransformDirection(input) * speed;
 

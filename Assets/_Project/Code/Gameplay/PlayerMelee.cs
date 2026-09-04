@@ -84,7 +84,10 @@ namespace Bunker.Gameplay
             if (!isLocalPlayer) return;
 
             // Run bitti: girdi kesilir (M1-11, AC-3).
-            if (RunSignals.IsRunOver) return;
+            // Run bitti YA DA tur arasi ekrani acik: girdi kesilir. Ekran acikken
+            // ates etmek, bakis cevirmek ya da satin almak, fareyle kart secmeyi
+            // imkansiz kilardi.
+            if (RunSignals.IsRunOver || CardSignals.IsDraftOpen) return;
 
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
@@ -186,7 +189,7 @@ namespace Bunker.Gameplay
             // veriyor, ustune kafa carpani vermek silahi tamamen gereksiz kilardi.
             DamageResult result = best.ApplyDamage(
                 new DamageInfo(_config.SwingDamage *
-                               CardSignals.Loadout.Multiplier(CardStat.MeleeDamage),
+                               RunModifiers.Multiplier(CardStat.MeleeDamage),
                                DamageKind.Melee));
 
             if (result.Killed) KillConfirmed?.Invoke(DamageKind.Melee, false);
