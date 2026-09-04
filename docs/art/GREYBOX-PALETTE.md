@@ -39,9 +39,20 @@ ayırır).
 | `Ramp_` | mavi-gri | orta | Geçilebilir yüzey duvardan ayrılır — kaçış yolu okunur olmalı |
 | `Apron_` | çok koyu, mat | en koyu | Dış zemin. Zombilerin geldiği yer; iç mekândan ayrı |
 | `DropLip_` | soluk sarı | **açık** | Düşme deliğinin kenarı. Görülmeyen bir delikten düşmek PILLAR-04 ihlali |
-| Kapı (kilitli) | kehribar, **emisyonlu** | parlak | Etkileşim noktası. Karanlık köşede görünmeyen bir kapı, olmayan bir kapıdır |
-| Kapı (açılmış) | sönük kehribar | koyu | Durum değişikliği görünür olmalı |
-| Duvar silahı | camgöbeği, **emisyonlu** | parlak | Kapıdan **farklı sınıf** bir etkileşim; renk de sınıf da ayrı |
+| Kapı (kilitli) | kehribar, **unlit** | parlak | Etkileşim noktası. Karanlık köşede görünmeyen bir kapı, olmayan bir kapıdır |
+| Kapı (açılmış) | sönük kehribar, unlit | koyu | Durum değişikliği görünür olmalı |
+| Duvar silahı | camgöbeği, **unlit** | parlak | Kapıdan **farklı sınıf** bir etkileşim; renk de sınıf da ayrı |
+
+### Etkileşim yüzeyleri neden `Unlit`
+
+Önce emisyonlu `Lit` denendi ve **çalışmadı**: `_EMISSION` anahtarı her yüklemede kapalı
+okunuyordu. Yani kapı hiç parlamıyordu, üstelik araç anahtarı her koşuda yeniden açmaya
+çalıştığı için materyal her seferinde kirleniyordu — tek sebep, iki hata. `git diff`
+olmasa ikisi de görünmezdi.
+
+`Unlit` sahne ışığını hiç dinlemez: karanlık bir köşede de aynı parlaklıkta okunur, ki
+etkileşim noktalarından istenen tam olarak budur. Anahtarı yok, GI bayrağı yok, bloom
+eşiğine bağımlılığı yok — **kırılacak parçası yok.**
 
 ### Bilgi renkle tek başına taşınmıyor
 
@@ -77,8 +88,8 @@ global bir `Volume` olarak.
 
 | Efekt | Ayar | Neden |
 |---|---|---|
-| Tonemapping | Neutral | HDR'yi ekrana makul indirir. Olmadan emisyonlu kapı ve levha patlar, yanındaki her şeyi yutar |
-| Bloom | eşik **1.1**, şiddet 0.55 | Yalnızca emisyonlu yüzeyleri parlatır. **Eşik yüksek tutuldu** — düşük eşik bütün sahneyi sisler ve tehdidi gizler |
+| Tonemapping | Neutral | HDR'yi ekrana makul indirir; gökyüzü ve parlak yüzeyler patlamaz |
+| Bloom | eşik **1.1**, şiddet 0.55 | Yalnızca 1.0'ı aşan parlaklıkları yakalar (gökyüzü, güçlü vurgular). **Eşik bilerek yüksek** — düşük eşik bütün sahneyi sisler ve tehdidi gizler. Kapı ve levha bloom'la değil, **unlit oldukları için** okunur |
 | Vinyet | 0.28, yumuşak | Gözü nişangâha toplar. **Hafif** — ağır vinyet çevre görüşünü keser ve arkadan gelen zombiyi gizler |
 | Renk derecelendirme | +0.15 pozlama, +12 kontrast, −8 doygunluk | Kontrast okunabilirliğe **hizmet eder**: düz gri bir görüntüde siluet ayırmak zordur |
 

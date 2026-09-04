@@ -92,8 +92,8 @@ namespace Bunker.Editor
                      "gorulmeyen bir delikten dusmek PILLAR-04 ihlalidir."),
         };
 
-        // Etkilesilebilir yuzeyler: emisyonlu, cunku karanlik bir kosede satin alma
-        // noktasini bulamamak M1-09 ve M1-10'u oynanamaz yapar (BUG-004'un dersi).
+        // Etkilesilebilir yuzeyler UNLIT cizilir (bkz. LoadOrCreate): karanlik bir
+        // kosede satin alma noktasini bulamamak M1-09 ve M1-10.u oynanamaz yapar.
         private static readonly Color DoorColor = new Color(0.78f, 0.45f, 0.12f);
         private static readonly Color WallBuyColor = new Color(0.16f, 0.62f, 0.68f);
 
@@ -123,7 +123,7 @@ namespace Bunker.Editor
             {
                 AssetDatabase.StartAssetEditing();
 
-                Dictionary<string, Material> materials = EnsureMaterials();
+                Dictionary<string, Material> materials = EnsureMaterials(ref changed);
                 changed += ApplyToBlockout(materials);
                 changed += EnsureWallBuyVisuals(materials);
                 changed += EnsureDoorLeafLook(materials);
@@ -174,7 +174,7 @@ namespace Bunker.Editor
 
         // --------------------------------------------------------------- materyal
 
-        private static Dictionary<string, Material> EnsureMaterials()
+        private static Dictionary<string, Material> EnsureMaterials(ref int changed)
         {
             EnsureFolder(MaterialFolder);
 
@@ -185,82 +185,106 @@ namespace Bunker.Editor
                 Role role = Palette[i];
                 string key = role.Prefix.TrimEnd('_').ToLowerInvariant();
 
-                result[role.Prefix] = LoadOrCreate($"mat_{key}_greybox",
-                                                   role.Color, role.Smoothness, Color.black);
+                result[role.Prefix] = LoadOrCreate(ref changed, $"mat_{key}_greybox",
+                                                   role.Color, role.Smoothness);
             }
 
-            // Kapi ve satin alma noktasi kendi isiklarini yayar: karanlik bir kosede
-            // gorunmeyen bir etkilesim noktasi, olmayan bir etkilesim noktasidir.
-            result["Door"] = LoadOrCreate("mat_door_greybox", DoorColor, 0.25f,
-                                          DoorColor * 0.55f);
-            result["DoorOpen"] = LoadOrCreate("mat_door_open_greybox",
-                                              DoorColor * 0.35f, 0.10f, Color.black);
-            result["WallBuy"] = LoadOrCreate("mat_wallbuy_greybox", WallBuyColor, 0.30f,
-                                             WallBuyColor * 0.55f);
+            // Etkilesim yuzeyleri UNLIT: sahne isigindan bagimsiz, her kosede ayni
+            // parlaklikta okunur. Karanlik bir kosede gorunmeyen bir etkilesim
+            // noktasi, olmayan bir etkilesim noktasidir (BUG-004'un dersi).
+            //
+            // Once emisyonlu Lit denendi ve CALISMADI: _EMISSION anahtari her
+            // yuklemede kapali okunuyordu (teshis loglandi), yani kapi hic parlamiyor
+            // ama materyal her kosuda kirleniyordu. Unlit'in kirilacak parcasi yok -
+            // anahtar yok, GI bayragi yok, bloom esigine bagimlilik yok.
+            result["Door"] = LoadOrCreate(ref changed, "mat_door_greybox", DoorColor, unlit: true);
+            result["DoorOpen"] = LoadOrCreate(ref changed, "mat_door_open_greybox",
+                                              DoorColor * 0.35f, unlit: true);
+            result["WallBuy"] = LoadOrCreate(ref changed, "mat_wallbuy_greybox", WallBuyColor,
+                                             unlit: true);
 
             return result;
         }
 
         /// <summary>
         /// Materyali yükler ya da yaratır ve değerlerini yazar.
-        ///
         /// <para><b>Zaten doğru olan bir varlığı kirletmez</b> (editor-tools.md): her
         /// alan yazmadan önce karşılaştırılır. Aksi halde araç her çalıştığında
         /// dosyalar değişmiş görünür ve diff okunamaz hale gelir.</para>
         /// </summary>
-        private static Material LoadOrCreate(string name, Color color, float smoothness,
-                                             Color emission)
+        /// <param name="unlit">
+        /// Etkileşim yüzeyleri için. <b>Unlit malzeme sahne ışığını hiç dinlemez</b> —
+        /// karanlık bir köşede de aynı parlaklıkta okunur, ki etkileşim noktalarından
+        /// istenen tam olarak budur.
+        ///
+        /// <para>Önce emisyonlu <c>Lit</c> denendi ve <b>çalışmadı</b>: <c>_EMISSION</c>
+        /// anahtarı her yüklemede kapalı okunuyordu (teşhis logu), yani kapı hiç
+        /// parlamıyordu — ama materyal her koşuda kirleniyordu, çünkü araç anahtarı
+        /// her seferinde yeniden açmaya çalışıyordu. Tek sebep, iki hata: görünmeyen
+        /// bir etkileşim noktası ve bozulan idempotency. <c>git diff</c> olmasa
+        /// ikisi de görünmezdi.</para>
+        /// </param>
+        private static Material LoadOrCreate(ref int changed, string name, Color color,
+                                             float smoothness = 0f, bool unlit = false)
         {
             string path = $"{MaterialFolder}/{name}.mat";
+            string shaderName = unlit
+                ? "Universal Render Pipeline/Unlit"
+                : "Universal Render Pipeline/Lit";
+
+            Shader shader = Shader.Find(shaderName);
+
+            if (shader == null)
+            {
+                // Sessiz varsayilan yok: URP yoksa bunu bilmek gerekir, cunku
+                // materyaller pembe cikar ve sebebi hic soylenmez.
+                Debug.LogError($"[Gorunum] '{shaderName}' shader'i bulunamadi. Render " +
+                               "pipeline ayari bozuk olabilir.");
+                return null;
+            }
+
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool dirty = false;
 
             if (material == null)
             {
-                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-
-                if (shader == null)
-                {
-                    // Sessiz varsayilan yok: URP yoksa bunu bilmek gerekir, cunku
-                    // materyaller pembe cikar ve sebebi hic soylenmez.
-                    Debug.LogError("[Gorunum] URP Lit shader bulunamadi. Render pipeline " +
-                                   "ayari bozuk olabilir.");
-                    return null;
-                }
-
                 material = new Material(shader) { name = name };
                 AssetDatabase.CreateAsset(material, path);
+                dirty = true;
+            }
+            else if (material.shader != shader)
+            {
+                // Rol Lit'ten Unlit'e (ya da tersine) gectiyse mevcut varlik
+                // guncellenir, YENISI YARATILMAZ - GUID sabit kalir ve ona bakan
+                // her sahne referansi ayakta kalir.
+                material.shader = shader;
+                dirty = true;
             }
 
-            bool dirty = false;
-
-            if (material.GetColor("_BaseColor") != color)
+            if (!Same(material.GetColor("_BaseColor"), color))
             {
                 material.SetColor("_BaseColor", color);
                 dirty = true;
             }
 
-            if (!Mathf.Approximately(material.GetFloat("_Smoothness"), smoothness))
+            // Unlit'te parlaklik diye bir sey yok; olmayan bir ozellige yazmak
+            // her kosuda gereksiz bir kirlenme uretirdi.
+            if (!unlit && !Mathf.Approximately(material.GetFloat("_Smoothness"), smoothness))
             {
                 material.SetFloat("_Smoothness", smoothness);
                 dirty = true;
             }
 
-            bool wantEmission = emission.maxColorComponent > 0.001f;
-
-            if (material.IsKeywordEnabled("_EMISSION") != wantEmission)
+            if (dirty)
             {
-                if (wantEmission) material.EnableKeyword("_EMISSION");
-                else material.DisableKeyword("_EMISSION");
-                dirty = true;
-            }
+                EditorUtility.SetDirty(material);
 
-            if (wantEmission && material.GetColor("_EmissionColor") != emission)
-            {
-                material.SetColor("_EmissionColor", emission);
-                dirty = true;
+                // Sayaca DAHIL: ilk surumde materyal degisiklikleri sayilmiyordu ve
+                // arac dosyalari yazarken bile "0 guncellendi" diyordu. Dogru olmayan
+                // bir "hicbir sey degismedi" raporu, idempotency iddiasini
+                // dogrulanamaz yapar - nitekim yapmisti.
+                changed++;
             }
-
-            if (dirty) EditorUtility.SetDirty(material);
 
             return material;
         }
@@ -362,6 +386,25 @@ namespace Bunker.Editor
                 return Get(materials, "Wall_");
 
             return null;
+        }
+
+        /// <summary>
+        /// İki rengi <b>toleransla</b> karşılaştırır.
+        ///
+        /// <para><c>Color</c>'ın kendi <c>==</c>'i bunun için yeterli değil: bir
+        /// materyalden geri okunan renk, yazılan değerle bit bit aynı olmayabilir
+        /// (serileştirme yuvarlaması, HDR emisyonda renk uzayı dönüşümü). Tam eşitlik
+        /// arayan bir kontrol <b>her koşuda "değişti" der</b>, materyali boş yere
+        /// kirletir ve "hiçbir şey değişmedi" raporunu güvenilmez yapar.</para>
+        /// </summary>
+        private static bool Same(Color a, Color b)
+        {
+            const float epsilon = 0.002f;
+
+            return Mathf.Abs(a.r - b.r) < epsilon
+                && Mathf.Abs(a.g - b.g) < epsilon
+                && Mathf.Abs(a.b - b.b) < epsilon
+                && Mathf.Abs(a.a - b.a) < epsilon;
         }
 
         private static Material Get(Dictionary<string, Material> materials, string key)
