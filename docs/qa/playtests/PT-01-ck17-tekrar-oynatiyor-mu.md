@@ -69,6 +69,29 @@ ayrı tut, çünkü senin run'ların yazarın run'ları ve karışırsa ikisi de
 
 ---
 
+## SEANS A-0 — önce bunlar (2026-09-04'te değişenler, ~10 dk)
+
+Bu oturumda oyunun **dengesi ve haritası** değişti. Bir şey bozulduysa büyük olasılıkla
+burada bozulmuştur — aşağıdaki uzun listeden **önce** bunlara bak.
+
+| # | Bak | Beklenen | Bozuksa belirtisi |
+|---|---|---|---|
+| 1 | **İlk 10 saniye** | Sahne renkli: zemin koyu, duvar orta gri, rampa mavimsi, dışarısı çok koyu | Her şey aynı gri → görünüm aracı uygulanmamış |
+| 2 | **Kapı ve mermi levhası** | Kapı **kehribar**, mermi levhası **camgöbeği**, ikisi de parlak ve uzaktan görünür | Görünmüyorsa M1-09/M1-10 hâlâ oynanamaz |
+| 3 | **F10** | Atmosfer kapanır, sol üstte "ATMOSFER KAPALI" yazar; tekrar F10 açar | Hiçbir şey değişmiyorsa profil bağlanmamış |
+| 4 | **Dışarı bak** | 18 m'lik bir avlu, etrafında 3.5 m duvar, dört kenarın ortasında geçit | Duvar yoksa harita yeniden üretilmemiş |
+| 5 | **Zombi nereden geliyor** | Uzakta beliriyor, **14 m yürüyor**, sonra barikata varıyor | Barikatın dibinde beliriyorsa doğum mesafesi uygulanmamış |
+| 6 | **Barikat sayısı** | **6 pencere** (eskiden 10) | 10 ise ayar geçişi koşmamış |
+| 7 | **Tur 2 başında barikat** | 1. turda sökülen tahtalar **sökük kalır** — kendiliğinden geri gelmez | Dolu geliyorsa otomatik tamir hâlâ açık |
+| 8 | **Tur 2 başında mermi** | Yedek **tazelenmez** — 1. turdan kalanla devam edersin | Doluysa eski iskele hâlâ duruyor |
+| 9 | **Mermi biterse** | Duvardan satın alman gerekir; bedava gelmez | — |
+
+> **Oyun artık belirgin şekilde daha zor.** 7 ve 8 bilerek yapıldı (senin kararın). Mermi
+> ekonomisi simülasyona göre gelirin %77–98'ini yiyor — "sürekli mermi alıyorum" hissi
+> **beklenen** bir bulgu, hata değil. Ne kadar rahatsız edici olduğu asıl soru.
+
+---
+
 ## SEANS A — shakedown kontrol listesi (~20-25 dk)
 
 Geçen oturumun beş hatasının ortak dersi: **sessiz başarısızlık en pahalı hata türü.**
