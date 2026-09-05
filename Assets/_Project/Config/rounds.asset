@@ -23,11 +23,11 @@ MonoBehaviour:
   healthLinearPhaseUntilRound: 9
   healthGrowthMultiplierAfterLinear: 1.1
   healthCap: 25000
-  speedWalkMetersPerSecond: 1.4
-  speedJogMetersPerSecond: 2.9
-  speedRunMetersPerSecond: 4.6
-  speedWalkUntilRound: 4
-  speedJogUntilRound: 8
+  speedWalkMetersPerSecond: 1.3
+  speedJogMetersPerSecond: 2.2
+  speedRunMetersPerSecond: 3.6
+  speedWalkUntilRound: 6
+  speedJogUntilRound: 12
   pacingBreatherSeconds: 10
   pacingSpawnIntervalSecondsAtRoundOne: 2
   pacingSpawnIntervalFloorSeconds: 0.25

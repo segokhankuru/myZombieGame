@@ -1,4 +1,5 @@
 using System;
+using Bunker.Audio;
 using Bunker.Config;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
@@ -45,6 +46,13 @@ namespace Bunker.Gameplay
         // Kure sorgusu tamponu bir kez ayrilir: kare basina tahsis yasak
         // (csharp-code.md).
         private static readonly Collider[] SwingHits = new Collider[24];
+
+        /// <summary>
+        /// Savuruş başladı. <b>Yerel, aynı karede</b> — el modeli ve ses buna bağlanır.
+        /// Hazırlık süresi boyunca bıçağın hareket ediyor olması, bekleme süresini
+        /// bir gecikme değil bir AGIRLIK olarak okutur (gameplay-code.md).
+        /// </summary>
+        public event Action SwingStarted;
 
         /// <summary>Bir bıçak öldürmesi onaylandı. Ekonomi buna bağlanır.</summary>
         public event Action<DamageKind, bool> KillConfirmed;
@@ -109,6 +117,9 @@ namespace Bunker.Gameplay
             _pendingSwingDelay = _config.SwingWindupSeconds;
             _swingPending = true;
 
+            SwingStarted?.Invoke();
+            GameAudio.Play(SfxId.KnifeSwing);
+
             if (_pendingSwingDelay <= 0f) ReleaseSwing();
         }
 
@@ -130,6 +141,13 @@ namespace Bunker.Gameplay
 
             Transform cam = playerCamera != null ? playerCamera.transform : transform;
             CmdSwing(cam.position, cam.forward);
+        }
+
+        /// <summary>Bıçak bir şeye değdi. Savuruşun boşa gitmediğini söyleyen tek şey.</summary>
+        [TargetRpc]
+        private void TargetReportSwingHit(NetworkConnection target)
+        {
+            GameAudio.Play(SfxId.KnifeHit);
         }
 
         /// <summary>
@@ -191,6 +209,10 @@ namespace Bunker.Gameplay
                 new DamageInfo(_config.SwingDamage *
                                RunModifiers.Multiplier(CardStat.MeleeDamage),
                                DamageKind.Melee));
+
+            // Isabet geri bildirimi YALNIZCA savurana gider: kisisel bir bilgidir
+            // (silahtaki TargetReportHit ile ayni gerekce).
+            TargetReportSwingHit(connectionToClient);
 
             if (result.Killed) KillConfirmed?.Invoke(DamageKind.Melee, false);
         }

@@ -1,4 +1,5 @@
 using System;
+using Bunker.Audio;
 using Bunker.Config;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Rounds;
@@ -132,6 +133,11 @@ namespace Bunker.AI
             if (!fell) return false;
 
             RefreshVisuals();
+
+            // Tahtanin dusmesi 3B duyulur: oyuncu hangi pencerenin acildigini
+            // gormeden bilmeli, yoksa savunma yalnizca BAKTIGIN pencerede olur.
+            GameAudio.PlayAt(SfxId.BarricadeTear, transform.position);
+
             BoardTorn?.Invoke(this);
             return true;
         }
@@ -144,6 +150,7 @@ namespace Bunker.AI
             if (!added) return false;
 
             RefreshVisuals();
+            GameAudio.PlayAt(SfxId.BarricadeRepair, transform.position);
             BoardRepaired?.Invoke(this);
             return true;
         }

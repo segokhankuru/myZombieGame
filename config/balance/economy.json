@@ -1,13 +1,13 @@
 {
   "$schema": "../schema/economy.schema.json",
-  "version": 2,
+  "version": 3,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-ekonomi",
-    "lastTuned": "2026-09-04"
+    "lastTuned": "2026-09-05"
   },
 
-  "_note": "Klon tabani baslangic degerleri. Kapi fiyatlari LVL-01 bolge sirasi netlestiginde kalibre edilecek; su an bant olarak duruyorlar. v2 (2026-09-04): ammo.magazinesPerPurchase koddan buraya tasindi - DEGERI DEGISMEDI, yalnizca yasadigi yer. Simulasyon bu sayinin turun ritmini belirledigini gosterdi (curves.md), yani config-data.md geregi C# icinde duramazdi.",
+  "_note": "v3 (2026-09-05): ammo.refillCost eklendi - mermi fiyati artik silah bandindan bagimsiz ve 250 puan. Gelistirici karari: duvar silahi bandi (500/1200) mermiye uygulaninca erken turda tek harcama kapiya gidiyordu. Klon tabani baslangic degerleri. Kapi fiyatlari LVL-01 bolge sirasi netlestiginde kalibre edilecek; su an bant olarak duruyorlar. v2 (2026-09-04): ammo.magazinesPerPurchase koddan buraya tasindi - DEGERI DEGISMEDI, yalnizca yasadigi yer. Simulasyon bu sayinin turun ritmini belirledigini gosterdi (curves.md), yani config-data.md geregi C# icinde duramazdi.",
 
   "awards": {
     "hit": 10,
@@ -31,6 +31,7 @@
   },
 
   "ammo": {
-    "magazinesPerPurchase": 5
+    "magazinesPerPurchase": 5,
+    "refillCost": 250
   }
 }

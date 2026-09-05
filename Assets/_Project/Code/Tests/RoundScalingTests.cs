@@ -138,10 +138,21 @@ namespace Bunker.Systems.Tests
         [Test]
         public void Hiz_KademeIlerledikce_Artar()
         {
-            var scaling = Default();
+            // Kademe sinirlari TESTIN ICINDE veriliyor, dengeden okunmuyor.
+            //
+            // Onceki surum varsayilanlari kullaniyor ve 1/6/12 turlarini sabit
+            // yaziyordu; bu turlar o gunku sinirlara (4 ve 8) denk geliyordu. Hiz
+            // egrisi 2026-09-05'te geriye cekilince (6 ve 12) test kirmizi yandi -
+            // oysa egrinin SEKLI hic bozulmamisti, yalnizca dengesi degismisti.
+            //
+            // Bir denge degisikliginin testi kirmasi, testin yanlis seyi olctugunu
+            // soyler: burada olculmesi gereken kural "kademe ilerledikce hiz artar",
+            // "tur 6'da zombi kosar" degil.
+            var scaling = new RoundScaling(new RoundsConfig(
+                speedWalkUntilRound: 4, speedJogUntilRound: 8));
 
-            Assert.Less(scaling.SpeedForRound(1), scaling.SpeedForRound(6));
-            Assert.Less(scaling.SpeedForRound(6), scaling.SpeedForRound(12));
+            Assert.Less(scaling.SpeedForRound(1), scaling.SpeedForRound(5));
+            Assert.Less(scaling.SpeedForRound(5), scaling.SpeedForRound(9));
         }
 
         // ---------------------------------------------------------------- tempo

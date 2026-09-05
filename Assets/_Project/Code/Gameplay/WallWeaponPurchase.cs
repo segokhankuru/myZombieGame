@@ -25,9 +25,6 @@ namespace Bunker.Gameplay
         [Tooltip("config/balance/economy.json'dan uretilen varlik.")]
         [SerializeField] private EconomyConfigAsset economyConfig;
 
-        [Tooltip("Ucuz mu orta mi. Sayilar economy.json'da.")]
-        [SerializeField] private bool midTier;
-
         [SerializeField] private string displayName = "MERMI";
 
         private int _cost;
@@ -61,7 +58,12 @@ namespace Bunker.Gameplay
             }
 
             EconomyConfig config = economyConfig.ToRuntime();
-            _cost = midTier ? config.PricesWallWeaponMid : config.PricesWallWeaponCheap;
+
+            // Mermi fiyati SILAH bandindan gelmiyor artik (2026-09-05): duvar silahi
+            // bandi (500/1200) ileride gercek silahlar icin duruyor, mermi kendi
+            // musluk fiyatina sahip. Ikisini ayni sayidan okumak, mermiyi
+            // ucuzlatmak istedigimizde silah fiyatlarini da oynatmak demekti.
+            _cost = config.AmmoRefillCost;
             _magazinesPerPurchase = config.AmmoMagazinesPerPurchase;
         }
 

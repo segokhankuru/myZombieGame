@@ -3,6 +3,7 @@
     "rootNamespace": "Bunker.Editor",
     "references": [
         "Bunker.Systems",
+        "Bunker.Audio",
         "Bunker.Config",
         "Bunker.Gameplay",
         "Bunker.Net",

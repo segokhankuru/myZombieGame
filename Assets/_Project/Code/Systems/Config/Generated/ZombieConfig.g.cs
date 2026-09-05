@@ -72,6 +72,18 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0 .. 5 | JSON: hitReaction.deathLingerSeconds</remarks>
         public readonly float HitReactionDeathLingerSeconds;
 
+        /// <summary>Bir bacagin kopmasi icin o bacagin emmesi gereken hasar, zombinin tur canina oran olarak. Kucultursen her carpisma bacak koparir ve surunen zombi kuralin kendisi olur - ayakta gelen tehdit kaybolur; buyutursen bacak vurmak hicbir zaman odullenmez ve oyuncu govdeye nisan almaya geri doner.</summary>
+        /// <remarks>Aralik: 0.05 .. 1 | JSON: crawl.legBreakHealthFraction</remarks>
+        public readonly float CrawlLegBreakHealthFraction;
+
+        /// <summary>Surunen zombinin tur hizina uygulanan carpan. 1e yaklasirsa bacagi koparmak gorsel bir suslemeye doner; cok kucultursen surunen zombi tehdit olmaktan cikar ve oyuncu onlari yok sayar - ki bu, yerde surunen bir dusmanin verecegi panigi bosa harcamaktir.</summary>
+        /// <remarks>Aralik: 0.1 .. 0.9 | JSON: crawl.speedMultiplier</remarks>
+        public readonly float CrawlSpeedMultiplier;
+
+        /// <summary>Surunen zombinin govde yuksekligi. Alcalmasi hem gorsel hem taktik: nisan cizgisi degisir, kalabaligin arasindan gorunmez olur. Cok alcaltirsan gri kutuda zemine gomulur ve vurulamaz hale gelir.</summary>
+        /// <remarks>Aralik: 0.3 .. 1.2 | JSON: crawl.bodyHeightMeters</remarks>
+        public readonly float CrawlBodyHeightMeters;
+
         /// <summary>Zombinin yeni yol istemeler arasi sure. Kucultursen zombiler oyuncuyu daha yakin takip eder ama yol bulma maliyeti dogrusal artar (PERF-BUDGET); buyutursen zombiler oyuncunun eski konumuna kosar ve kandirilmis gorunur. Bu bir denge degeri kadar performans degeridir.</summary>
         /// <remarks>Aralik: 0.1 .. 2 | JSON: navigation.repathIntervalSeconds</remarks>
         public readonly float NavigationRepathIntervalSeconds;
@@ -101,7 +113,7 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public ZombieConfig(
-            int version = 1,
+            int version = 2,
             float spawnEmergeDelaySeconds = 0.6f,
             float windowEntryTriggerDistanceMeters = 1.8f,
             float windowEntryVaultSeconds = 1.4f,
@@ -115,6 +127,9 @@ namespace Bunker.Systems.Config
             float hitReactionHeadshotFlinchMultiplier = 2f,
             float hitReactionKnockbackMeters = 0.25f,
             float hitReactionDeathLingerSeconds = 0.7f,
+            float crawlLegBreakHealthFraction = 0.3f,
+            float crawlSpeedMultiplier = 0.45f,
+            float crawlBodyHeightMeters = 0.55f,
             float navigationRepathIntervalSeconds = 0.35f,
             float navigationStuckSpeedMetersPerSecond = 0.15f,
             float navigationStuckAfterSeconds = 1.5f,
@@ -136,6 +151,9 @@ namespace Bunker.Systems.Config
             HitReactionHeadshotFlinchMultiplier = hitReactionHeadshotFlinchMultiplier;
             HitReactionKnockbackMeters = hitReactionKnockbackMeters;
             HitReactionDeathLingerSeconds = hitReactionDeathLingerSeconds;
+            CrawlLegBreakHealthFraction = crawlLegBreakHealthFraction;
+            CrawlSpeedMultiplier = crawlSpeedMultiplier;
+            CrawlBodyHeightMeters = crawlBodyHeightMeters;
             NavigationRepathIntervalSeconds = navigationRepathIntervalSeconds;
             NavigationStuckSpeedMetersPerSecond = navigationStuckSpeedMetersPerSecond;
             NavigationStuckAfterSeconds = navigationStuckAfterSeconds;

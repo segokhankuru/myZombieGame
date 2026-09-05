@@ -4,7 +4,7 @@
   "title": "Zombi davranisi",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "spawn", "windowEntry", "attack", "hitReaction", "navigation", "budget"],
+  "required": ["version", "_meta", "spawn", "windowEntry", "attack", "hitReaction", "crawl", "navigation", "budget"],
   "properties": {
     "version": {
       "type": "integer",
@@ -108,6 +108,27 @@
         "deathLingerSeconds": {
           "type": "number", "minimum": 0, "maximum": 5,
           "description": "Olen zombinin sahnede kalma suresi (yikilma ani). Sifir yaparsan zombi aninda yok olur ve oldurme SAYILMAMIS gibi hissettirir - oyuncunun basardigi seyi gorecek zamani olmaz. Buyutursen cesetler birikir, hem kare butcesi hem okunabilirlik bozulur (PILLAR-04) ve havuz tavani cesetlerle dolar."
+        }
+      }
+    },
+
+    "crawl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["legBreakHealthFraction", "speedMultiplier", "bodyHeightMeters"],
+      "description": "Bacagi koparilan zombi olmez - surunerek gelir. Nisan almanin ikinci odulu bu: kafa vurusu zombiyi bitirir, bacak vurusu onu YAVASLATIR. Ucuncu bir zombi tipi yazmadan surunun icine ritim farki koyar.",
+      "properties": {
+        "legBreakHealthFraction": {
+          "type": "number", "minimum": 0.05, "maximum": 1,
+          "description": "Bir bacagin kopmasi icin o bacagin emmesi gereken hasar, zombinin tur canina oran olarak. Kucultursen her carpisma bacak koparir ve surunen zombi kuralin kendisi olur - ayakta gelen tehdit kaybolur; buyutursen bacak vurmak hicbir zaman odullenmez ve oyuncu govdeye nisan almaya geri doner."
+        },
+        "speedMultiplier": {
+          "type": "number", "minimum": 0.1, "maximum": 0.9,
+          "description": "Surunen zombinin tur hizina uygulanan carpan. 1e yaklasirsa bacagi koparmak gorsel bir suslemeye doner; cok kucultursen surunen zombi tehdit olmaktan cikar ve oyuncu onlari yok sayar - ki bu, yerde surunen bir dusmanin verecegi panigi bosa harcamaktir."
+        },
+        "bodyHeightMeters": {
+          "type": "number", "minimum": 0.3, "maximum": 1.2,
+          "description": "Surunen zombinin govde yuksekligi. Alcalmasi hem gorsel hem taktik: nisan cizgisi degisir, kalabaligin arasindan gorunmez olur. Cok alcaltirsan gri kutuda zemine gomulur ve vurulamaz hale gelir."
         }
       }
     },

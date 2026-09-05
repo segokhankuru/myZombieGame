@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class ZombieConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 1;
+        [SerializeField] private int version = 2;
 
         [Header("spawn")]
         [Tooltip("Zombi dogduktan sonra hareket etmeden once bekledigi sure. Sifir olursa zombiler dogar dogmaz kosar ve oyuncu belirme anini goremez - PILLAR-04 (kaosta okunabilirlik) burada kirilir. Cok uzun olursa surunun temposu duser ve pencere savunmasi kolaylasir.")]
@@ -78,6 +78,19 @@ namespace Bunker.Config
         [Range(0f, 5f)]
         [SerializeField] private float hitReactionDeathLingerSeconds = 0.7f;
 
+        [Header("crawl")]
+        [Tooltip("Bir bacagin kopmasi icin o bacagin emmesi gereken hasar, zombinin tur canina oran olarak. Kucultursen her carpisma bacak koparir ve surunen zombi kuralin kendisi olur - ayakta gelen tehdit kaybolur; buyutursen bacak vurmak hicbir zaman odullenmez ve oyuncu govdeye nisan almaya geri doner.")]
+        [Range(0.05f, 1f)]
+        [SerializeField] private float crawlLegBreakHealthFraction = 0.3f;
+
+        [Tooltip("Surunen zombinin tur hizina uygulanan carpan. 1e yaklasirsa bacagi koparmak gorsel bir suslemeye doner; cok kucultursen surunen zombi tehdit olmaktan cikar ve oyuncu onlari yok sayar - ki bu, yerde surunen bir dusmanin verecegi panigi bosa harcamaktir.")]
+        [Range(0.1f, 0.9f)]
+        [SerializeField] private float crawlSpeedMultiplier = 0.45f;
+
+        [Tooltip("Surunen zombinin govde yuksekligi. Alcalmasi hem gorsel hem taktik: nisan cizgisi degisir, kalabaligin arasindan gorunmez olur. Cok alcaltirsan gri kutuda zemine gomulur ve vurulamaz hale gelir.")]
+        [Range(0.3f, 1.2f)]
+        [SerializeField] private float crawlBodyHeightMeters = 0.55f;
+
         [Header("navigation")]
         [Tooltip("Zombinin yeni yol istemeler arasi sure. Kucultursen zombiler oyuncuyu daha yakin takip eder ama yol bulma maliyeti dogrusal artar (PERF-BUDGET); buyutursen zombiler oyuncunun eski konumuna kosar ve kandirilmis gorunur. Bu bir denge degeri kadar performans degeridir.")]
         [Range(0.1f, 2f)]
@@ -122,6 +135,9 @@ namespace Bunker.Config
                 hitReactionHeadshotFlinchMultiplier,
                 hitReactionKnockbackMeters,
                 hitReactionDeathLingerSeconds,
+                crawlLegBreakHealthFraction,
+                crawlSpeedMultiplier,
+                crawlBodyHeightMeters,
                 navigationRepathIntervalSeconds,
                 navigationStuckSpeedMetersPerSecond,
                 navigationStuckAfterSeconds,

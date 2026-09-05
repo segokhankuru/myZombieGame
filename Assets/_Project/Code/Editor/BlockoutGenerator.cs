@@ -286,7 +286,73 @@ namespace Bunker.Editor
                 new[] { new Gap(midZ, s.DoorWidth, 0f, s.DoorHeight, false) });
 
             BuildRamp(zone, s);
+            BuildRampShaft(zone, s);
         }
+
+        /// <summary>
+        /// Rampayı iki yan duvarla <b>kapalı bir merdiven boşluğuna</b> çevirir.
+        ///
+        /// <para><b>Neden gerekliydi:</b> üst kat kapısı rampanın ağzında duran serbest
+        /// bir bloktu ve açık alanda duruyordu — oyuncu (ve zombi) yanından dolaşıp üst
+        /// kata çıkabiliyordu. Yani satın alınan kapı hiçbir şeyi kapatmıyordu; harita
+        /// açma ekonomisinin (SYS-ekonomi) tamamı o kapının bir <i>engel</i> olmasına
+        /// dayanıyor.</para>
+        ///
+        /// <para><b>Çözüm kapıyı büyütmek değil, boşluğu daraltmaktır.</b> Bir kapı
+        /// ancak tek geçit olduğunda kapıdır. Yan duvarlar zemin katından üst kat
+        /// döşemesine kadar çıkar; tavanı zaten üst katın kendi döşemesi
+        /// (<c>Floor_C_Band4_S</c>) kapatır — geliştiricinin önerdiği çözüm buydu ve
+        /// doğrusu da bu.</para>
+        ///
+        /// <para>Duvarlar rampa açıklığının kenarlarında durur, yani <b>rampanın kendisi
+        /// hiç dokunulmadan</b> koridorun içinde kalır. Rampa ölçüleri Inspector'dan
+        /// değişince koridor da onunla birlikte kayar.</para>
+        /// </summary>
+        private static void BuildRampShaft(Transform zone, BlockoutSettings s)
+        {
+            if (s.RampRun <= 0.1f) return;
+
+            float entranceZ = RampDoorZ(s);
+            float closedUntilZ = s.RampHoleStartZ;
+
+            // Ust kat dosemesi rampanin agzindan ONCE bitiyorsa kapatilacak bir tavan
+            // yok demektir; sessizce yarim bir koridor uretmek yerine soylenir.
+            if (closedUntilZ <= entranceZ)
+            {
+                Debug.LogWarning("[Blockout] RampHoleStartZ kapinin gerisinde: rampa " +
+                                 "koridoru kapanmiyor ve UST KAT KAPISI ATLANABILIR. " +
+                                 "RampHoleStartZ'yi buyut ya da RampStartZ'yi kucult.");
+                return;
+            }
+
+            float length = closedUntilZ - entranceZ;
+            float centerZ = (entranceZ + closedUntilZ) / 2f;
+            float height = s.UpperFloorY;
+
+            Box(zone, "Wall_RampShaft_West",
+                new Vector3(s.RampHoleMinX, height / 2f, centerZ),
+                new Vector3(s.WallThickness, height, length));
+
+            Box(zone, "Wall_RampShaft_East",
+                new Vector3(s.RampHoleMaxX, height / 2f, centerZ),
+                new Vector3(s.WallThickness, height, length));
+        }
+
+        /// <summary>
+        /// Üst kat kapısının durduğu Z: rampanın <b>başlangıcından bir metre ileride</b>.
+        ///
+        /// <para><b>Tek kaynak:</b> kapı, kanadı ve merdiven boşluğunun ağzı aynı
+        /// sayıdan türer — üçü ayrı hesaplansaydı biri kayınca kapı duvarın içinde ya da
+        /// bir karış önünde kalırdı.</para>
+        ///
+        /// <para><b>Neden rampanın önünde değil, bir metre içinde:</b> ilk deneme kapıyı
+        /// rampa ağzına, güney duvarının 35 cm önüne koydu. Sonuç bir bağlantı hatası
+        /// oldu — <c>NavMesh</c> ajanı 70 cm çapında ve 35 cm'lik bir şeride sığmıyor,
+        /// yani kapının önünde <i>durulacak yer</i> kalmıyordu. Bağlantı kontrolü bunu
+        /// "zemin -&gt; ust kat: KOPUK" olarak yakaladı. Bir metre içeri alınca kapının
+        /// önünde 1.85 m'lik gerçek bir yaklaşma alanı kalıyor.</para>
+        /// </summary>
+        private static float RampDoorZ(BlockoutSettings s) => s.RampStartZ + 1f;
 
         /// <summary>
         /// Binanın çevresindeki dış zemin. <b>Zombiler pencereden girer</b> (M1-04) ve
@@ -576,21 +642,35 @@ namespace Bunker.Editor
                 new Vector3(s.Divider, s.DoorHeight / 2f, midZ),
                 new Vector3(s.WallThickness * 1.5f, s.DoorHeight, s.DoorWidth));
 
+            // Ust kat kapisi: merdiven boslugunun agzini TAMAMEN kapatir. Kanat
+            // koridorun genisligi kadar genis ve ust kat dosemesine kadar yuksek -
+            // kapi yuksekliginde biraksaydik ustunden gorunen bosluk kalirdi ve
+            // "kapali" olan sey oyuncuya kapali gorunmezdi.
+            float shaftWidth = s.RampHoleMaxX - s.RampHoleMinX;
+            float shaftCenterX = (s.RampHoleMinX + s.RampHoleMaxX) / 2f;
+            float doorZ = RampDoorZ(s);
+
             GameObject rampDoor = Marker(doors, "Door_To_Ramp",
-                new Vector3(s.RampX, 1.25f, s.RampStartZ - 0.5f));
+                new Vector3(shaftCenterX, 1.25f, doorZ));
             BuildDoorLeaf(rampDoor, s,
-                new Vector3(s.RampX, s.DoorHeight / 2f, s.RampStartZ - 0.5f),
-                new Vector3(s.RampWidth + 0.8f, s.DoorHeight, s.WallThickness * 1.5f));
+                new Vector3(shaftCenterX, s.UpperFloorY / 2f, doorZ),
+                new Vector3(shaftWidth, s.UpperFloorY, s.WallThickness * 1.5f));
 
             Transform buys = Group("Purchases", markers);
             Marker(buys, "WallBuy_A_Cheap", new Vector3(s.West + 0.5f, 1.4f, s.South + 2f));
             Marker(buys, "WallBuy_B_Mid", new Vector3(s.East - 0.5f, 1.4f, s.North - 2f));
 
-            // Tezgah (M-03): baslangic bolgesinde, duvar silahindan AYRI bir duvarda.
-            // Yan yana olsalardi hangi tusun ne actigi karisirdi; ayri yerlerde
-            // olmalari "buraya mermi icin, suraya yukseltme icin gidilir" ayrimini
-            // haritanin kendisine yaziyor.
-            Marker(buys, "Shop_Station", new Vector3(s.West + 0.5f, 1.4f, s.North - 3f));
+            // Tezgah (M-03): UST KATTA (2026-09-05, gelistirici karari).
+            //
+            // Baslangicta zemin kattaydi ve baslangic odasindan cikmadan ulasilabiliyordu -
+            // yani yukseltme almak icin haritayi acmak gerekmiyordu. Ust kata tasinmasi
+            // tezgahi kapinin ARKASINA koyar: once 1250 puanla ust kati ac, sonra
+            // yukselt. Bu, kapinin fiyatina bir sebep verir ve tezgahi bir hedef yapar.
+            //
+            // Dagiticidan (MysteryBox) uzak bir duvarda: yan yana olsalardi hangi tusun
+            // ne actigi karisirdi.
+            Marker(buys, "Shop_Station",
+                   new Vector3(s.West + 0.5f, s.UpperFloorY + 1.4f, s.North - 3f));
             Marker(buys, "MysteryBox", new Vector3(s.Divider + 2f, s.UpperFloorY + 0.5f, midZ));
         }
 

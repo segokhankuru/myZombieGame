@@ -21,4 +21,5 @@
   <Project Path="Bunker.UI.csproj" />
   <Project Path="Mirror.CompilerSymbols.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Bunker.Audio.csproj" />
 </Solution>

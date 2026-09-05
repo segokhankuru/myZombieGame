@@ -1,4 +1,5 @@
 using System;
+using Bunker.Audio;
 using Bunker.Systems.Ai;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Config;
@@ -40,6 +41,17 @@ namespace Bunker.AI
                  "kesmesi (culling) sonradan degil bastan kurulmali.")]
         [SerializeField] private Animator animator;
 
+        [Header("Govde parcalari (surunme icin)")]
+        [Tooltip("Butun gorselin kokü. Zombi surunmeye dustugunde EGILEN ve ALCALAN sey " +
+                 "bu - tek tek parcalar degil.")]
+        [SerializeField] private Transform visualRig;
+
+        [Tooltip("Sol bacak. Koptugunda gizlenir ve yere bir parca dusurulur.")]
+        [SerializeField] private GameObject legLeft;
+
+        [Tooltip("Sag bacak.")]
+        [SerializeField] private GameObject legRight;
+
         [Header("Hata ayiklama")]
         [Tooltip("Durum rengi ve gizmo. Ilk oyun testinde masrafini cikarir (ai-code.md).")]
         [SerializeField] private bool debugVisuals = true;
@@ -75,6 +87,26 @@ namespace Bunker.AI
         private float _cardSlowMultiplier = 1f;
 
         private float _baseSpeed;
+
+        // --- surunme (2026-09-05) ---
+        // Bacak basina emilen hasar. Esigi asan bacak KOPAR ve zombi surunmeye duser.
+        private float _legDamageLeft;
+        private float _legDamageRight;
+        private bool _legLostLeft;
+        private bool _legLostRight;
+        private bool _crawling;
+
+        private CapsuleCollider _bodyCollider;
+        private Vector3 _rigHomePosition;
+        private Quaternion _rigHomeRotation;
+        private float _standHeight;
+        private Vector3 _standCenter;
+        private float _agentStandHeight;
+
+        // Ortam homurtusu: arkadan gelen zombinin DUYULMASI icin. Her zombi kendi
+        // sayacini tutar, hepsi ayni anda inlemesin diye rastgele baslar.
+        private float _groanTimer;
+
         private bool _dying;
         private float _deathTimer;
         private Quaternion _deathStartRotation;
@@ -120,6 +152,26 @@ namespace Bunker.AI
 
             if (bodyRenderer == null) bodyRenderer = GetComponentInChildren<Renderer>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
+
+            // Ayakta duran halin olculeri BIR KEZ okunur: surunmeden ayaga donerken
+            // geri yazilacak degerler bunlar. Prefab'tan her seferinde okumak yerine
+            // burada saklamak, havuzdan cikan zombinin onceki hayatinin egik govdesini
+            // tasimasini imkansiz kilar (systems-code.md).
+            _bodyCollider = GetComponent<CapsuleCollider>();
+
+            if (_bodyCollider != null)
+            {
+                _standHeight = _bodyCollider.height;
+                _standCenter = _bodyCollider.center;
+            }
+
+            _agentStandHeight = _navAgent.height;
+
+            if (visualRig != null)
+            {
+                _rigHomePosition = visualRig.localPosition;
+                _rigHomeRotation = visualRig.localRotation;
+            }
 
             // Her zombi kendi fazinda dusunur. Ayni karede dusunen 40 zombi, o karede
             // 40 yol istegi demektir; kaydirmak ayni is yukunu zamana yayar.
@@ -177,6 +229,15 @@ namespace Bunker.AI
             // olmasaydi bir saat oynadiktan sonra ortaya cikan turden bir hata olurdu:
             // yeni dogan zombiler sebepsiz yavas.
             _cardSlowMultiplier = 1f;
+
+            // Havuzdan cikan zombi ONCEKI HAYATININ KOPMUS BACAGIYLA dogamaz. Bu
+            // sifirlama olmasaydi bir saat oynadiktan sonra havuzun tamami surunen
+            // zombilerden olusurdu ve sebebi cok uzakta gorunurdu.
+            RestoreLimbs();
+
+            // Homurtu sayaci rastgele baslar: kirk zombinin ayni anda inlemesi tek bir
+            // ugultu olur ve YON bilgisi kaybolur - sesin butun isi zaten o.
+            _groanTimer = UnityEngine.Random.Range(0.5f, 4f);
 
             // Once ajani KAPAT, sonra konumu yaz: acik bir ajan transform yazmasini
             // yok sayar ve nesneyi kendi ic konumuna geri ceker.
@@ -366,9 +427,13 @@ namespace Bunker.AI
                 // Beynin sendeleme carpaniyla CARPILIR, toplanmaz: ikisi ayri
                 // katman (SYS-02 §3.1) ve toplansalardi sendeleme sirasinda
                 // yavaslatma etkisiz kalirdi.
-                _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier * _cardSlowMultiplier;
+                // Surunme carpani da CARPILIR: bacagi kopmus ve ayrica yavaslatilmis
+                // bir zombi iki etkiyi birden tasimali.
+                _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier * _cardSlowMultiplier *
+                                  (_crawling ? _config.CrawlSpeedMultiplier : 1f);
             }
 
+            TickGroan(thinkDelta);
             DriveMovement(thinkDelta);
         }
 
@@ -378,14 +443,50 @@ namespace Bunker.AI
             {
                 case ZombieState.Vaulting:
                     BeginVault();
+                    GameAudio.PlayAt(SfxId.ZombieVault, _transform.position);
                     break;
 
                 case ZombieState.Stuck:
                     RecoverFromStuck();
                     break;
+
+                case ZombieState.WindingUp:
+                    // Telegrafın SESLİ yarısı. Ekrandaki renk değişimi yalnızca zombiye
+                    // BAKAN oyuncuya bir şey söyler; arkadan gelen zombinin hazırlığı
+                    // yalnızca sesle okunabilir (ai-code.md: her anlamlı eylemin
+                    // okunabilir bir hazırlığı olmalı).
+                    GameAudio.PlayAt(SfxId.ZombieAttack, _transform.position);
+                    break;
+
+                case ZombieState.Chasing when from == ZombieState.Emerging ||
+                                              from == ZombieState.Vaulting:
+                    GameAudio.PlayAt(SfxId.ZombieAlert, _transform.position);
+                    break;
             }
 
             if (from == ZombieState.Vaulting) EndVault();
+        }
+
+        /// <summary>
+        /// Aralıklı homurtu. <b>Oyunun en ucuz gerilim aracı ve M-01'in en büyük
+        /// eksiği:</b> arkadan gelen zombi duyulmuyorsa oyuncunun arkasını dönmesi için
+        /// bir sebep yoktur, yani harita bilgisi tek yönlü kalır.
+        ///
+        /// <para>Ses 3B: yön ve mesafe taşır. Aralık rastgele, çünkü düzenli aralıklı
+        /// bir ses birkaç dakika sonra duyulmaz olur.</para>
+        /// </summary>
+        private void TickGroan(float dt)
+        {
+            _groanTimer -= dt;
+            if (_groanTimer > 0f) return;
+
+            _groanTimer = UnityEngine.Random.Range(3.5f, 8f);
+
+            // Yalnizca binaya girmis ya da yaklasan zombi inler; henuz belirmekte olan
+            // zombinin sesi, oyuncuya daha dogmadan yer bildirirdi.
+            if (_brain.State == ZombieState.Emerging || _brain.State == ZombieState.Dead) return;
+
+            GameAudio.PlayAt(SfxId.ZombieGroan, _transform.position);
         }
 
         // ---------------------------------------------------------------- hareket
@@ -541,7 +642,18 @@ namespace Bunker.AI
             _target.ReceiveAttack(_config.AttackDamage);
         }
 
-        public DamageResult ApplyDamage(in DamageInfo damage)
+        public DamageResult ApplyDamage(in DamageInfo damage) =>
+            ApplyDamageToPart(damage, ZombiePart.Body);
+
+        /// <summary>
+        /// Hasarı <b>nereye geldiğini bilerek</b> uygular. Vuruş kutusu çağırır
+        /// (<see cref="ZombieHitbox"/>); silah hangi parçaya isabet ettiğini bilmez.
+        ///
+        /// <para><b>Bacak ayrı sayılır:</b> yeterince hasar emen bacak kopar ve zombi
+        /// ölmeden sürünmeye düşer. Bu, nişan almanın ikinci ödülüdür — kafa bitirir,
+        /// bacak yavaşlatır — ve kalabalığın içine ritim farkı koyar.</para>
+        /// </summary>
+        public DamageResult ApplyDamageToPart(in DamageInfo damage, ZombiePart part)
         {
             if (!_initialized) return default;
 
@@ -568,7 +680,152 @@ namespace Bunker.AI
             ApplyKnockback();
             ApplyDebugColor();
 
+            GameAudio.PlayAt(SfxId.ZombieHurt, _transform.position);
+
+            AccumulateLimbDamage(part, result.Absorbed);
+
             return result;
+        }
+
+        // ---------------------------------------------------------------- surunme
+
+        /// <summary>
+        /// Bacağa gelen hasarı biriktirir ve eşiği aşınca bacağı koparır.
+        ///
+        /// <para><b>Eşik tur canına oranlıdır</b>, sabit bir sayı değil: 25 000 canlı
+        /// bir tur 30 zombisinin bacağını iki mermide koparmak, geç turlarda sürünün
+        /// tamamını yerde sürünen bir kalabalığa çevirirdi.</para>
+        ///
+        /// <para>Ölüm bunun önündedir: yeterli hasar zaten zombiyi öldürür. Yani bacak
+        /// koparmak, <b>öldürmeye yetmeyen</b> isabetlerin ödülüdür.</para>
+        /// </summary>
+        private void AccumulateLimbDamage(ZombiePart part, float absorbed)
+        {
+            if (absorbed <= 0f) return;
+            if (part != ZombiePart.LegLeft && part != ZombiePart.LegRight) return;
+
+            float threshold = _health.Max * _config.CrawlLegBreakHealthFraction;
+            if (threshold <= 0f) return;
+
+            if (part == ZombiePart.LegLeft)
+            {
+                if (_legLostLeft) return;
+
+                _legDamageLeft += absorbed;
+                if (_legDamageLeft >= threshold) BreakLeg(true);
+            }
+            else
+            {
+                if (_legLostRight) return;
+
+                _legDamageRight += absorbed;
+                if (_legDamageRight >= threshold) BreakLeg(false);
+            }
+        }
+
+        private void BreakLeg(bool left)
+        {
+            GameObject leg = left ? legLeft : legRight;
+
+            if (left) _legLostLeft = true;
+            else _legLostRight = true;
+
+            if (leg != null)
+            {
+                DropSeveredLeg(leg);
+                leg.SetActive(false);
+            }
+
+            GameAudio.PlayAt(SfxId.ZombieLegBreak, _transform.position);
+
+            if (!_crawling) EnterCrawl();
+        }
+
+        /// <summary>
+        /// Kopan bacağı yere düşürür. <b>Zombinin kendi bacağı kullanılmaz</b> —
+        /// o havuzlanmış bir nesnenin parçasıdır ve sahneye bırakılırsa bir sonraki
+        /// doğumda geri gelmez (systems-code.md: havuzun sıfırlama sözleşmesi).
+        /// </summary>
+        private void DropSeveredLeg(GameObject source)
+        {
+            var renderer = source.GetComponent<Renderer>();
+            if (renderer == null) return;
+
+            GameObject piece = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            piece.name = "SeveredLeg";
+            piece.transform.SetPositionAndRotation(source.transform.position,
+                                                   source.transform.rotation);
+            piece.transform.localScale = source.transform.lossyScale;
+
+            var pieceRenderer = piece.GetComponent<Renderer>();
+            pieceRenderer.sharedMaterial = renderer.sharedMaterial;
+            pieceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            // Carpistirici kapali: yerdeki bir bacaga oyuncunun ya da baska zombilerin
+            // takilmasi, okunabilirligi (PILLAR-04) bir goruntu ucuna satmak olurdu.
+            Destroy(piece.GetComponent<Collider>());
+
+            // Kisa omur: cesetler gibi bunlar da birikirse hem kare butcesi hem
+            // okunabilirlik bozulur.
+            Destroy(piece, 8f);
+        }
+
+        /// <summary>
+        /// Zombiyi sürünmeye düşürür: gövde eğilir, alçalır, yavaşlar.
+        ///
+        /// <para><b>Çarpıştırıcı da alçalır.</b> Yalnızca görseli eğmek, yerde sürünen
+        /// bir zombiyi havada duran görünmez bir kapsülden vurulur hâlde bırakırdı —
+        /// oyuncunun "vuruyorum ama gitmiyor" diye okuyacağı cinsten bir hata.</para>
+        /// </summary>
+        private void EnterCrawl()
+        {
+            _crawling = true;
+
+            float height = Mathf.Max(0.3f, _config.CrawlBodyHeightMeters);
+
+            if (visualRig != null)
+            {
+                // Kok kalca hizasinda duruyor (prefab boyle kuruluyor), yani buradan
+                // dondurmek govdeyi ONE ve ASAGI yatirir - ayaklarindan dondurmek
+                // zombiyi bir metre one atardi.
+                visualRig.localPosition = new Vector3(_rigHomePosition.x, height * 0.5f, _rigHomePosition.z);
+                visualRig.localRotation = _rigHomeRotation * Quaternion.Euler(75f, 0f, 0f);
+            }
+
+            if (_bodyCollider != null)
+            {
+                _bodyCollider.height = height;
+                _bodyCollider.center = new Vector3(_standCenter.x, height * 0.5f, _standCenter.z);
+            }
+
+            if (_navAgent != null) _navAgent.height = height;
+        }
+
+        /// <summary>Ayaklara ve ayakta duran gövdeye geri döner. Yalnızca doğumda.</summary>
+        private void RestoreLimbs()
+        {
+            _legDamageLeft = 0f;
+            _legDamageRight = 0f;
+            _legLostLeft = false;
+            _legLostRight = false;
+            _crawling = false;
+
+            if (legLeft != null) legLeft.SetActive(true);
+            if (legRight != null) legRight.SetActive(true);
+
+            if (visualRig != null)
+            {
+                visualRig.localPosition = _rigHomePosition;
+                visualRig.localRotation = _rigHomeRotation;
+            }
+
+            if (_bodyCollider != null && _standHeight > 0f)
+            {
+                _bodyCollider.height = _standHeight;
+                _bodyCollider.center = _standCenter;
+            }
+
+            if (_navAgent != null && _agentStandHeight > 0f) _navAgent.height = _agentStandHeight;
         }
 
         /// <summary>
@@ -599,6 +856,8 @@ namespace Bunker.AI
 
             // Ceset carpismasi kalirsa oyuncu ve diger zombiler olulere takilir.
             SetCollidersEnabled(false);
+
+            GameAudio.PlayAt(SfxId.ZombieDeath, _transform.position);
 
             // Oldurme HEMEN bildirilir: puan ve tur sayaci beklemez. Cesedin sahnede
             // kalmasi gorsel bir mesele, oyun mantiginin degil.

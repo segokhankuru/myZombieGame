@@ -8,8 +8,8 @@ Farkı: klasik zombi modunun 20. turu her run aynıdır; kart sistemi her run'ı
 **Target player:** Tur bazlı zombi modunu bilen, arkadaş grubuyla oynayan, roguelite build
 sistemlerinden keyif alan oyuncu.
 **Platform:** PC / Steam. 1080p/60, orta seviye genel donanım.
-**Stage:** preproduction
-**Milestone:** **M-01 Solo Çekirdek Döngü** — 13 işten 2'si kapandı, 9'u kod olarak bitti
+**Stage:** production
+**Milestone:** **M-01 Solo Çekirdek Döngü** — 13 işin 13ü kod olarak bitti, 2si kanıtla kapandı; kalan kanıt oyun testi
 **Review mode:** lean
 
 ## Pillars
@@ -50,6 +50,7 @@ prototipte bile girmez.
 | Render pipeline | URP (Forward+) | ADR-0003 |
 | Netcode | Mirror (MIT), host otoriteli, hareket client-authoritative | ADR-0004 |
 | Transport | KCP (yerel) → FizzySteamworks (M-02) | ADR-0004 |
+| Ses | Varlıksız: `Bunker.Audio` sesleri çalışma anında sentezler | ADR-0006 |
 
 **ADR-0001 supersede edildi** (FishNet). Gerekçe zinciri belgede duruyor.
 
@@ -63,6 +64,7 @@ Detay: `docs/architecture/PERF-BUDGET.md`
 ```
 Bunker.Systems   saf C#, Unity'ye ve Mirror'a KAPALI (noEngineReferences)
 Bunker.Config    config/*.json dosyalarindan URETILEN ayar siniflari (ADR-0005)
+Bunker.Audio     ses servisi; yalnizca Systems e bakar, kimse ondan bir sey beklemez (ADR-0006)
 Bunker.Gameplay  Bunker.Net  Bunker.AI  Bunker.UI  Bunker.Editor
 Bunker.Systems.Tests
 ```
@@ -76,9 +78,14 @@ Detay: `docs/architecture/ARCHITECTURE.md`
 tur akışı · M1-06 silah · M1-07 bıçak · M1-08 barikat · M1-09 kapı · M1-10 duvar
 silahı · M1-11 ölüm/skor ekranı · M1-12 telemetri · M1-13 vuruş hissi
 
-**Sıradaki: kod değil, oynamak.** Protokol hazır:
-`docs/qa/playtests/PT-01-ck17-tekrar-oynatiyor-mu.md` — üç seans (shakedown → kapalı
-zarflı öz test → arkadaşlar). **Build hazır:** `Bunker.exe` çıkıyor ve açılıyor.
+**İki oyun testi koşuldu** (2026-09-05). İkincisinin sekiz bulgusu kapatıldı: el modeli
+(silah + bıçak görünür), üst kat kapısı artık atlanamıyor (rampa kapalı merdiven
+boşluğu), tezgâh üst katta, mermi 250 puan, zombi hızlanması yavaşlatıldı, zombiye gövde
+ve kopan bacak (sürünme), **ses geldi** (ADR-0006). Detay: `docs/DECISIONS.md`.
+
+**Sıradaki yine kod değil, oynamak.** Protokol:
+`docs/qa/playtests/PT-01-ck17-tekrar-oynatiyor-mu.md` — kalan iki seans (kapalı zarflı öz
+test → arkadaşlar). **Build hazır:** `Bunker.exe` çıkıyor ve açılıyor.
 
 **Çıkış kriterleri (2026-09-04):**
 
@@ -91,9 +98,9 @@ zarflı öz test → arkadaşlar). **Build hazır:** `Bunker.exe` çıkıyor ve 
 | ÇK-16 Unity'siz test | ✅ 263 test yeşil |
 | **ÇK-17 tekrar oynatıyor mu** | 🔶 **ilk sinyal olumlu** (7 dk, "keyifliydi") ama 20 dk değil; kartlar girdiği için temiz kontrol grubu artık ölçülemez |
 
-**Oyun testinde aranacak iki bulgu** (`design/economy/curves.md`): mermi seferleri turu
-parçalıyor (tur 14'te 15 sefer, PILLAR-03 ihlali) ve geç oyunda harcanacak bir şey
-kalmıyor. İkisi de simülasyondan çıktı, hiçbir değer değiştirilmedi.
+**Oyun testinde aranacak bulgu** (`design/economy/curves.md`): geç oyunda harcanacak bir
+şey kalmıyor. "Mermi seferleri turu parçalıyor" bulgusu ilk oyun testinde ABARTILI çıktı
+(gerçek oyuncu %76 kafa vuruşu yapıyor, model %25 varsayıyordu).
 
 **Not:** M1-06 bir `Feel` işi; DoD'si `/feel-check` notunu zorunlu kılıyor
 **Altyapı:** config importer (ADR-0005) — denge sayıları tek kaynakta ·
@@ -101,10 +108,8 @@ zombi konum seam'i kilitlendi: tek paket, 12 bayt/zombi, 10 Hz ·
 **telemetri hattı** (M1-12): her run `telemetry/runs.jsonl`'a bir satır,
 `.claude/tools/telemetry.ps1` özetler ve ÇK-13'ü cevaplar
 **Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
-**Borç:** kurulum aracı her çalıştırmada bir NavMesh varlığı bırakıyor — 25 orphan
-birikti (`editor-tools.md` idempotency ihlali)
 
-**Toplam 234 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
+**Toplam 263 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
 `.claude/tools/unity-test.ps1`, `.claude/tools/unity-exec.ps1`.
 
 **Oyun testinde bulunan 5 hata düzeltildi** (BUG-001…005, `docs/qa/bugs/`). Ortak ders:

@@ -67,23 +67,23 @@ namespace Bunker.Config
         [Header("speed")]
         [Tooltip("Erken tur hizi. Oyuncu yuruyus hizindan belirgin yavas olmali ki ilk turlar ogretici olsun.")]
         [Range(0.8f, 2.5f)]
-        [SerializeField] private float speedWalkMetersPerSecond = 1.4f;
+        [SerializeField] private float speedWalkMetersPerSecond = 1.3f;
 
         [Tooltip("Orta tur hizi. Oyuncu hizina yakin - artik kacmak yetmez, rota gerekir.")]
         [Range(2f, 4.5f)]
-        [SerializeField] private float speedJogMetersPerSecond = 2.9f;
+        [SerializeField] private float speedJogMetersPerSecond = 2.2f;
 
         [Tooltip("Gec tur hizi. Oyuncudan hizli olmali; bu andan sonra hayatta kalmanin tek yolu kosu dongusudur (LVL-01).")]
         [Range(3.5f, 7f)]
-        [SerializeField] private float speedRunMetersPerSecond = 4.6f;
+        [SerializeField] private float speedRunMetersPerSecond = 3.6f;
 
         [Tooltip("Bu tura kadar zombiler yurur.")]
         [Range(1, 10)]
-        [SerializeField] private int speedWalkUntilRound = 4;
+        [SerializeField] private int speedWalkUntilRound = 6;
 
         [Tooltip("Bu tura kadar tempolu, sonrasinda kosar. Erken gelirse oyuncu haritayi ogrenemeden panige girer.")]
         [Range(2, 20)]
-        [SerializeField] private int speedJogUntilRound = 8;
+        [SerializeField] private int speedJogUntilRound = 12;
 
         [Header("pacing")]
         [Tooltip("Turlar arasi nefes molasi. Cok kisa olursa PILLAR-03'un ritmi bozulur ve oyun yorucu olur; cok uzun olursa gerilim soguр.")]

@@ -1,13 +1,13 @@
 {
   "$schema": "../schema/zombie.schema.json",
-  "version": 1,
+  "version": 2,
   "_meta": {
     "owner": "ai-programmer",
     "system": "SYS-zombi",
-    "lastTuned": "2026-09-02"
+    "lastTuned": "2026-09-05"
   },
 
-  "_note": "M1-04 baslangic degerleri. Zombinin tura gore degisen ozellikleri (can, hiz, adet) rounds.json'da; burasi tur numarasindan bagimsiz karakteri: ne kadar once telefonu belli eder, pencereyi kac saniyede asar, kac vurur. Hicbiri kanit degil, hepsi hipotez - ilk oyun testinde kalibre edilecek.",
+  "_note": "v2 (2026-09-05): crawl bolumu eklendi - bacagi koparilan zombi surunerek devam eder. M1-04 baslangic degerleri. Zombinin tura gore degisen ozellikleri (can, hiz, adet) rounds.json'da; burasi tur numarasindan bagimsiz karakteri: ne kadar once telefonu belli eder, pencereyi kac saniyede asar, kac vurur. Hicbiri kanit degil, hepsi hipotez - ilk oyun testinde kalibre edilecek.",
 
   "spawn": {
     "emergeDelaySeconds": 0.6
@@ -32,6 +32,12 @@
     "headshotFlinchMultiplier": 2.0,
     "knockbackMeters": 0.25,
     "deathLingerSeconds": 0.7
+  },
+
+  "crawl": {
+    "legBreakHealthFraction": 0.30,
+    "speedMultiplier": 0.45,
+    "bodyHeightMeters": 0.55
   },
 
   "navigation": {

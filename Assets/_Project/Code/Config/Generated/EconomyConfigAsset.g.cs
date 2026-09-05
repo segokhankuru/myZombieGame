@@ -19,7 +19,7 @@ namespace Bunker.Config
     /// </summary>
     public sealed class EconomyConfigAsset : ScriptableObject
     {
-        [SerializeField] private int version = 2;
+        [SerializeField] private int version = 3;
 
         [Header("awards")]
         [Tooltip("Oldurmeyen her isabet. Bu deger oyuncunun 'silahim ise yariyor' hissinin ekonomik karsiligi - sifira yakinsa gec turlarda kalin canli zombilere ates etmek bedava is gibi hissettirir.")]
@@ -77,6 +77,10 @@ namespace Bunker.Config
         [Range(1, 40)]
         [SerializeField] private int ammoMagazinesPerPurchase = 5;
 
+        [Tooltip("Duvardan bir mermi aliminin fiyati. Silah bandindan (prices.wallWeapon*) AYRI bir sayi: o bant ileride gercek silahlar icin, bu yalnizca mermi muslugu. Dusurursen mermi bedavaya yakinlasir ve puanin tek harcama yeri kapilar olur - tur ekonomisi tek yonlu kalir; buyutursen oyuncu her turu bicakla gecirmek zorunda kalir ve silah tasimanin sebebi kaybolur.")]
+        [Range(50, 3000)]
+        [SerializeField] private int ammoRefillCost = 250;
+
         /// <summary>Saf C# karsiligini uretir. Boot bunu bir kez cagirir.</summary>
         public EconomyConfig ToRuntime()
         {
@@ -94,7 +98,8 @@ namespace Bunker.Config
                 pricesWallWeaponCheap,
                 pricesWallWeaponMid,
                 pricesMysteryBox,
-                ammoMagazinesPerPurchase);
+                ammoMagazinesPerPurchase,
+                ammoRefillCost);
         }
     }
 }

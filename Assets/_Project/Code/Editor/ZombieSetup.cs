@@ -158,11 +158,17 @@ namespace Bunker.Editor
 
             try
             {
-                // --- govde carpismasi: isinlarin isabet ettigi yer
+                // --- govde carpismasi: GOVDE kutusu, artik butun zombi degil.
+                //
+                // Onceki surumde 1.8 m'lik tek bir kapsul butun zombiyi kapsiyordu ve
+                // ISININ ONUNDE DURUYORDU: icine yerlestirilen bacak ya da kafa
+                // kutulari hicbir zaman vurulamazdi, cunku isin once en distaki
+                // yuzeye carpar. Uye bazli isabet isteniyorsa govde kutusu govdeyle
+                // sinirli olmak zorunda (2026-09-05).
                 var body = root.AddComponent<CapsuleCollider>();
-                body.height = 1.8f;
-                body.radius = 0.35f;
-                body.center = new Vector3(0f, 0.9f, 0f);
+                body.height = 0.78f;
+                body.radius = 0.30f;
+                body.center = new Vector3(0f, 1.21f, 0f);
 
                 // --- navigasyon
                 var agent = root.AddComponent<NavMeshAgent>();
@@ -185,51 +191,84 @@ namespace Bunker.Editor
                 // (PILLAR-04, kaosta okunabilirlik).
                 agent.obstacleAvoidanceType = ObstacleAvoidanceType.MedQualityObstacleAvoidance;
 
-                // --- gorsel (gri kutu)
-                GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                visual.name = "Visual";
-                visual.transform.SetParent(root.transform, false);
-                visual.transform.localPosition = new Vector3(0f, 0.9f, 0f);
-                visual.transform.localScale = new Vector3(0.7f, 0.9f, 0.7f);
-                UnityEngine.Object.DestroyImmediate(visual.GetComponent<Collider>());
+                // --- gorsel: KALCADAN asagi ve yukari kurulan bir govde
+                //
+                // Onceki surum tek bir kapsuldu. Silindirin iki sorunu vardi: hangi
+                // yone baktigi okunmuyordu ve UYESI olmadigi icin bacak koparilamiyordu.
+                // Uyeler ayri nesneler oldugunda ikisi de cozuluyor - hala gri kutu,
+                // ama artik bir SILUET.
+                //
+                // Kok kalca hizasinda (0.85 m): surunmeye dusen zombi buradan one
+                // yatirilir. Ayak hizasindan dondurmek govdeyi bir metre one atardi
+                // (ZombieAgent.EnterCrawl).
+                var rig = new GameObject("Rig");
+                rig.transform.SetParent(root.transform, false);
+                rig.transform.localPosition = new Vector3(0f, 0.85f, 0f);
 
-                var visualRenderer = visual.GetComponent<Renderer>();
-                visualRenderer.sharedMaterial = material;
+                Transform rigT = rig.transform;
 
-                // --- kafa: hem gorsel yon ipucu hem kafa vurusu kutusu
-                GameObject head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                head.name = "Head";
-                head.transform.SetParent(root.transform, false);
-                head.transform.localPosition = new Vector3(0f, 1.72f, 0f);
-                head.transform.localScale = new Vector3(0.36f, 0.36f, 0.36f);
-                head.GetComponent<Renderer>().sharedMaterial = material;
+                GameObject torso = Limb(rigT, "Torso", PrimitiveType.Capsule,
+                                       new Vector3(0f, 0.35f, 0f), Quaternion.identity,
+                                       new Vector3(0.46f, 0.34f, 0.32f), material, false);
 
-                // --- burun: gri kapsul hangi yone baktigini soylemez. Zombinin
-                //     nereye dondugu telegrafin yarisidir.
-                GameObject nose = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                nose.name = "FacingMarker";
-                nose.transform.SetParent(root.transform, false);
-                nose.transform.localPosition = new Vector3(0f, 1.72f, 0.22f);
-                nose.transform.localScale = new Vector3(0.12f, 0.12f, 0.18f);
-                UnityEngine.Object.DestroyImmediate(nose.GetComponent<Collider>());
-                nose.GetComponent<Renderer>().sharedMaterial = material;
+                var visualRenderer = torso.GetComponent<Renderer>();
+
+                GameObject head = Limb(rigT, "Head", PrimitiveType.Sphere,
+                                       new Vector3(0f, 0.87f, 0.02f), Quaternion.identity,
+                                       new Vector3(0.36f, 0.36f, 0.36f), material, true);
+
+                // Burun: yuz hangi yone bakiyor. Zombinin nereye dondugu telegrafin
+                // yarisidir (ai-code.md).
+                Limb(rigT, "FacingMarker", PrimitiveType.Cube,
+                     new Vector3(0f, 0.86f, 0.22f), Quaternion.identity,
+                     new Vector3(0.12f, 0.10f, 0.16f), material, false);
+
+                // Kollar ONE uzanir: silueti tek bakista "zombi" yapan sey bu, ve
+                // kalabalikta hangi zombinin sana dondugunu uzaktan okutur.
+                Limb(rigT, "ArmL", PrimitiveType.Capsule,
+                     new Vector3(-0.30f, 0.50f, 0.16f), Quaternion.Euler(78f, 0f, 0f),
+                     new Vector3(0.15f, 0.30f, 0.15f), material, false);
+
+                Limb(rigT, "ArmR", PrimitiveType.Capsule,
+                     new Vector3(0.30f, 0.50f, 0.16f), Quaternion.Euler(78f, 0f, 0f),
+                     new Vector3(0.15f, 0.30f, 0.15f), material, false);
+
+                // Bacaklar CARPISTIRICILI: vurulabilir olmalari isin meselesi.
+                GameObject legLeft = Limb(rigT, "LegLeft", PrimitiveType.Capsule,
+                                          new Vector3(-0.13f, -0.43f, 0f), Quaternion.identity,
+                                          new Vector3(0.22f, 0.43f, 0.22f), material, true);
+
+                GameObject legRight = Limb(rigT, "LegRight", PrimitiveType.Capsule,
+                                           new Vector3(0.13f, -0.43f, 0f), Quaternion.identity,
+                                           new Vector3(0.22f, 0.43f, 0.22f), material, true);
 
                 // --- beyin
                 var zombie = root.AddComponent<ZombieAgent>();
                 SetPrivateField(zombie, "bodyRenderer", visualRenderer);
                 SetPrivateField(zombie, "debugVisuals", true);
+                SetPrivateField(zombie, "visualRig", rigT);
+                SetPrivateField(zombie, "legLeft", legLeft);
+                SetPrivateField(zombie, "legRight", legRight);
 
-                // --- vurus kutulari
+                // --- vurus kutulari: her biri kendi anatomisini bilir
                 var bodyHitbox = root.AddComponent<ZombieHitbox>();
-                SetPrivateField(bodyHitbox, "head", false);
+                SetPrivateField(bodyHitbox, "part", ZombiePart.Body);
                 SetPrivateField(bodyHitbox, "owner", zombie);
 
                 // Gelistirme araci: kafanin ustunde can bari (yayin oncesi kapatilir).
                 root.AddComponent<ZombieHealthBar>();
 
                 var headHitbox = head.AddComponent<ZombieHitbox>();
-                SetPrivateField(headHitbox, "head", true);
+                SetPrivateField(headHitbox, "part", ZombiePart.Head);
                 SetPrivateField(headHitbox, "owner", zombie);
+
+                var legLeftHitbox = legLeft.AddComponent<ZombieHitbox>();
+                SetPrivateField(legLeftHitbox, "part", ZombiePart.LegLeft);
+                SetPrivateField(legLeftHitbox, "owner", zombie);
+
+                var legRightHitbox = legRight.AddComponent<ZombieHitbox>();
+                SetPrivateField(legRightHitbox, "part", ZombiePart.LegRight);
+                SetPrivateField(legRightHitbox, "owner", zombie);
 
                 return PrefabUtility.SaveAsPrefabAsset(root, ZombiePrefabPath);
             }
@@ -237,6 +276,32 @@ namespace Bunker.Editor
             {
                 UnityEngine.Object.DestroyImmediate(root);
             }
+        }
+
+        /// <summary>
+        /// Zombinin bir uzvunu kurar.
+        ///
+        /// <para><b>Çarpıştırıcı isteğe bağlı ve bilerek:</b> yalnızca <i>vurulabilir</i>
+        /// olması gereken uzuvlar (kafa, bacaklar) çarpıştırıcı taşır. Kolun kutusu
+        /// olsaydı gövdeye nişan alan her atış kola girer ve gövde vuruşu diye bir şey
+        /// kalmazdı — fazladan çarpıştırıcı, ücretsiz bir ayrıntı değil bir davranış
+        /// değişikliğidir.</para>
+        /// </summary>
+        private static GameObject Limb(Transform parent, string name, PrimitiveType shape,
+                                       Vector3 localPosition, Quaternion localRotation,
+                                       Vector3 localScale, Material material, bool keepCollider)
+        {
+            GameObject go = GameObject.CreatePrimitive(shape);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPosition;
+            go.transform.localRotation = localRotation;
+            go.transform.localScale = localScale;
+
+            if (!keepCollider) UnityEngine.Object.DestroyImmediate(go.GetComponent<Collider>());
+
+            go.GetComponent<Renderer>().sharedMaterial = material;
+            return go;
         }
 
         private static Material LoadOrCreateMaterial()
@@ -413,7 +478,6 @@ namespace Bunker.Editor
                 EnsureInteractionTrigger(marker, new Vector3(1.4f, 1.4f, 0.8f));
 
                 SetPrivateField(wall, "economyConfig", economy);
-                SetPrivateField(wall, "midTier", name.EndsWith("Mid"));
                 SetPrivateField(wall, "displayName", "MERMI");
 
                 weapons++;
@@ -519,6 +583,24 @@ namespace Bunker.Editor
                 changed = true;
                 Debug.Log("[Zombi] Oyuncu kamerasi 'MainCamera' olarak etiketlendi.");
             }
+
+            // --- ses dinleyicisi: 3B sesin YONU bunun bulundugu yerden hesaplanir.
+            //     Kamerada degil de kokte olsaydi zombinin sagdan mi soldan mi geldigi
+            //     oyuncu dondugunde degismezdi - yani ses hicbir sey soylemezdi.
+            if (playerCamera != null && playerCamera.GetComponent<AudioListener>() == null)
+            {
+                playerCamera.gameObject.AddComponent<AudioListener>();
+                changed = true;
+                Debug.Log("[Zombi] Oyuncu kamerasina AudioListener eklendi.");
+            }
+
+            // --- el modeli (2026-09-05): silah ve bicak artik GORUNUYOR.
+            var viewmodel = player.GetComponent<PlayerViewmodel>();
+            if (viewmodel == null) { viewmodel = player.AddComponent<PlayerViewmodel>(); changed = true; }
+
+            SetPrivateField(viewmodel, "playerCamera", playerCamera);
+            SetPrivateField(viewmodel, "weapon", weapon);
+            SetPrivateField(viewmodel, "melee", melee);
 
             SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
             SetPrivateField(weapon, "tracer", line);

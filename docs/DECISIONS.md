@@ -18,11 +18,8 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | Ödül sistemi: 4 katman + kusursuz tur ödülü onaylandı | kullanıcı | Yarış üretmeden tanıma üretmek; meta para havuz açar, güç vermez | design/systems/SYS-01-odul-ve-taninma.md |
 | 2026-08-29 | Harita: 3 bölgeli iki katlı tek bina yapısı, geometri özgün | kullanıcı | Yapı tür konvansiyonu ve serbest; kat planı korunan parça ve sonradan düzeltilemez | design/00-brief.md |
 | 2026-08-29 | Karakter kozmetik ekonomisi kapsam dışı (v1) | analiz | FPS'te kendini görmezsin; kostüm satın alınamaz, rig'e uymalı | design/00-brief.md |
-| 2026-08-29 | Eski kapsam dokümanı referansa taşındı, bağlayıcı değil | kullanıcı | "Sadece fikir vermesi amaçlıydı" | docs/reference/ |
 | 2026-08-29 | Kapsam sayıları ve içerik planı ertelendi | kullanıcı | Mimariyi kısıtlamıyorlar; zamanı gelince planlanacak | `<tbd>` |
-| 2026-08-29 | Netcode: FishNet + Pro (~$60) + Steam transport | ADR-0001, kullanıcı onayı bekliyor | NGO ve Mirror'da hazır prediction/lag compensation yok; solo geliştirici bunları yazamaz. Netick küçük topluluk | docs/architecture/adr/ADR-0001-netcode-kutuphanesi.md |
-| 2026-08-29 | DÜZELTME: FishNet lag compensation ücretsiz DEĞİL, Pro özelliği | araştırma | Eski referans doküman aksini yazıyordu; gerekçeyi değiştirir, kararı değiştirmez | docs/architecture/adr/ADR-0001-netcode-kutuphanesi.md |
-| 2026-08-29 | ADR-0001 kabul edildi: FishNet + Pro | kullanıcı | — | docs/architecture/adr/ADR-0001-netcode-kutuphanesi.md |
+| 2026-08-29 | ADR-0001: FishNet + Pro (~$60) kabul edildi — **SUPERSEDE EDİLDİ**, bkz. 2026-08-29 Mirror satırı | kullanıcı | Gerekçe zinciri (NGO/Mirror/Netick elemesi, "lag compensation Pro özelliği" düzeltmesi) ADR'de duruyor | docs/architecture/adr/ADR-0001-netcode-kutuphanesi.md |
 | 2026-08-29 | Unity 6.3 LTS | ADR-0002 | Aralık 2027'ye kadar destekli, projenin tamamını kapsıyor; 6.0 Ekim 2026'da bitiyor, 6.4 zaten EOL | docs/architecture/adr/ADR-0002-unity-surumu.md |
 | 2026-08-29 | URP (Forward+) | ADR-0003 | Unity 2026'da HDRP bakım modunda, URP hızlandırılıyor; geniş donanım tabanı | docs/architecture/adr/ADR-0003-render-pipeline.md |
 | 2026-08-29 | Performans hedefi: 1080p/60 orta donanım, üstü açık; yerel makine ölçüt değil | kullanıcı | Darboğaz CPU (AI + animator), GPU değil | docs/CONTEXT.md |
@@ -37,17 +34,12 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | PILLAR-03 düzeltildi: belirsiz süreli bekleme reddedilir, bekleme değil | analiz | Draft ekranı tasarımıyla çatıştı, çatışma örtülmeden çözüldü | design/PILLARS.md |
 | 2026-08-29 | Proje kod adı: Bunker (assembly ve namespace öneki) | kullanıcı | Satış ismi ayrı; kod adı kodda kalır | docs/architecture/ARCHITECTURE.md |
 | 2026-08-29 | Bunker.Systems assembly'si noEngineReferences ile Unity'ye kapatıldı | ADR-0001 sonucu | Saf C# kuralını disiplin değil derleyici zorlasın | docs/architecture/ARCHITECTURE.md |
-| 2026-08-29 | Git deposu kuruldu, LFS açıldı, ilk commit atıldı | kullanıcı | — | .gitattributes |
 | 2026-08-29 | Kurulu Unity 6.5 reddedildi, 6000.3 LTS kurulacak | ADR-0002 (veriyle güncellendi) | LTS olmayan sürümler bir sonraki sürüm çıkınca yama almayı bırakıyor: 6.1 ve 6.2 dörder ay, 6.4 üç ay yaşadı. 6.5 için 6.6 Eylül'de bekleniyor | docs/architecture/adr/ADR-0002-unity-surumu.md |
-| 2026-08-29 | M-00 planlandı: 10 iş, 8 sayısal çıkış kriteri, 4 başarısızlık koşulu | producer | Netcode oyun kodundan önce doğrulanır; M0 kaybedebilmeli | design/milestones/M-00.md |
-| 2026-08-29 | M0'da naif NetworkTransform tabanı ölçülecek | analiz | Özel snapshot'ın işe yaradığını iddia edebilmek için karşılaştırma noktası şart | design/milestones/M-00.md |
-| 2026-08-29 | 40 küp NavMesh ile hareket edecek, basit hareketle değil | analiz | Host aynı zamanda oyuncu; CPU rekabeti ancak gerçekçi AI yüküyle ölçülür | design/milestones/M-00.md |
+| 2026-08-29 | M-00 planı: kaybedilebilir ölçüm milestone'u; yük gerçekçi olmalı (40 küp NavMesh ile, naif `NetworkTransform` karşılaştırma tabanıyla) | producer + analiz | Host aynı zamanda oyuncu; CPU rekabeti ancak gerçek AI yüküyle ölçülür. Plan detayı milestone dosyasında | design/milestones/M-00.md |
 | 2026-08-29 | DÜZELTME: Mirror'ın lag compensation'ı VAR (Beta, MIT) | araştırma | ADR-0001 Mirror'ı "lag compensation yok" diye elemişti, bilgi yanlıştı | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
 | 2026-08-29 | Netcode: Mirror (MIT). ADR-0001 supersede edildi | kullanıcı | Bu oyunda prediction atlanabilir (co-op'ta client-authoritative hareket), lag compensation atlanamaz. FishNet tersini ücretsiz veriyor | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
 | 2026-08-29 | Oyuncu hareketi client-authoritative olacak | ADR-0004 | Davetle girilen arkadaş co-op'unda hile toleransı yüksek; prediction makinesi gereksiz | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
 | 2026-08-29 | Kabul edilen taviz: liderlik tablosu ve meta ilerleme manipüle edilebilir | ADR-0004 | Client otoritesinin bedeli; arkadaş co-op'unda kabul edilebilir | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
-| 2026-08-29 | Bütçeden $60 FishNet Pro kalemi çıktı | ADR-0004 | Mirror MIT, hiçbir özellik ücretli katmanda değil | docs/architecture/adr/ADR-0004-netcode-kutuphanesi-mirror.md |
-| 2026-08-29 | ÇK-9 karşılandı: Mirror, Unity 6000.3.23f1'de temiz derleniyor | M0-01 | ADR-0004'ün açık riski kapandı; Mirror Weaver çalıştı, LagCompensationSettings çözüldü | docs/qa/evidence/M0-01-mirror-unity63-uyumluluk.md |
 | 2026-08-29 | Mirror üçüncü parti olarak depoya commit edildi (30 MB) | analiz | Klonlayanın aynı sürümü alması ve .meta GUID'lerinin sabit kalması için | Assets/Mirror/ |
 | 2026-08-29 | Sıralama değişti: önce solo çekirdek döngü, sonra multiplayer | kullanıcı | Gri kutuda küp senkronlayarak oyunun eğlenceli olduğu öğrenilemez; motivasyon solo geliştiricide gerçek kaynak | design/milestones/M-01.md |
 | 2026-08-29 | M-00 küçültüldü; netcode doğrulaması M-02'ye taşındı | producer | M-00'da yalnızca solo'da bedavaya ölçülebilen kısım kaldı (40 NavMesh agent + host CPU) | design/milestones/M-00.md |
@@ -56,16 +48,9 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-08-29 | Kabul edilen risk: PILLAR-02 M-01'de hiç sınanamaz | analiz | Solo build "dört oyuncu birbirine muhtaç" sütununu test edemez; ÇK-17 gerekli ama yeterli değil, ÇK-17b M-02'de | design/milestones/M-02.md |
 | 2026-08-29 | Oyuncuda NetworkTransformUnreliable kullanılıyor (ClientToServer) | ADR-0004 | NetworkTransform yasağı zombiler içindir (40 nesne); 4 oyuncu için doğru araç | Assets/_Project/Code/Gameplay/PlayerController.cs |
 | 2026-08-29 | M0-02'de girdi doğrudan cihazdan okunuyor (Keyboard/Mouse.current) | gameplay-programmer | Proje yalnızca yeni Input System'de (activeInputHandler=1); iskelette sıfır bağlama adımı. M1-01'de InputSystem_Actions'a taşınacak | Assets/_Project/Code/Gameplay/PlayerController.cs |
-| 2026-08-29 | Bunker.Gameplay'e Unity.InputSystem referansı eklendi | gameplay-programmer | asmdef'li assembly'lere otomatik referans verilmiyor; derleme hatasıyla yakalandı | Assets/_Project/Code/Gameplay/Bunker.Gameplay.asmdef |
-| 2026-08-30 | ÇK-10 karşılandı: solo host iskeleti çalışıyor | M0-02 | M-01'in zorunlu mimari kısıtı ayakta — solo ayrı kod yolu değil, uzak istemcisiz host oturumu | docs/qa/evidence/M0-02-solo-host-iskeleti.md |
-| 2026-08-30 | PerfHud kare başına tahsis yapmaz; tamponlar bir kez ayrılır | performance-engineer | Ölçüm aracının kendisi ölçümü bozmamalı — halka tamponu, sıralama tamponu ve StringBuilder tek sefer ayrılır, ekran metni 4 Hz yenilenir | Assets/_Project/Code/UI/PerfHud.cs |
-| 2026-08-30 | ÇK-5'in yetkili kanıtı Unity Profiler, PerfHud değil | performance-engineer | IMGUI'nin kendi maliyeti küçük ama sıfır değil; HUD canlı geri bildirim içindir | design/milestones/M-00.md |
-| 2026-08-30 | Yüzdelik hesabı Bunker.Systems'e taşındı (FrameTimeRecorder) | performance-engineer | Saf mantık Unity'siz test edilmeli; ayrıca PerfHud ve AgentLoadTest aynı kodu iki kez içeriyordu | Assets/_Project/Code/Systems/Diagnostics/FrameTimeRecorder.cs |
-| 2026-08-30 | Ölçüm protokolü elle değil, tek tuşla otomatik tarama (F5) | performance-engineer | Dört ayrı ölçümü elle koordine etmek hataya açık; ilk denemede oturum bitirilmediği için veri üretilmedi | Assets/_Project/Code/AI/AgentLoadTest.cs |
-| 2026-08-31 | ÇK-5 karşılandı: 40 NavMesh agent = ~0.2 ms (bütçenin %1.2'si) | M0-04 | 200 agent'a kadar diz yok; marjinal maliyet düşüyor | docs/qa/performance/M0-04-navmesh-agent-yuku.md |
+| 2026-08-30 | Ölçüm aracı ölçümü bozmaz: sıfır tahsis, otomatik tarama, yüzdelik hesabı `Bunker.Systems`'te (`FrameTimeRecorder`) | performance-engineer | Elle koordine edilen dört ölçüm ilk denemede veri üretmedi. Yetkili kanıt Unity Profiler'dır, HUD canlı geri bildirim içindir | Assets/_Project/Code/Systems/Diagnostics/FrameTimeRecorder.cs |
 | 2026-08-31 | BULGU: NavMesh darboğaz değil, risk animator ve ağ serileştirmesine kaydı | performance-engineer | Ölçüm 40 agent'ın sıfırında animator içeriyordu; kalabalık oyunlarında animator sık sık NavMesh'ten pahalıdır | docs/architecture/PERF-BUDGET.md |
-| 2026-08-31 | AgentLoadTest yol isteme hızı kare hızına bağlıydı, düzeltildi | performance-engineer | 600 FPS'te hedeflenenin 10 katı yol isteği; ölçümü muhafazakâr yaptı, sonucu geçersiz kılmadı | Assets/_Project/Code/AI/AgentLoadTest.cs |
-| 2026-08-31 | **M-00 KAPANDI** (4/4 iş, 4/4 çıkış kriteri) | producer | Sıradaki: M-01 Solo Çekirdek Döngü | design/milestones/M-00.md |
+| 2026-08-31 | **M-00 KAPANDI** (4/4 iş, 4/4 kriter): Mirror Unity 6.3ta temiz derleniyor (ÇK-9), solo host iskeleti çalışıyor (ÇK-10), 40 NavMesh agent ~0.2 ms = bütçenin %1.2i (ÇK-5) | producer | Kanıtlar `docs/qa/evidence/` ve `docs/qa/performance/` altında; yük testi aracı sonra kaldırıldı | design/milestones/M-00.md |
 | 2026-08-31 | Tur eğrisi iki fazlı: doğrusal sonra çarpımsal | systems-designer | Saf doğrusal sonsuza kadar kolay kalır, saf çarpımsal oyuncuyu öğrenmeden ezer. Doğrusal faz kuralları öğretir ve puan biriktirmeye izin verir | config/schema/rounds.schema.json |
 | 2026-08-31 | maxConcurrent bir denge değeri değil, PERF-BUDGET tavanı | systems-designer | 40 değeri M0-04 ölçümünden geliyor; artırmadan önce yeniden ölçüm gerekir | docs/architecture/PERF-BUDGET.md |
 | 2026-08-31 | Doğum aralığı zombi sayısıyla ters orantılı, tabanı var | systems-designer | Taban olmazsa geç turlarda sürü aynı anda belirir, oyuncunun tepki süresi kalmaz | config/schema/rounds.schema.json |
@@ -83,14 +68,12 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-09-02 | Üreteç kökü yeniden kurduğu için NavMeshSurface her üretimden sonra yeniden eklenir | tools-programmer | Eski bake sessizce geçersiz kalıyordu; kurulum aracı bake'i kendi yapıyor | Assets/_Project/Code/Editor/ZombieSetup.cs |
 | 2026-09-02 | TETİKLENDİ: 3. config dosyası (`zombie.json`) eklendi → config importer artık borç değil, sıradaki iş | unity-architect | Tetikleyici M-01'de tanımlıydı ve karşılandı. Üç dosyanın sayıları hâlâ C# varsayılanlarında da duruyor; sapma riski artık üç kat | design/milestones/M-01.md |
 | 2026-09-02 | `DebugPlayerHealth` ve `ZombieSandbox` bilinçli olarak geçici | ai-programmer | Zombinin hissiyatına bugün bakabilmek için en küçük iskele. Gerçek doğum akışı M1-05, oyuncu canı M1-11; ikisi de bu dosyaları siler | Assets/_Project/Code/AI/ZombieSandbox.cs |
-| 2026-09-02 | Rampanın üstünden geçen iç bölmeye üreteç otomatik olarak tavana kadar açıklık açar | level-designer | Rampa duvarı 3 m yükseklikte kesiyordu — kapı boşluğunun üstünde, gözle görünmeyen bir tıkaç. Zombiler orada takıldı ve üst kata çıkamadı. Ölçüler denenerek bulunduğu için bu kontrol insana bırakılamaz | Assets/_Project/Code/Editor/BlockoutGenerator.cs |
-| 2026-09-02 | Çakışan kapı ve rampa açıklığı tek açıklıkta birleştirilir | level-designer | Ayrı bırakılırsa kapının lentosu tam rampanın geçtiği yükseklikte kalıyor; tıkaç yerinde duruyor ve düzeltildi sanılıyor | Assets/_Project/Code/Editor/BlockoutGenerator.cs |
+| 2026-09-02 | Rampanın üstünden geçen iç bölmeye üreteç tavana kadar açıklık açar; çakışan kapı ve rampa açıklığı TEK açıklıkta birleşir | level-designer | Rampa duvarı 3 m yükseklikte kesiyordu - kapı boşluğunun üstünde, gözle görünmeyen bir tıkaç; zombiler orada takıldı. Ayrı bırakılan iki açıklıkta kapının lentosu tam rampanın geçtiği yükseklikte kalıyor ve tıkaç düzeltildi sanılarak yerinde duruyor |
 | 2026-09-02 | NavMesh bağlantısı göz kararıyla değil `CalculatePath` ile doğrulanıyor | level-designer | Scene görünümünde mavi katmana bakmak rampayı kesen duvarı yakalamadı. Kopukluğun bedeli oyunda "zombiler yukarı gelmiyor" olarak ödeniyor ve orada teşhis pahalı | Assets/_Project/Code/Editor/LevelConnectivityCheck.cs |
 | 2026-09-02 | M0-04 yük testi (`AgentLoadTest`) kaldırıldı | kullanıcı | M-00 kapandı, ölçüm kanıtı `docs/qa/performance/M0-04-navmesh-agent-yuku.md`'de duruyor. Gerekirse git geçmişinden geri alınır | Assets/_Project/Code/AI/ |
 | 2026-09-02 | **Config borcu kapandı:** sayılar artık yalnızca `config/` içinde | unity-architect | Üç alanın sayıları JSON'da ve C# varsayılanlarında elle eşleniyordu. Importer ikisini de JSON'dan üretiyor; sapma yapısal olarak imkânsız | docs/architecture/adr/ADR-0005-config-importer-ve-bunker-config.md |
 | 2026-09-02 | Yeni assembly: `Bunker.Config` (üretilen ScriptableObject'ler) | unity-architect | `Bunker.Systems` Unity'ye kapalı, SO orada yaşayamaz. Gameplay'e koymak AI'ın zombi ayarına ulaşmasını engellerdi | docs/architecture/ARCHITECTURE.md |
-| 2026-09-02 | Üretilen alan adları **her zaman** grup önekli (`CountMaxConcurrent`) | tools-programmer | "Çakışırsa önekle" kuralı, şemaya yeni anahtar eklendiğinde başka bir alanın adını sessizce değiştirirdi | Assets/_Project/Code/Editor/Config/ConfigSchema.cs |
-| 2026-09-02 | İçe aktarma iki geçiş ve bu gizlenmedi | tools-programmer | Yeni üretilmiş tip, onu üreten domain içinde var olamaz. Arka plan durum makinesi yarım kalmış içe aktarmayı teşhis edilemez yapardı | Assets/_Project/Code/Editor/Config/ConfigImporter.cs |
+| 2026-09-02 | Üretilen alan adları **her zaman** grup önekli; içe aktarma iki geçiş ve bu gizlenmedi | tools-programmer | "Çakışırsa önekle" kuralı yeni anahtarda başka bir alanın adını sessizce değiştirirdi. Yeni üretilmiş tip kendi domaininde var olamaz; arka plan durum makinesi yarım içe aktarmayı teşhis edilemez yapardı |
 | 2026-09-02 | Kendi JSON ayrıştırıcımız yazıldı (paket eklenmedi), 15 testle | tools-programmer | `JsonUtility` şekli bilinmeyen belge okuyamaz. Sayılar InvariantCulture ile okunur: tr-TR makinede "1.4" sessizce 14 olurdu | Assets/_Project/Code/Systems/Config/Json.cs |
 | 2026-09-02 | `EconomyConfig.AwardFor` uzantı metoduna taşındı | tools-programmer | Üretilen kod yalnızca veri taşır; bir olayın hangi puanı verdiği kuraldır ve kurallar üretilmez | Assets/_Project/Code/Systems/Economy/EconomyRules.cs |
 | 2026-09-02 | Zombi konum seam'i KİLİTLENDİ: tek paket, `ZombieNetworkRelay` | netcode-programmer | M-01'in "M1-05'ten önce kilitlenir" sözleşmesi. 40 nesnenin her biri kendi konumunu yayınlarsa 40 mesaj ve 40 başlık olur; tek seam tek yerden ölçülebilir | Assets/_Project/Code/Net/ZombieNetworkRelay.cs |
@@ -109,14 +92,12 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-09-02 | İsabet işareti nişangâhın kendisini değiştirir, üstüne şekil binmez | game-ux-designer | Kaosun içinde iki ayrı şey okumaya zorlamak PILLAR-04'ü çiğner. Kafa vuruşu ayrı renk | Assets/_Project/Code/UI/CombatHud.cs |
 | 2026-09-02 | Boş şarjörde tetiğe basmak dolum başlatır | game-designer | Ayrıca R'ye basmayı beklemek, sürünün içinde ceza gibi hissettirir | Assets/_Project/Code/Gameplay/PlayerWeapon.cs |
 | 2026-09-02 | Ekonomi silaha bağlandı: öldürme puanı `PlayerScore`'da yazılır | gameplay-programmer | M1-02'nin cüzdanı ilk kez oyuna bağlandı. Puan kalıcı sonucu olan bir şeydir; otorite host'ta (ADR-0004) | Assets/_Project/Code/Gameplay/PlayerScore.cs |
-| 2026-09-02 | Config kodu tüketicisinden ÖNCE üretilmeli | tools-programmer | `WeaponState` üretilmemiş `WeaponConfig`'e bağlanınca proje derlenmedi ve importer da koşamadı (Unity derleme hatasıyla açılmıyor). Sıra: şema → içe aktar → tüketici | docs/guides/config-nasil-degistirilir.md |
 | 2026-09-02 | **BUG-001:** sunucunun gölge şarjörü hiç dolmuyordu (dolum bildirilmiyordu) | qa-lead | Üç zombiden sonra bütün atışlar sessizce reddediliyordu. Ders: sunucuda kaynak sayan sistem, kaynağı geri veren yolu aynı anda yazmalı | docs/qa/bugs/BUG-001-sunucu-sarjoru-hic-dolmuyor.md |
 | 2026-09-02 | Reddedilen her sunucu işlemi **görünür** olmalı, sessiz `return` yasak | netcode-programmer | Sessizlik teşhisi bir oyun testine bağladı. Uyarı saniyede bir kez sınırlı — döngüde çağrılan istemci Console'u dolduramamalı | Assets/_Project/Code/Gameplay/PlayerWeapon.cs |
 | 2026-09-02 | Hitscan `RaycastNonAlloc` yerine `Physics.Raycast` kullanıyor | gameplay-programmer | NonAlloc tamponu SIRASIZ doldurur; ışın üzerinde sekizden fazla çarpışan varsa gerçek en yakını atabilir. Kalabalıkta "mermi gitmedi" hatası üretir | Assets/_Project/Code/Gameplay/PlayerWeapon.cs |
 | 2026-09-02 | **BUG-002:** sunucu doğrulaması eşitlik değil **makuliyet** testi oldu | netcode-programmer | Gölge `WeaponState` kare kare aynılık bekliyordu; komut bir kare geç geldiği için meşru atışlar reddediliyordu. `ServerFireGuard` aynı kuralları ağ payıyla uyguluyor | docs/qa/bugs/BUG-002-mesru-atislar-reddediliyor.md |
-| 2026-09-02 | Ağ toleransı (0.12 sn) config'te değil, mühendislik sabiti olarak kodda | systems-designer | Bir denge değeri değil; oyuncunun hissedeceği bir şeyi ayarlamıyor, ağın fiziksel gecikmesini karşılıyor | Assets/_Project/Code/Systems/Combat/ServerFireGuard.cs |
+| 2026-09-02 | Ağ toleransı (0.12 sn) bir denge değeri değil, mühendislik sabiti - ve **birikmez** | systems-designer + netcode-programmer | Oyuncunun hissedeceği bir şeyi ayarlamıyor, ağın gecikmesini karşılıyor. İlk sürümde tolerans her atıştan ayrı düşülüyordu ve 400 RPMlik silah fiilen 2000 RPM atabiliyordu; test yakaladı |
 | 2026-09-02 | **M1-13 vuruş hissi** M-01 kapsamına eklendi (+2 gün) | kullanıcı | Silah çalışıyor ama vurmak bir şey hissettirmiyor. ÇK-17'nin ön şartı: gri kutuda eğlenceli mi sorusu, vuruşun karşılıksız olduğu bir yapıda dürüstçe cevaplanamaz | design/milestones/M-01.md |
-| 2026-09-02 | Ağ toleransı **birikmez**: bir sonraki izinli an planlanan andan ilerler | netcode-programmer | İlk sürümde tolerans her atıştan ayrı düşülüyordu ve 400 RPM'lik silah fiilen 2000 RPM atabiliyordu. Test yakaladı — tolerans bir karelik titremeyi yutmalı, sürekli hız avantajı vermemeli | Assets/_Project/Code/Systems/Combat/ServerFireGuard.cs |
 | 2026-09-02 | M1-13: isabet **hazırlanan vuruşu keser** | game-designer | Telegrafı gören oyuncunun iki seçeneği olur — geri çekilmek ya da vurup kesmek. Sendeleme yalnızca görsel olsaydı bu seçenek hiç doğmazdı; ateş etmeye taktik değeri veren yer burası | Assets/_Project/Code/Systems/Ai/ZombieBrain.cs |
 | 2026-09-02 | Ölüm ile havuza iade **ayrı olaylar** (`Killed` / `Despawned`) | ai-programmer | Puan ve tur sayacı ölüm anında yazılmalı, ama nesne yıkılma anı boyunca görünür kalmalı. Tek olay olsaydı ya ceset anında kaybolur ya tur cesetleri beklerdi | Assets/_Project/Code/AI/ZombieAgent.cs |
 | 2026-09-02 | Barikat zombiyi **durdurmaz, geciktirir** (`beforeEntry` eşiği) | game-designer | Mutlak bir duvar olsaydı tek pencereyi tutmak yeterli olurdu ve harita anlamını yitirirdi. Barikatın oyuna kattığı şey, oyuncuya kazandırdığı zamandır | config/schema/barricade.schema.json |
@@ -127,7 +108,7 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-09-02 | İstemciden gelen `deltaTime` doğrulanır (tamir) | netcode-programmer | "Bir saniye tamir ettim" diyerek barikat anında doldurulabilirdi. Bir karelik makul tavanla sınırlanıyor | Assets/_Project/Code/Gameplay/PlayerRepair.cs |
 | 2026-09-02 | Hız sınırı + ağ payı ortak sınıfa çıkarıldı (`ActionRateLimiter`) | netcode-programmer | BUG-002'nin dersi tek yerde yaşasın: bıçak aynı hatayı tekrar üretmesin | Assets/_Project/Code/Systems/Combat/ActionRateLimiter.cs |
 | 2026-09-02 | **BUG-003:** `IsOpen` (yapısal) ile `AllowsEntry` (anlık) ayrıldı | ai-programmer | Barikat `IsOpen`'ı kapatınca doğum noktası seçimi hiçbir pencere bulamadı ve hiç zombi doğmadı. Zombi barikatlı pencerede doğar ve söker; geçilemiyor olması oranın giriş noktası olmadığı anlamına gelmez | docs/qa/bugs/BUG-003-barikat-dogumu-kilitledi.md |
-| 2026-09-02 | Betik taşınırken `.cs` ve `.cs.meta` **birlikte** taşınır | tools-programmer | Config üretimi için geçici olarak taşınan `.cs` dosyalarının meta'ları geride kaldı; Unity yeni GUID üretti ve Player prefab'ındaki bileşenler koptu | docs/guides/config-nasil-degistirilir.md |
+| 2026-09-02 | Config değiştirme sırası kurala bağlandı: şema → içe aktar → tüketici, ve `.cs` ile `.cs.meta` **birlikte** taşınır | tools-programmer | Üretilmemiş tipe bağlanan kod projeyi derletmedi ve importer da koşamadı (Unity derleme hatasıyla açılmıyor). Geride kalan meta yeni GUID ürettirdi ve Player prefabındaki bileşenler koptu |
 | 2026-09-02 | Doğum noktası bulunamazsa bir kez yüksek sesle hata | ai-programmer | Tur akışının dönüp sahanın boş kalması, sessiz kaldığı sürece teşhisi en zor hata türü (BUG-001 ile aynı ders) | Assets/_Project/Code/AI/ZombieDirector.cs |
 | 2026-09-02 | `IPurchasable`: satın alma etkileşimi tek yerde | gameplay-programmer | Kapı, duvar silahı ve ileride dağıtıcı aynı yoldan geçiyor. Yeni bir satın alınabilir eklemek oyuncu koduna dokunmayı gerektirmiyor (`IDamageable` ile aynı desen) | Assets/_Project/Code/Systems/Economy/IPurchasable.cs |
 | 2026-09-02 | Kapı kalıcı ve tek yönlü; duvar silahı tekrar alınabilir | game-designer | Kapı bir **karardır** — geri alınabilir bir karar karar değildir. Duvar silahı bir **kaynaktır** ve her tur yeniden gerekir | Assets/_Project/Code/Gameplay/PurchasableDoor.cs |
@@ -262,3 +243,58 @@ bandın altında.
 **Hiçbir denge değeri değiştirilmedi** — tek run, tek oyuncu, ve o oyuncu oyunun yazarı.
 Belgenin başına geçersizlik uyarısı kondu; iki-üç run daha biriktikten sonra yeniden
 üretilecek. Kanıt: `docs/qa/playtests/PT-01-SONUC-01-ilk-keyifli-run.md`.
+
+## 2026-09-05 — İkinci oyun testinin sekiz bulgusu
+
+Tek bir oturumun çıktısı; hepsi geliştiricinin doğrudan gözlemi.
+
+**1. Silah ve bıçak görünmüyordu.** Elde bir şey olduğuna dair tek kanıt HUD'daki mermi
+sayacıydı. `PlayerViewmodel` eklendi: kameranın altında, çalışma anında ilkel şekillerden
+kurulan bir el modeli — ateşte geri tepme ve namlu alevi, dolumda aşağı dönen silah, V ile
+sağdan sola savrulan bıçak. Prefab'a yazılmadı, çünkü sanat yönü kilitlenince değişecek
+tek yer bir dosya olsun.
+
+**2. Üst kat kapısı atlanabiliyordu.** Kanat rampanın ağzında serbest duran bir bloktu;
+yanından dolaşıp çıkmak mümkündü — yani 1250 puanlık kapı hiçbir şeyi kapatmıyordu.
+Geliştiricinin önerdiği çözüm uygulandı: rampa iki yan duvarla **kapalı bir merdiven
+boşluğuna** çevrildi, tavanı zaten üst katın kendi döşemesi. Kanat artık koridor genişliği
+kadar geniş ve döşemeye kadar yüksek. *Bir kapı ancak tek geçit olduğunda kapıdır.*
+
+İlk deneme kapıyı rampa ağzına, güney duvarının **35 cm** önüne koydu ve bağlantı kontrolü
+"zemin -> ust kat: KOPUK" dedi: NavMesh ajanı 70 cm çapında, o şeride sığmıyor — kapının
+önünde durulacak yer kalmamıştı. Kapı bir metre içeri alındı, 1.85 m'lik yaklaşma alanı
+kaldı, ölçüm `tam (45.2 m)`. **Aracın bu sefer doğru anda ölçmesi bir oyun testini
+kurtardı** (BUG-004'ün dersinin karşılığı).
+
+**3. Tezgâh üst kata taşındı.** Zemin katta, başlangıç odasından çıkmadan ulaşılabiliyordu;
+yükseltme almak için haritayı açmak gerekmiyordu. Artık kapının **arkasında**: önce üst
+katı aç, sonra yükselt. Bu, kapının fiyatına bir sebep verir.
+
+**4. Mermi fiyatı 250 puan.** `economy.json` v3: `ammo.refillCost` eklendi. Mermi artık
+duvar silahı bandından (500/1200) okumuyor — o bant ileride gerçek silahlar için duruyor.
+İkisi tek sayıdan okununca mermiyi ucuzlatmak silah fiyatlarını da oynatmak demekti.
+
+**5. Zombi hızlanması yavaşlatıldı.** Kademeler tur 4/8 → **6/12**, tavan hız 4.6 → **3.6**
+m/s (şema alt sınırı 3.5). Tur 8'de zombi oyuncunun 5 m/s hızına yapışıyordu ve kaçmak
+imkânsızdı. Şemanın "geç turda oyuncudan hızlı olmalı" gerekçesi bu değerde artık geçerli
+değil; **bilinçli bir tasarım değişikliği**, aralık genişletilmedi.
+
+**6. Zombiye gövde ve kopan bacak.** Silindir gitti: kalça hizasından kurulan bir gövde
+(gövde, kafa, öne uzanan kollar, iki bacak). Bacaklar ayrı vuruş kutusu; tur canının
+%30'unu emen bacak **kopar**, zombi ölmeden sürünmeye düşer ve tur hızının %45'iyle gelir
+(`zombie.json` v2, `crawl` bölümü). Nişan almanın ikinci ödülü: kafa bitirir, bacak
+yavaşlatır — üçüncü bir zombi tipi yazmadan sürüye ritim farkı girer.
+
+Gövde çarpıştırıcısı 1.8 m'den 0.78 m'ye indirildi: tek büyük kapsül ışının önünde
+duruyordu ve içine konan her uzuv kutusu **hiçbir zaman vurulamazdı**.
+
+**7. Ses geldi.** Bkz. ADR-0006. Bulgu tek cümleydi: *"arkamdan gelen zombiyi hiç
+duymayınca heyecanını test edemiyorum."* Yeni `Bunker.Audio` assembly'si, çalışma anında
+sentezlenen 23 ses, hiçbir varlık dosyası yok. Zombi homurtusu, saldırı hazırlığı, ölüm,
+bacak kırılması ve barikat 3B çalar — yön ve mesafe taşır.
+
+**8. Oyuncu kamerasına `AudioListener`.** Kökte olsaydı 3B sesin yönü oyuncu döndüğünde
+değişmezdi — yani ses hiçbir şey söylemezdi.
+
+**Kanıt durumu:** 1, 2, 3, 8 doğrulanmış hatalar. 4, 5, 6 **hipotez** — tek run, tek
+oyuncu. Oynanarak kalibre edilecek.

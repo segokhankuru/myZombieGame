@@ -1,3 +1,4 @@
+using Bunker.Audio;
 using Bunker.Config;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
@@ -108,6 +109,9 @@ namespace Bunker.Gameplay
 
             DamageResult result = _health.ApplyDamage(damage);
             PublishState();
+
+            // Vurulmanin sesi 2B: kendi canindan gitmesi uzayda bir yerde olmaz.
+            if (result.Absorbed > 0f) GameAudio.Play(SfxId.PlayerHurt);
 
             if (result.Killed)
             {

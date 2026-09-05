@@ -1,11 +1,8 @@
 {
-    "name": "Bunker.AI",
-    "rootNamespace": "Bunker.AI",
+    "name": "Bunker.Audio",
+    "rootNamespace": "Bunker.Audio",
     "references": [
-        "Bunker.Systems",
-        "Bunker.Audio",
-        "Bunker.Config",
-        "Unity.InputSystem"
+        "Bunker.Systems"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

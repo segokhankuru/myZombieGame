@@ -72,12 +72,16 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 1 .. 40 | JSON: ammo.magazinesPerPurchase</remarks>
         public readonly int AmmoMagazinesPerPurchase;
 
+        /// <summary>Duvardan bir mermi aliminin fiyati. Silah bandindan (prices.wallWeapon*) AYRI bir sayi: o bant ileride gercek silahlar icin, bu yalnizca mermi muslugu. Dusurursen mermi bedavaya yakinlasir ve puanin tek harcama yeri kapilar olur - tur ekonomisi tek yonlu kalir; buyutursen oyuncu her turu bicakla gecirmek zorunda kalir ve silah tasimanin sebebi kaybolur.</summary>
+        /// <remarks>Aralik: 50 .. 3000 | JSON: ammo.refillCost</remarks>
+        public readonly int AmmoRefillCost;
+
         /// <summary>
         /// Varsayilanlar <c>config/balance/economy.json</c> dosyasindan URETILDI.
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public EconomyConfig(
-            int version = 2,
+            int version = 3,
             int awardsHit = 10,
             int awardsBodyKill = 60,
             int awardsHeadshotKill = 100,
@@ -90,7 +94,8 @@ namespace Bunker.Systems.Config
             int pricesWallWeaponCheap = 500,
             int pricesWallWeaponMid = 1200,
             int pricesMysteryBox = 950,
-            int ammoMagazinesPerPurchase = 5)
+            int ammoMagazinesPerPurchase = 5,
+            int ammoRefillCost = 250)
         {
             Version = version;
             AwardsHit = awardsHit;
@@ -106,6 +111,7 @@ namespace Bunker.Systems.Config
             PricesWallWeaponMid = pricesWallWeaponMid;
             PricesMysteryBox = pricesMysteryBox;
             AmmoMagazinesPerPurchase = ammoMagazinesPerPurchase;
+            AmmoRefillCost = ammoRefillCost;
         }
     }
 }

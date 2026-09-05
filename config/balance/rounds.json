@@ -4,10 +4,10 @@
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-tur",
-    "lastTuned": "2026-08-31"
+    "lastTuned": "2026-09-05"
   },
 
-  "_note": "Baslangic degerleri. Klon tabaninin amaci olcum referansi uretmek; bu sayilar M1'de arkadas testiyle kalibre edilecek. Hicbiri kanit degil, hepsi hipotez.",
+  "_note": "2026-09-05 oyun testi (hiz): kademeler cok erken ve cok sert geliyordu - tur 8de zombi 4.6 m/s ile oyuncunun 5 m/s hizina yapisiyordu, kacmak imkansizdi. Kademeler geriye cekildi (yurume tur 6, tempolu tur 12), tavan hiz 3.6 (semanin alt siniri 3.5). Oyuncu hala kacabilmeli; bosluk azalarak kapanmali. Baslangic degerleri. Klon tabaninin amaci olcum referansi uretmek; bu sayilar M1'de arkadas testiyle kalibre edilecek. Hicbiri kanit degil, hepsi hipotez.",
 
   "count": {
     "perPlayerAtRoundOne": 6,
@@ -26,11 +26,11 @@
   },
 
   "speed": {
-    "walkMetersPerSecond": 1.4,
-    "jogMetersPerSecond": 2.9,
-    "runMetersPerSecond": 4.6,
-    "walkUntilRound": 4,
-    "jogUntilRound": 8
+    "walkMetersPerSecond": 1.3,
+    "jogMetersPerSecond": 2.2,
+    "runMetersPerSecond": 3.6,
+    "walkUntilRound": 6,
+    "jogUntilRound": 12
   },
 
   "pacing": {

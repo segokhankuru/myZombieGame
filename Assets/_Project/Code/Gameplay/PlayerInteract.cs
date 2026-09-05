@@ -1,3 +1,4 @@
+using Bunker.Audio;
 using Bunker.Systems.Economy;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Rounds;
@@ -158,9 +159,23 @@ namespace Bunker.Gameplay
             if (purchasable is WallWeaponPurchase wallWeapon) wallWeapon.SetBuyer(weapon);
 
             // Once odeme, sonra etki. Ters sirada bir hata, bedava kapi demektir.
-            if (score.TrySpend(purchasable.Cost) != PurchaseResult.Success) return;
+            if (score.TrySpend(purchasable.Cost) != PurchaseResult.Success)
+            {
+                // Yetmeyen puan SESSIZ kalmaz: hicbir sey olmamasi, tusun
+                // calismadigi gibi okunur (game-ux: her etkilesimin bir cevabi olmali).
+                TargetReportPurchase(connectionToClient, false);
+                return;
+            }
 
             purchasable.OnPurchased();
+            TargetReportPurchase(connectionToClient, true);
+        }
+
+        /// <summary>Alimin sonucu yalnizca ALANA gider - kisisel bir bilgi.</summary>
+        [TargetRpc]
+        private void TargetReportPurchase(NetworkConnection target, bool success)
+        {
+            GameAudio.Play(success ? SfxId.Purchase : SfxId.Denied);
         }
     }
 }

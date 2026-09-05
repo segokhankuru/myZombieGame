@@ -79,12 +79,16 @@
     "ammo": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["magazinesPerPurchase"],
+      "required": ["magazinesPerPurchase", "refillCost"],
       "description": "Duvardan bir alimda ne kadar mermi gelir. Fiyat 'prices' altinda; burada MIKTAR var. Ikisi birlikte mermi ekonomisinin musluk debisini belirler.",
       "properties": {
         "magazinesPerPurchase": {
           "type": "integer", "minimum": 1, "maximum": 40,
           "description": "Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md."
+        },
+        "refillCost": {
+          "type": "integer", "minimum": 50, "maximum": 3000,
+          "description": "Duvardan bir mermi aliminin fiyati. Silah bandindan (prices.wallWeapon*) AYRI bir sayi: o bant ileride gercek silahlar icin, bu yalnizca mermi muslugu. Dusurursen mermi bedavaya yakinlasir ve puanin tek harcama yeri kapilar olur - tur ekonomisi tek yonlu kalir; buyutursen oyuncu her turu bicakla gecirmek zorunda kalir ve silah tasimanin sebebi kaybolur."
         }
       }
     }

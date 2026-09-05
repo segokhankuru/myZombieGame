@@ -1,4 +1,5 @@
 using System;
+using Bunker.Audio;
 using Bunker.Config;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
@@ -59,6 +60,13 @@ namespace Bunker.Gameplay
         private float _hitMarkerRemaining;
         private bool _lastShotWasHeadshot;
         private float _lastRejectWarnTime = -99f;
+
+        /// <summary>
+        /// Tetik çekildi ve mermi çıktı. <b>Yerel, aynı karede</b> — el modeli ve ses
+        /// buna bağlanır. Sunucunun onayı beklenmez; beklemek 60 ms hedefini
+        /// (gameplay-code.md) kaçırmanın en kolay yoludur.
+        /// </summary>
+        public event Action Fired;
 
         /// <summary>Bir isabet onaylandı (kafa mı, öldürdü mü). HUD buna bağlanır.</summary>
         public event Action<bool, bool> HitConfirmed;
@@ -184,8 +192,15 @@ namespace Bunker.Gameplay
 
             float dt = Time.deltaTime;
 
+            bool wasReloading = _state.IsReloading;
+
             _state.Tick(dt);
             TickFeedback(dt);
+
+            // Dolumun BITTIGI an: sarjorun oturdugu ses. Zamanlayici tutmuyoruz,
+            // durumun kendisinden okuyoruz - iki ayri sayac hep birbirinden kayar
+            // (audio-code.md: geri bildirim oyun durumundan tetiklenir).
+            if (isLocalPlayer && wasReloading && !_state.IsReloading) GameAudio.Play(SfxId.ReloadIn);
 
             // Yalnizca yerel oyuncu kendi silahini surer.
             if (!isLocalPlayer) return;
@@ -228,7 +243,10 @@ namespace Bunker.Gameplay
 
                 case FireResult.Empty:
                     // Bos sarjorde tetige basmak dolum baslatir. Oyuncunun ayrica
-                    // R'ye basmasini beklemek, sürünün icinde ceza gibi hissettirir.
+                    // R.ye basmasini beklemek, sürünün icinde ceza gibi hissettirir.
+                    // Bos tetik SESI de var: hicbir sey olmamasi, tusun calismadigi
+                    // gibi okunur.
+                    GameAudio.Play(SfxId.GunDryFire);
                     StartReload();
                     break;
             }
@@ -246,6 +264,7 @@ namespace Bunker.Gameplay
         {
             if (!_state.TryStartReload()) return;
 
+            GameAudio.Play(SfxId.ReloadOut);
             CmdReload();
         }
 
@@ -307,6 +326,11 @@ namespace Bunker.Gameplay
             }
 
             ShowTracer(origin.position, endPoint);
+
+            // El modeli ve ses ayni karede: ates ettigini gosteren sey namlu alevi ve
+            // patlama sesidir, sunucunun bir kare sonra donen onayi degil.
+            GameAudio.Play(SfxId.GunShot);
+            Fired?.Invoke();
 
             CmdFire(origin.position, direction);
         }
@@ -402,6 +426,8 @@ namespace Bunker.Gameplay
         {
             _hitMarkerRemaining = _config.FeelHitMarkerSeconds;
             _lastShotWasHeadshot = headshot;
+
+            GameAudio.Play(headshot ? SfxId.HeadshotMarker : SfxId.HitMarker);
             HitConfirmed?.Invoke(headshot, killed);
         }
 
