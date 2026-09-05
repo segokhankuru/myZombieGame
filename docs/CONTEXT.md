@@ -85,11 +85,11 @@ zarflı öz test → arkadaşlar). **Build hazır:** `Bunker.exe` çıkıyor ve 
 | | Durum |
 |---|---|
 | ÇK-12 kesintisiz oynanıyor | oyun testi bekliyor |
-| ÇK-13 tur 10'a ~15 dk | 🔶 modelde hedefte (12.5 dk) — telemetri doğrulayacak |
+| ÇK-13 tur 10'a ~15 dk | ❌ **ölçüldü: ~8.8 dk — hedefin ALTINDA** (PT-01/Sonuç-01) |
 | ÇK-14 üç bölge açılıyor | 🔶 modelde karşılanıyor, **iki kırılma var** |
 | ÇK-15 40 zombi bütçede | ✅ **ölçüldü** — p99 bütçenin %8.5'i |
-| ÇK-16 Unity'siz test | ✅ 234 test yeşil |
-| **ÇK-17 tekrar oynatıyor mu** | **oyun testi bekliyor — milestone'un asıl sorusu** |
+| ÇK-16 Unity'siz test | ✅ 263 test yeşil |
+| **ÇK-17 tekrar oynatıyor mu** | 🔶 **ilk sinyal olumlu** (7 dk, "keyifliydi") ama 20 dk değil; kartlar girdiği için temiz kontrol grubu artık ölçülemez |
 
 **Oyun testinde aranacak iki bulgu** (`design/economy/curves.md`): mermi seferleri turu
 parçalıyor (tur 14'te 15 sefer, PILLAR-03 ihlali) ve geç oyunda harcanacak bir şey

@@ -1,3 +1,98 @@
+# Handoff — 2026-09-05
+
+> **Bu oturum `/clear` ile kapandı; aşağısı bir sonraki oturumun ilk okuyacağı şey.**
+> Altındaki 09-04 ve 09-03 bölümleri hâlâ geçerli, bunlar üstüne eklendi.
+
+---
+
+## Bu oturumda ne oldu
+
+### 1. Kart sistemi ve tezgâh girdi (M-03'ün ilk dilimi, M-01 bitmeden)
+
+Geliştiricinin kararı: *"kart sistemini vs ekle çok yavaş ilerledik hızlanalım."*
+
+| Ne | Nerede |
+|---|---|
+| 21 kartlık havuz | `config/content/cards.json` → `CardCatalogImporter` → `cards.asset` |
+| Kart çekirdeği | `Code/Systems/Cards/` — `CardDefinition`, `CardLoadout`, `CardDraft`, `CardSignals`, `ShopState`, `RunModifiers` |
+| Draft ekranı | `Code/UI/CardDraftHud.cs` — **fareyle** seçilir, her tur sonu açılır, tur durur |
+| Tezgâh | `Code/Gameplay/ShopStation.cs` + `Code/UI/ShopHud.cs` — duvarda **mor levha**, E açar/kapatır |
+
+**Tezgâh bilerek kart ekranından ayrı:** kart seçimi turun zorunlu ödülü, tezgâh
+oyuncunun gitmeyi seçtiği bir harcama noktası. Aynı ekranda olmaları ikincisini
+birincisinin eklentisi gibi gösteriyordu. Tezgâh turu **durdurmaz** — molayı orada
+harcamak bir bedel olmalı.
+
+**Bütün kart etkileri bağlı ve ölçülüyor.** Tek okuma noktası `RunModifiers.Total(stat)`
+(kart + tezgâh toplanır). Silah tarafında `WeaponModifiers` struct'ı istemci ile sunucunun
+aynı sayıyı görmesini garanti ediyor (BUG-002'nin tekrarını engeller).
+
+### 2. İLK OLUMLU OYNANIŞ VERİSİ
+
+> *"7 dk kapıştım keyifliydi tezgah falan gayet iyi çalışıyor"*
+
+Tam analiz: **`docs/qa/playtests/PT-01-SONUC-01-ilk-keyifli-run.md`**. Özet:
+
+| | |
+|---|---|
+| Tur 9, 7:49, 103 öldürme, 12.057 puan | |
+| **Kafa vuruşu %76** | modelim %25 / %50 varsayıyordu |
+| **Bıçak %0** | 103 öldürmenin sıfırı |
+
+**Üç bulgu, hiçbiri koda dokunmadı (tek run, tek oyuncu — değer değiştirmek için yetersiz):**
+
+1. **Simülasyonum oyuncuyu yanlış modelledi.** `curves.md`'nin en önemli bulgusu olan
+   "mermi seferleri turu parçalıyor" (KIRILMA 1) gerçek isabetle koşulunca tur başına 4
+   sefere iniyor, 15 değil. Belgenin başına geçersizlik uyarısı kondu.
+2. **Turlar hedeften HIZLI.** ÇK-13 hedefi 12–18 dk; gerçek tempo tur 10'a ~8.8 dk.
+   Yavaşlatma adayları `curves.md`'de. **İki-üç run daha biriktikten sonra** bakılmalı.
+3. **Bıçak hiç kullanılmadı.** En yüksek puanı veren ve mermi harcamayan seçenek. Bir
+   sonraki oturumda geliştiriciye sorulacak tek soru: *"bıçağı neden hiç kullanmadın?"*
+
+---
+
+## Sıradaki iş — sırayla
+
+1. **Geliştiriciye bıçak sorusu** (yukarıda). Öğretme mi, denge mi, his mi ayrılmadan
+   çözülemez.
+2. **2-3 run daha biriktir**, sonra `telemetry.ps1` + `balance-sim.ps1` ile tur temposu
+   kararı ver. Tek run'la denge değiştirme.
+3. **Kart havuzu 21, hedef 70+.** GOAL-02 (iki run'ın kart yığını %40'tan az örtüşsün)
+   her tur draft ile ~20 kart çekilmesi demek; 21 kartlık havuz bunu karşılamaz.
+4. **Ücretli yenileme hâlâ bedava.** Fiyat eğrisi (`taban × tur`) `config/balance/cards.json`'a
+   yazılmalı; `CardDraftController.RerollSlot` içinde `TODO(systems-designer, SYS-02 §7c)`.
+5. **İki katmanlı can modeli (Darktide)** geliştirici tarafından onaylandı, M-02'ye
+   yazıldı. Açık soru kayıtlı: can katmanı nasıl geri gelir?
+6. **Tur sonu kısmi yenileme** (barikat/mermi %40-60) — M-02, onaylandı, yapılmadı.
+
+---
+
+## Bu oturumun dersleri
+
+| Ne | Ders |
+|---|---|
+| **IMGUI'de önce çizilen kontrol tıklamayı yutar** | Kartın TAMAMINI düğme yapmıştım, yenileme düğmesi onun içinde kalıyordu ve "yenile" kartı seçiyordu. Geliştirici oynayınca çıktı, hiçbir test yakalayamazdı. |
+| **Simülasyon oyuncu becerisinde kendinden emin şekilde yanılır** | %25 varsaydım, gerçek %76. Bütün ekonomi sonuçlarının girdisiydi. `balance-check`'in kendi uyarısı aynen gerçekleşti — **o yüzden hiçbir değeri değiştirmemiş olmak doğru karardı.** |
+| **Sahne koruması artık KENDİNİ ONARIYOR** | İki kez "hierarchy sıfırlanmış" geldi. İlk düzeltmem `exit 0`'dan sonraydı, hiç koşmadı. İkincisi yalnızca *koruyordu*, *onarmıyordu*. Üç araç da (`unity-exec`, `unity-test`, `build`) artık boş `.scenesetup` dosyasını yeniden yazıyor. **Doğrulamam da yanlıştı:** dolu dosyanın hayatta kaldığını test etmiştim, boş dosyanın iyileştiğini değil. |
+
+---
+
+## Oyun şu an ne yapıyor
+
+```
+sol tik  ates        R  dolum        V  bicak
+E        tamir (tut) / satin al (bas) / TEZGAH (mor levha)
+F7/F8    tur atla    F9  sahayi temizle    F10  atmosferi kapat   <- DEBUG
+```
+
+Tur biter → **kart ekranı** gelir, fareyle bir kart seçilir (yuva başına bir ücretsiz
+yenileme, her tur sıfırlanır). Tezgâh duvarda ayrı bir nokta: can, hasar, atış hızı,
+şarjör — her alışta fiyatı artan minör yükseltmeler.
+
+**263 EditMode testi yeşil.** Build alınıyor (`VERDICT: BUILD OK`).
+
+---
+
 # Handoff — 2026-09-04
 
 > **2026-09-04 eki (geliştirici AFK'yken yapılanlar).** Aşağıdaki 09-03 özeti hâlâ

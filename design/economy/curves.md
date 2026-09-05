@@ -3,6 +3,24 @@
 **Sahibi:** `systems-designer` · **Son güncelleme:** 2026-09-04
 **Kaynak:** `.claude/tools/balance-sim.ps1` (Unity açmadan koşar, saniyeler sürer)
 
+
+> ## 2026-09-05 — BU BELGENIN BIR BOLUMU GECERSIZ
+>
+> İlk gerçek oyun testi (`docs/qa/playtests/PT-01-SONUC-01-ilk-keyifli-run.md`)
+> aşağıdaki iki profili de yalanladı: gerçek oyuncu **%76 kafa vuruşu** yaptı, modelin
+> "iyi" profili %50 varsayıyordu. Kafa vuruşu 2× hasar verdiği için bu, öldürme başına
+> mermi sayısını doğrudan değiştirir.
+>
+> **KIRILMA 1 (mermi seferleri) abartılmıştır.** Gerçek isabetle yeniden koşulduğunda
+> tur başına 4 sefer çıkıyor, 15 değil — ve geliştirici o tempoyu keyifli buldu.
+>
+> **ÇK-13 cevabı da değişti:** tur 10'a 12.5 dk değil, **8.8 dk**. Yani oyun hedef
+> bandın (12–18 dk) üzerinde değil, **altında**.
+>
+> Belge düzeltilmedi, çünkü düzeltmek için tek bir run yeterli değil. İki-üç run daha
+> biriktikten sonra `balance-sim.ps1` gerçek parametrelerle yeniden koşulup burası
+> yeniden üretilmeli.
+
 ---
 
 ## Ne simüle edildi

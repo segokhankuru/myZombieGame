@@ -232,3 +232,33 @@ farklılaştırıcı ve kontrol grubunun içine konursa ÇK-17'nin cevabı yorum
 her run bir ölüm sarmalına döner. Darktide bunu medicae istasyonu ve iksirlerle çözüyor.
 Bizde adayları: tezgâhtan iyileştirme, zombiden düşen nadir can, hasarsız biten turun
 ödülü, `Vampir`/`Kan Nakli` kartları. **Karar verilmedi** — `SYS-02` §7f.
+
+---
+
+## 2026-09-05 — Tezgâh kart ekranından ayrıldı, duvara taşındı
+
+Tezgâh önce kart draft ekranının bir paneliydi. Geliştirici oynayınca istedi:
+*"tezgah bence kartlardan bağımsız mermi doldurma yeri gibi duvarda olmalı."*
+
+**Gerekçe:** kart seçimi turun **zorunlu ödülü** ve durdurulmuş bir andır; tezgâh ise
+oyuncunun **gitmeyi seçtiği** bir harcama noktasıdır. Aynı ekranda olmaları ikincisini
+birincisinin eklentisi gibi gösteriyordu. Duvara taşınınca gitmek bir **bedel** oldu:
+molandan yiyor ve seni haritanın belirli bir noktasına bağlıyor — yani tezgâh bir karar
+hâline geldi. Tezgâh turu **durdurmaz**; duvar silahından farklı renkte (mor) ve farklı
+duvarda, çünkü ikisi de E ile açılıyor ve "E ne yapacak" belirsizliği haritanın kendisinde
+çözülmeli.
+
+## 2026-09-05 — İlk oyun testi simülasyonun oyuncu profilini yalanladı
+
+Gerçek oyuncu **%76 kafa vuruşu** yaptı; `balance-sim.ps1`'in "iyi" profili %50, "ortalama"
+profili %25 varsayıyordu. Kafa vuruşu 2× hasar verdiği için bu, öldürme başına mermi
+sayısının ve dolayısıyla bütün ekonomi sonuçlarının girdisi.
+
+**Sonuç:** `curves.md`'nin en önemli bulgusu olan KIRILMA 1 ("mermi seferleri turu
+parçalıyor, PILLAR-03 ihlali") **abartılmıştır** — gerçek isabetle tur başına 4 sefer
+çıkıyor, 15 değil. ÇK-13 cevabı da 12.5 dk'dan **8.8 dk**'ya düştü, yani oyun hedef
+bandın altında.
+
+**Hiçbir denge değeri değiştirilmedi** — tek run, tek oyuncu, ve o oyuncu oyunun yazarı.
+Belgenin başına geçersizlik uyarısı kondu; iki-üç run daha biriktikten sonra yeniden
+üretilecek. Kanıt: `docs/qa/playtests/PT-01-SONUC-01-ilk-keyifli-run.md`.
