@@ -92,6 +92,7 @@ namespace Bunker.Audio
             SfxId.ZombieLegBreak  => new SfxSpec(0.80f, true,  3,  200, 0.08f, 0f),
 
             SfxId.BarricadeTear   => new SfxSpec(0.70f, true,  4,  170, 0.10f, 0.05f),
+            SfxId.Explosion       => new SfxSpec(0.95f, true,  3,  252, 0.05f, 0.10f),
             SfxId.BarricadeRepair => new SfxSpec(0.60f, true,  3,  150, 0.08f, 0f),
             SfxId.PlayerHurt      => new SfxSpec(0.80f, false, 2,  240, 0.06f, 0.05f),
 
@@ -155,6 +156,7 @@ namespace Bunker.Audio
             SfxId.ZombieDeath     => Growl(ref rng, 1.05f, 120f, -0.55f, 0.90f),
             SfxId.ZombieVault     => Scrape(ref rng),
             SfxId.ZombieLegBreak  => Crunch(ref rng),
+            SfxId.Explosion       => Thud(ref rng, 0.70f, 55f, 1.6f),
             SfxId.BarricadeTear   => Crack(ref rng),
             SfxId.BarricadeRepair => Thud(ref rng, 0.22f, 220f, 0.7f),
             SfxId.PlayerHurt      => Thud(ref rng, 0.45f, 90f, 1.0f),

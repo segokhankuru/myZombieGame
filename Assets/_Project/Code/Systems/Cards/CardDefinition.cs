@@ -81,7 +81,23 @@ namespace Bunker.Systems.Cards
         SlowOnHit,
 
         /// <summary>Mermi bir sonraki zombiye geçer. Değer = kaç geçiş.</summary>
-        Penetration
+        Penetration,
+
+        /// <summary>
+        /// Ölen zombi PATLAR. Değer = patlamanın hasarı, ölenin maksimum canının
+        /// oranı olarak (0.60 = maks canının %60'ı kadar hasar).
+        ///
+        /// <para><b>Yıkım etiketinin çekirdeği</b> (2026-09-05). Yarıçap
+        /// <c>zombie.json → cards.explosionRadiusMeters</c>'ten gelir; kart yalnızca
+        /// gücü söyler.</para>
+        /// </summary>
+        ExplodeOnKill,
+
+        /// <summary>Öldürme başına iyileşme, maksimum canın oranı (0.05 = %5).</summary>
+        HealOnKill,
+
+        /// <summary>Öldürme başına yedeğe eklenen mermi (mutlak sayı).</summary>
+        AmmoOnKill
     }
 
     /// <summary>
@@ -103,9 +119,25 @@ namespace Bunker.Systems.Cards
         public readonly bool SoloValid;
         public readonly bool CoopValid;
 
+        /// <summary>
+        /// Bu kart <b>bir kez</b> alınır ve sonra havuzdan çıkar.
+        ///
+        /// <para>Varsayılan <c>false</c>: kartların çoğu tekrar çıkabilir ve etkileri
+        /// toplanır (geliştirici kararı, 2026-09-05). Alınan her kartın havuzdan
+        /// silinmesi, 21 kartlık havuzu yirmi turda tüketiyor ve geç turlarda draft'ı
+        /// boş açıyordu. Ayrıca tekrar edebilen kart bir <b>karar</b> üretir: aynı şeyi
+        /// bir daha mı, yeni bir şey mi.</para>
+        ///
+        /// <para><c>true</c> yalnızca mutlak bir şeyi bir kez değiştiren kartlar için
+        /// (kafa çarpanı 2x→3x, tamir puanı iki katı). İkinci kopyası ya hiçbir şey
+        /// yapmaz ya da kartın metniyle yalan söyler.</para>
+        /// </summary>
+        public readonly bool Unique;
+
         public CardDefinition(string id, string displayName, string description,
                               CardTag tag, CardStat stat, float value,
-                              bool soloValid = true, bool coopValid = true)
+                              bool soloValid = true, bool coopValid = true,
+                              bool unique = false)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             DisplayName = displayName ?? id;
@@ -115,6 +147,7 @@ namespace Bunker.Systems.Cards
             Value = value;
             SoloValid = soloValid;
             CoopValid = coopValid;
+            Unique = unique;
         }
 
         public bool IsValid => !string.IsNullOrEmpty(Id);

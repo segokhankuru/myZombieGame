@@ -65,6 +65,19 @@ namespace Bunker.Systems.Combat
         /// <summary>Oyuncuda kafa kutusu yok — zombiler telegrafı olan tek bir vuruş yapar.</summary>
         public bool CountsAsHeadshot => false;
 
+        /// <summary>Bu can havuzunun kendisi; alt vuruş kutusu yok.</summary>
+        public IDamageable DamageRoot => this;
+
+        /// <summary>
+        /// Şu anki ham can. Durum paneli <b>kesin sayı</b> ister (2026-09-06):
+        /// "%40 canım var" ile "40/125 canım var" arasındaki fark, kaç vuruş
+        /// dayanabileceğini bilmekle bilmemek arasındaki farktır.
+        /// </summary>
+        public float CurrentPoints => _pool.Current;
+
+        /// <summary>Kart ve tezgâh etkileriyle birlikte maksimum can.</summary>
+        public float MaxPoints => _pool.Max;
+
         /// <summary>Ekran kenarı uyarısının yanması gerekiyor mu (AC-7).</summary>
         public bool IsLow => IsAlive && Fraction01 <= _lowFraction;
 
@@ -143,6 +156,20 @@ namespace Bunker.Systems.Combat
                 _pool.ResetTo(newMax);
                 _pool.ApplyDamage(new DamageInfo(newMax * (1f - fraction)));
             }
+        }
+
+        /// <summary>
+        /// İyileştirir (M-03 "öldürünce can" kartı).
+        ///
+        /// <para><b>Ölü iyileşmez</b>: ölümden dönüş bir tasarım kararıdır ve M-01'de
+        /// yok. Yenilenme gecikmesine <b>dokunmaz</b> — kart bir ödül, vurulmamış
+        /// olmanın yerine geçen bir şey değil.</para>
+        /// </summary>
+        public void Heal(float amount)
+        {
+            if (amount <= 0f || !IsAlive) return;
+
+            _pool.Heal(amount);
         }
 
         /// <summary>Yeni bir run için tam cana döner (AC-5).</summary>

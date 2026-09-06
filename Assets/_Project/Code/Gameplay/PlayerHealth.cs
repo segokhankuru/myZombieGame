@@ -41,6 +41,18 @@ namespace Bunker.Gameplay
         /// <summary>Ekran kenarı uyarısı yanmalı mı (AC-7). Oran eşikten ucuz.</summary>
         [SyncVar] private bool _syncedLow;
 
+        /// <summary>
+        /// Ham can ve tavanı. <b>Durum paneli için</b> (2026-09-06, geliştirici:
+        /// <i>"mevcut canımın hasarımın net bilgisini bilmeliyim"</i>).
+        ///
+        /// <para>Oran zaten senkron ama tek başına yetmiyor: kart alan oyuncunun tavanı
+        /// değişiyor ve "%60 can" cümlesi her turda başka bir sayı demek. Kaç vuruş
+        /// dayanabileceğini bilmek için ham sayı gerekiyor.</para>
+        /// </summary>
+        [SyncVar] private float _syncedCurrent = 100f;
+
+        [SyncVar] private float _syncedMax = 100f;
+
         /// <summary>0 (ölü) ile 1 (tam) arası. HUD burayı okur.</summary>
         public float Fraction01 => _syncedFraction01;
 
@@ -49,8 +61,17 @@ namespace Bunker.Gameplay
 
         public bool IsAlive => _syncedFraction01 > 0f;
 
+        /// <summary>Su anki can, ham sayi. Durum paneli okur.</summary>
+        public float CurrentPoints => _syncedCurrent;
+
+        /// <summary>Maksimum can (kart ve tezgah dahil), ham sayi.</summary>
+        public float MaxPoints => _syncedMax;
+
         /// <summary>Oyuncuda kafa kutusu yok — zombiler telegrafı olan tek bir vuruş yapar.</summary>
         public bool CountsAsHeadshot => false;
+
+        /// <summary>Oyuncunun kendisi; alt vurus kutusu yok.</summary>
+        public IDamageable DamageRoot => this;
 
         private void Awake()
         {
@@ -110,11 +131,21 @@ namespace Bunker.Gameplay
             DamageResult result = _health.ApplyDamage(damage);
             PublishState();
 
-            // Vurulmanin sesi 2B: kendi canindan gitmesi uzayda bir yerde olmaz.
-            if (result.Absorbed > 0f) GameAudio.Play(SfxId.PlayerHurt);
+            // Geri bildirim VURULAN OYUNCUYA gider, sunucuda kalmaz: co-op'ta hasarı
+            // uygulayan makine ile onu hisseden oyuncu farklı olabilir.
+            if (result.Absorbed > 0f && connectionToClient != null)
+            {
+                TargetReportDamageTaken(connectionToClient, result.Absorbed,
+                                        new Vector3(damage.SourceX, transform.position.y,
+                                                    damage.SourceZ));
+            }
 
             if (result.Killed)
             {
+                // NE OLDURDU (2026-09-05): "birden oldum" cumlesini tahmin olmaktan
+                // cikaran tek sey. Skor ekrani bunu yazar.
+                CombatFeedback.NoteLethalHit(damage.Amount, damage.Kind);
+
                 // Olum yeri, run sonu YAYILMADAN once bildirilir: RaisePlayerDied
                 // sayaclari DONDURUR ve ondan sonra gelen hicbir bildirim kabul
                 // edilmez (M1-12). Sira ters olsaydi telemetri her run'da olum yerini
@@ -132,6 +163,48 @@ namespace Bunker.Gameplay
             return result;
         }
 
+        /// <summary>
+        /// Hasarın <b>hissedilen</b> tarafı: ses, sayı, yön ve açık menünün kapanması.
+        ///
+        /// <para><b>Neden hepsi burada:</b> dördü de vurulan oyuncuya ait. Sunucuda
+        /// çalıştırılsalardı co-op'ta ses host'ta çalar, sayı host'un ekranında belirir
+        /// ve vurulan oyuncu hiçbir şey görmezdi.</para>
+        /// </summary>
+        [TargetRpc]
+        private void TargetReportDamageTaken(NetworkConnection target, float amount,
+                                             Vector3 sourcePosition)
+        {
+            // Vurulmanin sesi 2B: kendi canindan gitmesi uzayda bir yerde olmaz.
+            GameAudio.Play(SfxId.PlayerHurt);
+
+            // Kac hasar yedin ve NEREDEN (2026-09-05). Bu iki bilgi olmadan
+            // "birden oldum" cumlesi kurulur ve olum haksizlik gibi okunur.
+            CombatFeedback.RaiseDamageTaken(amount, sourcePosition);
+
+            // HASAR ALDIYSAN MENU KAPANIR (2026-09-05, oyun testi). Menu acikken
+            // girdin kesiliyor ama dunya donmeye devam ediyor; menunun arkasinda
+            // olmek "hic hasar yemeden game over" diye okunur. Tezgahin mola kurali
+            // bunun ONLEMI, bu satir EMNIYET KEMERI.
+            CardSignals.SetShopOpen(false);
+        }
+
+        /// <summary>
+        /// Kart odulu: maksimum canin bir oranı kadar iyilesme (KAN etiketi).
+        ///
+        /// <para><b>Olu oyuncu iyilesmez</b> - olumden donus bir tasarim karari ve
+        /// M-01'de yok. Buradan sessizce gelmesi, run sonunun hic gorunmemesine yol
+        /// acardi.</para>
+        /// </summary>
+        [Server]
+        public void ServerHealFraction(float fraction01)
+        {
+            if (_health == null || !_health.IsAlive) return;
+            if (fraction01 <= 0f) return;
+
+            _health.Heal(_health.Max * fraction01);
+            PublishState();
+        }
+
         private void PublishState()
         {
             float fraction = _health.Fraction01;
@@ -142,6 +215,12 @@ namespace Bunker.Gameplay
 
             bool low = _health.IsAlive && fraction <= _lowFraction;
             if (_syncedLow != low) _syncedLow = low;
+
+            if (!Mathf.Approximately(_syncedCurrent, _health.CurrentPoints))
+                _syncedCurrent = _health.CurrentPoints;
+
+            if (!Mathf.Approximately(_syncedMax, _health.MaxPoints))
+                _syncedMax = _health.MaxPoints;
         }
 
         private void OnRunRestarted()

@@ -46,8 +46,15 @@ namespace Bunker.Systems.Cards
             ShopVisibilityChanged?.Invoke(open);
         }
 
-        /// <summary>Herhangi bir menu acik mi - girdi kesme noktasi.</summary>
-        public static bool IsAnyMenuOpen => IsDraftOpen || IsShopOpen;
+        /// <summary>
+        /// Herhangi bir menu acik mi - girdi kesme noktasi.
+        ///
+        /// <para>Duraklatma menusu <c>MenuSignals</c>'ta yasar (o kart sisteminin
+        /// parcasi degil), ama girdiyi kesen kapi tek olmali: bes ayri yerde
+        /// "su menu ya da bu menu" yazmak, alti bir sonraki menude unutulacak bir
+        /// kontrol demektir.</para>
+        /// </summary>
+        public static bool IsAnyMenuOpen => IsDraftOpen || IsShopOpen || Ui.MenuSignals.IsPauseOpen;
 
         /// <summary>Bir draft açıldı — arayüz burayı dinler.</summary>
         public static event Action<CardDraft> DraftOpened;

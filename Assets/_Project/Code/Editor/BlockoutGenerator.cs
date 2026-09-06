@@ -657,8 +657,19 @@ namespace Bunker.Editor
                 new Vector3(shaftWidth, s.UpperFloorY, s.WallThickness * 1.5f));
 
             Transform buys = Group("Purchases", markers);
-            Marker(buys, "WallBuy_A_Cheap", new Vector3(s.West + 0.5f, 1.4f, s.South + 2f));
-            Marker(buys, "WallBuy_B_Mid", new Vector3(s.East - 0.5f, 1.4f, s.North - 2f));
+
+            // Isaretler DUVARA DONUK duruyor (2026-09-05). Onceki halde donmemis
+            // bos nesnelerdi ve levhalari - ince yuzu +Z'ye bakan kutular - bati/dogu
+            // duvarinin ICINE giriyordu: oyun testinde "tezgah ve mermi panosu
+            // gorunmuyor" olarak okundu. Bir etkilesim noktasi gorunmuyorsa yoktur
+            // (BUG-004'un dersi).
+            var faceEast = Quaternion.Euler(0f, 90f, 0f);   // bati duvari -> odaya bakar
+            var faceWest = Quaternion.Euler(0f, -90f, 0f);  // dogu duvari -> odaya bakar
+
+            BuyMarker(buys, "WallBuy_A_Cheap",
+                      new Vector3(s.West + 0.5f, 1.4f, s.South + 2f), faceEast);
+            BuyMarker(buys, "WallBuy_B_Mid",
+                      new Vector3(s.East - 0.5f, 1.4f, s.North - 2f), faceWest);
 
             // Tezgah (M-03): UST KATTA (2026-09-05, gelistirici karari).
             //
@@ -669,8 +680,14 @@ namespace Bunker.Editor
             //
             // Dagiticidan (MysteryBox) uzak bir duvarda: yan yana olsalardi hangi tusun
             // ne actigi karisirdi.
-            Marker(buys, "Shop_Station",
-                   new Vector3(s.West + 0.5f, s.UpperFloorY + 1.4f, s.North - 3f));
+            // Ucuncu satin alma noktasi: TUFEK, ust katta (2026-09-06). Uc silahin
+            // ucunun de bir yeri olmali - yeri olmayan silah, oyuncunun varligindan
+            // haberi olmayan silahtir.
+            BuyMarker(buys, "WallBuy_C_Rifle",
+                      new Vector3(s.East - 0.5f, s.UpperFloorY + 1.4f, midZ), faceWest);
+
+            BuyMarker(buys, "Shop_Station",
+                      new Vector3(s.West + 0.5f, s.UpperFloorY + 1.4f, s.North - 3f), faceEast);
             Marker(buys, "MysteryBox", new Vector3(s.Divider + 2f, s.UpperFloorY + 0.5f, midZ));
         }
 
@@ -846,6 +863,39 @@ namespace Bunker.Editor
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.position = position;
+            return go;
+        }
+
+        /// <summary>
+        /// Satın alma işareti: dönük bir işaret <b>ve görünür bir levha</b>.
+        ///
+        /// <para><b>Levha burada üretiliyor, görünüm aracında değil</b> (2026-09-05).
+        /// Önceden yalnızca <c>GreyboxLook</c> üretiyordu ve harita yeniden
+        /// üretildiğinde levhalar kayboluyordu: sahnede tezgâh ve mermi noktası
+        /// <i>hiçbir görsele sahip olmayan boş nesnelerdi</i>. Oyuncunun mermiyi
+        /// nereden alacağını göremediği bir harita, o mekaniğin olmadığı bir haritadır.
+        /// Görünüm aracı hâlâ levhanın <b>rengini</b> verir; varlığı artık haritanın
+        /// kendi işi.</para>
+        ///
+        /// <para>Levha <b>çarpışmaz</b>: etkileşim tetikleyicisini <c>ZombieSetup</c>
+        /// işaretin kendisine koyuyor, ikinci bir katı yüzey oyuncuyu duvara
+        /// yapıştırırdı.</para>
+        /// </summary>
+        private static GameObject BuyMarker(Transform parent, string name,
+                                            Vector3 position, Quaternion rotation)
+        {
+            GameObject go = Marker(parent, name, position);
+            go.transform.rotation = rotation;
+
+            GameObject plate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            plate.name = "Plate";
+            plate.transform.SetParent(go.transform, false);
+            plate.transform.localPosition = Vector3.zero;
+            plate.transform.localRotation = Quaternion.identity;
+            plate.transform.localScale = new Vector3(1.1f, 0.7f, 0.12f);
+
+            Object.DestroyImmediate(plate.GetComponent<Collider>());
+
             return go;
         }
     }

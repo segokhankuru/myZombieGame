@@ -34,11 +34,20 @@ namespace Bunker.Systems.Cards
 
         public int Count => _cards.Count;
 
-        /// <summary>Bir kartı yığına ekler.</summary>
-        /// <returns>Eklendiyse <c>true</c>. <b>Aynı kart iki kez alınamaz.</b></returns>
+        /// <summary>
+        /// Bir kartı yığına ekler.
+        ///
+        /// <para><b>Aynı kart tekrar alınabilir ve etkisi TOPLANIR</b> (geliştirici
+        /// kararı, 2026-09-05) — <see cref="CardDefinition.Unique"/> olanlar hariç.
+        /// Önceki kural her alınan kartı havuzdan siliyordu; 21 kartlık havuz yirmi
+        /// turda tükeniyor ve draft boş açılıyordu.</para>
+        /// </summary>
+        /// <returns>Eklendiyse <c>true</c>. Tek seferlik bir kartın ikinci kopyası
+        /// <c>false</c> döner.</returns>
         public bool Add(in CardDefinition card)
         {
-            if (!card.IsValid || Has(card.Id)) return false;
+            if (!card.IsValid) return false;
+            if (card.Unique && Has(card.Id)) return false;
 
             _cards.Add(card);
             _tagCounts[(int)card.Tag]++;
@@ -47,6 +56,11 @@ namespace Bunker.Systems.Cards
             return true;
         }
 
+        /// <summary>
+        /// Bu id yığında var mı. <b>Havuz bunu yalnızca tek seferlik kartlar için
+        /// sorar</b> — tekrar edebilen bir kartın elde olması, tekrar çıkmasına engel
+        /// değildir.
+        /// </summary>
         public bool Has(string id)
         {
             for (int i = 0; i < _cards.Count; i++)

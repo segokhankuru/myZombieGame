@@ -376,7 +376,10 @@ namespace Bunker.Editor
                 var health = contents.GetComponent<PlayerHealth>();
                 if (health == null) { health = contents.AddComponent<PlayerHealth>(); changed = true; }
 
-                SetPrivateField(health, "playerConfig", LoadConfigAsset("player"));
+                // Alan yazimlari da DEGISIKLIK sayilir (2026-09-05): sayilmazsa,
+                // hicbir bilesen eklenmediginde prefab KAYDEDILMIYOR ve yeni
+                // baglanan ayarlar sessizce kayboluyordu.
+                changed |= SetPrivateField(health, "playerConfig", LoadConfigAsset("player"));
 
                 changed |= PatchWeapon(contents);
 
@@ -467,7 +470,7 @@ namespace Bunker.Editor
                                  "Gri kutu yeniden uretilmeli.");
             }
 
-            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid" })
+            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid", "WallBuy_C_Rifle" })
             {
                 GameObject marker = GameObject.Find(name);
                 if (marker == null) continue;
@@ -478,7 +481,20 @@ namespace Bunker.Editor
                 EnsureInteractionTrigger(marker, new Vector3(1.4f, 1.4f, 0.8f));
 
                 SetPrivateField(wall, "economyConfig", economy);
-                SetPrivateField(wall, "displayName", "MERMI");
+
+                // Her duvar noktasi BIR silah satar (2026-09-06) ve modelini asar.
+                // Fiyat farki silahin YERINI de soyluyor: ucuz olan baslangic
+                // odasinda, digerleri kapinin arkasinda ve ust katta.
+                (string id, string label) sold = name switch
+                {
+                    "WallBuy_A_Cheap" => ("weapon.smg", "MP-KISA"),
+                    "WallBuy_B_Mid" => ("weapon.shotgun", "POMPALI"),
+                    _ => ("weapon.rifle", "TUFEK")
+                };
+
+                SetPrivateField(wall, "weaponId", sold.id);
+                SetPrivateField(wall, "displayName", sold.label);
+                SetPrivateField(wall, "catalog", LoadConfigAsset("weapons"));
 
                 weapons++;
             }
@@ -598,21 +614,31 @@ namespace Bunker.Editor
             var viewmodel = player.GetComponent<PlayerViewmodel>();
             if (viewmodel == null) { viewmodel = player.AddComponent<PlayerViewmodel>(); changed = true; }
 
-            SetPrivateField(viewmodel, "playerCamera", playerCamera);
-            SetPrivateField(viewmodel, "weapon", weapon);
-            SetPrivateField(viewmodel, "melee", melee);
+            changed |= SetPrivateField(viewmodel, "playerCamera", playerCamera);
+            changed |= SetPrivateField(viewmodel, "weapon", weapon);
+            changed |= SetPrivateField(viewmodel, "melee", melee);
 
-            SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
-            SetPrivateField(weapon, "tracer", line);
-            SetPrivateField(score, "economyConfig", LoadConfigAsset("economy"));
-            SetPrivateField(score, "weapon", weapon);
-            SetPrivateField(score, "melee", melee);
-            SetPrivateField(melee, "knifeConfig", LoadConfigAsset("knife"));
-            SetPrivateField(repair, "barricadeConfig", LoadConfigAsset("barricade"));
-            SetPrivateField(repair, "score", score);
-            SetPrivateField(repair, "interact", interact);
-            SetPrivateField(interact, "score", score);
-            SetPrivateField(interact, "weapon", weapon);
+            // Kosu ayari (2026-09-05): PlayerController artik player.json'i okuyor.
+            // Baglanmazsa kosu SESSIZCE calismaz - bu yuzden burada baglaniyor ve
+            // bilesenin kendisi eksikligi hata olarak logluyor.
+            var controller = player.GetComponent<PlayerController>();
+            if (controller != null)
+            {
+                changed |= SetPrivateField(controller, "playerConfig", LoadConfigAsset("player"));
+            }
+
+            changed |= SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
+            changed |= SetPrivateField(weapon, "catalog", LoadConfigAsset("weapons"));
+            changed |= SetPrivateField(weapon, "tracer", line);
+            changed |= SetPrivateField(score, "economyConfig", LoadConfigAsset("economy"));
+            changed |= SetPrivateField(score, "weapon", weapon);
+            changed |= SetPrivateField(score, "melee", melee);
+            changed |= SetPrivateField(melee, "knifeConfig", LoadConfigAsset("knife"));
+            changed |= SetPrivateField(repair, "barricadeConfig", LoadConfigAsset("barricade"));
+            changed |= SetPrivateField(repair, "score", score);
+            changed |= SetPrivateField(repair, "interact", interact);
+            changed |= SetPrivateField(interact, "score", score);
+            changed |= SetPrivateField(interact, "weapon", weapon);
 
             return changed;
         }
@@ -679,6 +705,9 @@ namespace Bunker.Editor
 
             SetPrivateField(draft, "catalog", LoadConfigAsset("cards"));
 
+            // Puanli yenilemenin fiyati ekonomiden gelir (economy.json v4).
+            SetPrivateField(draft, "economyConfig", LoadConfigAsset("economy"));
+
             var draftHud = host.GetComponent<CardDraftHud>();
             if (draftHud == null) draftHud = host.AddComponent<CardDraftHud>();
 
@@ -687,6 +716,17 @@ namespace Bunker.Editor
 
             SetPrivateField(shopController, "shopConfig", LoadConfigAsset("shop"));
             SetPrivateField(draftHud, "controller", draft);
+
+            // Hasar sayilari ve hasar yonu gostergesi (2026-09-05).
+            if (host.GetComponent<DamageNumbersHud>() == null) host.AddComponent<DamageNumbersHud>();
+
+            // TAB durum paneli (2026-09-06): kesin sayilar.
+            if (host.GetComponent<StatsHud>() == null) host.AddComponent<StatsHud>();
+
+            // M-04: ESC duraklatma menusu. Ayni HUD nesnesinde, ayni gerekceyle -
+            // ayri bir nesne olsaydi biri unutuldugunda ESC SESSIZCE hicbir sey
+            // yapmazdi.
+            if (host.GetComponent<PauseMenu>() == null) host.AddComponent<PauseMenu>();
 
             var shopHud = host.GetComponent<ShopHud>();
             if (shopHud == null) shopHud = host.AddComponent<ShopHud>();
@@ -1086,7 +1126,12 @@ namespace Bunker.Editor
         /// yapmak yerine bu yol seçildi: bir alanı yalnızca kurulum aracı doldurabiliyor
         /// diye herkese açmak, tasarlanmamış bir API üretir (csharp-code.md).
         /// </summary>
-        private static void SetPrivateField(UnityEngine.Object target, string fieldName, object value)
+        /// <returns>
+        /// Alan GERCEKTEN degistiyse <c>true</c>. Cagiran taraf bunu "prefab kaydedilmeli"
+        /// diye okur: bir alani yazip prefab'i kaydetmemek, aracin "tamam" deyip hicbir sey
+        /// baglamamasi demektir - bu projenin en pahali hata turu (2026-09-05).
+        /// </returns>
+        private static bool SetPrivateField(UnityEngine.Object target, string fieldName, object value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = serialized.FindProperty(fieldName);
@@ -1095,7 +1140,7 @@ namespace Bunker.Editor
             {
                 Debug.LogError($"[Zombi] '{target.GetType().Name}' uzerinde '{fieldName}' " +
                                "alani yok. Alan adi degistiyse bu araci da guncelle.");
-                return;
+                return false;
             }
 
             // Her tip acikca ele alinir. Onceki surum yalnizca bool ve nesne
@@ -1142,10 +1187,10 @@ namespace Bunker.Editor
                 default:
                     Debug.LogError($"[Zombi] '{fieldName}' icin desteklenmeyen tip: " +
                                    $"{value.GetType().Name}. SetPrivateField genisletilmeli.");
-                    return;
+                    return false;
             }
 
-            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return serialized.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

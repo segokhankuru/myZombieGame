@@ -13,6 +13,7 @@
   <Project Path="Mirror.Transports.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
   <Project Path="Bunker.Gameplay.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Bunker.Config.csproj" />
   <Project Path="Bunker.Systems.Tests.csproj" />
   <Project Path="Telepathy.csproj" />

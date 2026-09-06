@@ -19,7 +19,7 @@ namespace Bunker.Config
     /// </summary>
     public sealed class EconomyConfigAsset : ScriptableObject
     {
-        [SerializeField] private int version = 3;
+        [SerializeField] private int version = 4;
 
         [Header("awards")]
         [Tooltip("Oldurmeyen her isabet. Bu deger oyuncunun 'silahim ise yariyor' hissinin ekonomik karsiligi - sifira yakinsa gec turlarda kalin canli zombilere ates etmek bedava is gibi hissettirir.")]
@@ -72,6 +72,14 @@ namespace Bunker.Config
         [Range(300, 3000)]
         [SerializeField] private int pricesMysteryBox = 950;
 
+        [Tooltip("Bir kart yuvasinin PUANLI yenilemesinin tur 1 fiyati (ilk yenileme her zaman ucretsiz, SYS-02 §7c). Bedava olursa yenileme bir karar olmaktan cikar ve oyuncu her yuvayi begenene kadar cevirir; cok pahali olursa hic kullanilmaz ve kotu bir uclu turun odulunu siler.")]
+        [Range(0, 2000)]
+        [SerializeField] private int pricesCardRerollBase = 200;
+
+        [Tooltip("Yenileme fiyatinin tur basina artisi. Sabit fiyat gec turlarda bedavaya doner - tur 15'te 250 puan bir oldurmeden az eder. Artis, yenilemenin bedelini turun puan olcegiyle ayni bantta tutar.")]
+        [Range(0, 500)]
+        [SerializeField] private int pricesCardRerollAddPerRound = 50;
+
         [Header("ammo")]
         [Tooltip("Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md.")]
         [Range(1, 40)]
@@ -98,6 +106,8 @@ namespace Bunker.Config
                 pricesWallWeaponCheap,
                 pricesWallWeaponMid,
                 pricesMysteryBox,
+                pricesCardRerollBase,
+                pricesCardRerollAddPerRound,
                 ammoMagazinesPerPurchase,
                 ammoRefillCost);
         }

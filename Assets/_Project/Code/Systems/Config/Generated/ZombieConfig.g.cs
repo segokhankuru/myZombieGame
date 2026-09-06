@@ -100,6 +100,30 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0.1 .. 3 | JSON: navigation.stuckRecoverySeconds</remarks>
         public readonly float NavigationStuckRecoverySeconds;
 
+        /// <summary>Olen zombinin patlama yaricapi (Yikim kartlari). Kucuk olursa patlama yalnizca ust uste duran zombileri vurur ve kart hissedilmez; buyuk olursa tek bir oldurme butun surudu siler ve nisan almanin anlami kalmaz.</summary>
+        /// <remarks>Aralik: 1 .. 10 | JSON: cards.explosionRadiusMeters</remarks>
+        public readonly float CardsExplosionRadiusMeters;
+
+        /// <summary>Patlamanin firlattigi sarapnel sayisi. Toplam hasar bu sayiya BOLUNUR: az parca = her biri agir ama cogu bosa gider (piyango); cok parca = yakindaki zombi cogunu yer, uzaktaki birkacini (okunabilir). 4'un altinda patlama bir sans oyununa doner, 40'in ustunde kure sorgusundan farksizlasir ve isin maliyeti buyur.</summary>
+        /// <remarks>Aralik: 4 .. 40 | JSON: cards.explosionShrapnelCount</remarks>
+        public readonly int CardsExplosionShrapnelCount;
+
+        /// <summary>Patlamanin OYUNCUYA verdigi hasarin orani. Sifir: patlama oyuncuyu yakmaz. Sifirdan buyuk yapmak kartı bir risk-odul karari haline getirir ama yakin dovusu (bicak) cezalandirir - once oynanarak denenmeli.</summary>
+        /// <remarks>Aralik: 0 .. 1 | JSON: cards.explosionSelfDamageFraction01</remarks>
+        public readonly float CardsExplosionSelfDamageFraction01;
+
+        /// <summary>Her zombinin hedefe giderken tuttugu yanal serit. Sifir yaparsan hepsi tek sira dizilir (eski hali). Cok buyutursen zombiler oyuncuya gelmek yerine yanlardan dolasir ve tehdit dagilir; dar koridorlarda da bosuna yol arar.</summary>
+        /// <remarks>Aralik: 0 .. 6 | JSON: swarm.lateralSpreadMeters</remarks>
+        public readonly float SwarmLateralSpreadMeters;
+
+        /// <summary>Bu mesafeden yakinda serit SONER ve zombi dogrudan oyuncuya gelir. Sonmeseydi zombiler oyuncunun yanindan gecip durur ve saldiramazdi. Kucultursen cephe son anda tek noktaya toplanir; buyutursen zombiler uzaktan dagilir ama yakinda hala kuyruk yapar.</summary>
+        /// <remarks>Aralik: 1 .. 12 | JSON: swarm.spreadFadeDistanceMeters</remarks>
+        public readonly float SwarmSpreadFadeDistanceMeters;
+
+        /// <summary>Zombi basina hiz sapmasi (0.12 = +/-%12). Ayni hizda giden zombiler konvoy halinde kalir; kucuk bir sapma dizilimi kendiliginden bozar. Buyutursen turun hiz kademesi (rounds.json speed) anlamini yitirir ve bazi zombiler beklenmedik sekilde hizli olur.</summary>
+        /// <remarks>Aralik: 0 .. 0.3 | JSON: swarm.speedJitter01</remarks>
+        public readonly float SwarmSpeedJitter01;
+
         /// <summary>Bir zombinin saniyede kac kez dusundugu. Kare basina degil - kare hizindan bagimsizdir. Buyutursen zombiler daha tepkisel olur ve islemci maliyeti dogrusal artar; kucultursen zombiler gec tepki verir ve oyuncu yanlarindan yururken uyuyor gorunur. Bu bir performans tavanidir, artirmadan once olcum gerekir (PERF-BUDGET.md).</summary>
         /// <remarks>Aralik: 2 .. 30 | JSON: budget.thinkHz</remarks>
         public readonly float BudgetThinkHz;
@@ -113,7 +137,7 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public ZombieConfig(
-            int version = 2,
+            int version = 5,
             float spawnEmergeDelaySeconds = 0.6f,
             float windowEntryTriggerDistanceMeters = 1.8f,
             float windowEntryVaultSeconds = 1.4f,
@@ -134,6 +158,12 @@ namespace Bunker.Systems.Config
             float navigationStuckSpeedMetersPerSecond = 0.15f,
             float navigationStuckAfterSeconds = 1.5f,
             float navigationStuckRecoverySeconds = 0.6f,
+            float cardsExplosionRadiusMeters = 4.5f,
+            int cardsExplosionShrapnelCount = 14,
+            float cardsExplosionSelfDamageFraction01 = 0f,
+            float swarmLateralSpreadMeters = 2.5f,
+            float swarmSpreadFadeDistanceMeters = 4f,
+            float swarmSpeedJitter01 = 0.12f,
             float budgetThinkHz = 8f,
             float budgetAnimatorCullDistanceMeters = 15f)
         {
@@ -158,6 +188,12 @@ namespace Bunker.Systems.Config
             NavigationStuckSpeedMetersPerSecond = navigationStuckSpeedMetersPerSecond;
             NavigationStuckAfterSeconds = navigationStuckAfterSeconds;
             NavigationStuckRecoverySeconds = navigationStuckRecoverySeconds;
+            CardsExplosionRadiusMeters = cardsExplosionRadiusMeters;
+            CardsExplosionShrapnelCount = cardsExplosionShrapnelCount;
+            CardsExplosionSelfDamageFraction01 = cardsExplosionSelfDamageFraction01;
+            SwarmLateralSpreadMeters = swarmLateralSpreadMeters;
+            SwarmSpreadFadeDistanceMeters = swarmSpreadFadeDistanceMeters;
+            SwarmSpeedJitter01 = swarmSpeedJitter01;
             BudgetThinkHz = budgetThinkHz;
             BudgetAnimatorCullDistanceMeters = budgetAnimatorCullDistanceMeters;
         }

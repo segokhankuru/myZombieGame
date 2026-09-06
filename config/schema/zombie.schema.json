@@ -4,7 +4,7 @@
   "title": "Zombi davranisi",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "spawn", "windowEntry", "attack", "hitReaction", "crawl", "navigation", "budget"],
+  "required": ["version", "_meta", "spawn", "windowEntry", "attack", "hitReaction", "crawl", "navigation", "cards", "swarm", "budget"],
   "properties": {
     "version": {
       "type": "integer",
@@ -158,6 +158,48 @@
         "stuckRecoverySeconds": {
           "type": "number", "minimum": 0.1, "maximum": 3,
           "description": "Kurtarma denemesinin suresi (yeniden yol, gerekirse NavMesh'e geri isinlama). Kisa olursa kurtarma tutmadan biter ve zombi tekrar sikisir; uzun olursa zombi acikta bekler."
+        }
+      }
+    },
+
+    "cards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["explosionRadiusMeters", "explosionShrapnelCount", "explosionSelfDamageFraction01"],
+      "description": "Kart etkilerinin zombi tarafindaki sayilari. Kartin GUCU kartta (cards.json), ETKI ALANI burada: iki farkli yaricap olsaydi oyuncu patlamanin nereye kadar ulastigini hic ogrenemezdi.",
+      "properties": {
+        "explosionRadiusMeters": {
+          "type": "number", "minimum": 1, "maximum": 10,
+          "description": "Olen zombinin patlama yaricapi (Yikim kartlari). Kucuk olursa patlama yalnizca ust uste duran zombileri vurur ve kart hissedilmez; buyuk olursa tek bir oldurme butun surudu siler ve nisan almanin anlami kalmaz."
+        },
+        "explosionShrapnelCount": {
+          "type": "integer", "minimum": 4, "maximum": 40,
+          "description": "Patlamanin firlattigi sarapnel sayisi. Toplam hasar bu sayiya BOLUNUR: az parca = her biri agir ama cogu bosa gider (piyango); cok parca = yakindaki zombi cogunu yer, uzaktaki birkacini (okunabilir). 4'un altinda patlama bir sans oyununa doner, 40'in ustunde kure sorgusundan farksizlasir ve isin maliyeti buyur."
+        },
+        "explosionSelfDamageFraction01": {
+          "type": "number", "minimum": 0, "maximum": 1,
+          "description": "Patlamanin OYUNCUYA verdigi hasarin orani. Sifir: patlama oyuncuyu yakmaz. Sifirdan buyuk yapmak kartı bir risk-odul karari haline getirir ama yakin dovusu (bicak) cezalandirir - once oynanarak denenmeli."
+        }
+      }
+    },
+
+    "swarm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lateralSpreadMeters", "spreadFadeDistanceMeters", "speedJitter01"],
+      "description": "Suru ne kadar genis bir cephe halinde gelir. Oyun testi (2026-09-05): zombiler ayni yolu takip edip ARKA ARKAYA TEK SIRA diziliyordu; hedef almak kolaylasiyor ve kalabalik hissi kayboluyordu.",
+      "properties": {
+        "lateralSpreadMeters": {
+          "type": "number", "minimum": 0, "maximum": 6,
+          "description": "Her zombinin hedefe giderken tuttugu yanal serit. Sifir yaparsan hepsi tek sira dizilir (eski hali). Cok buyutursen zombiler oyuncuya gelmek yerine yanlardan dolasir ve tehdit dagilir; dar koridorlarda da bosuna yol arar."
+        },
+        "spreadFadeDistanceMeters": {
+          "type": "number", "minimum": 1, "maximum": 12,
+          "description": "Bu mesafeden yakinda serit SONER ve zombi dogrudan oyuncuya gelir. Sonmeseydi zombiler oyuncunun yanindan gecip durur ve saldiramazdi. Kucultursen cephe son anda tek noktaya toplanir; buyutursen zombiler uzaktan dagilir ama yakinda hala kuyruk yapar."
+        },
+        "speedJitter01": {
+          "type": "number", "minimum": 0, "maximum": 0.3,
+          "description": "Zombi basina hiz sapmasi (0.12 = +/-%12). Ayni hizda giden zombiler konvoy halinde kalir; kucuk bir sapma dizilimi kendiliginden bozar. Buyutursen turun hiz kademesi (rounds.json speed) anlamini yitirir ve bazi zombiler beklenmedik sekilde hizli olur."
         }
       }
     },

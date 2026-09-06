@@ -36,6 +36,13 @@ namespace Bunker.Gameplay
             // M-03: kart yigini da statiktir ve ayni sizinti riskini tasir.
             CardSignals.Clear();
             RunModifiers.Clear();
+
+            // M-04: menu ve oturum yayinlari. Menu -> oyun -> menu dongusunde
+            // temizlenmezlerse ikinci oturumda "oda ac" iki kez tetiklenir ve
+            // duraklatma menusu kapali oldugu halde acik sanilir.
+            CombatFeedback.Clear();
+            Systems.Ui.MenuSignals.Clear();
+            Systems.Net.SessionSignals.Clear();
         }
     }
 }

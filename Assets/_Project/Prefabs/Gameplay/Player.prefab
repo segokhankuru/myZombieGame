@@ -140,6 +140,7 @@ MonoBehaviour:
   moveSpeedMetersPerSecond: 5
   gravityMetersPerSecondSquared: -20
   jumpHeightMeters: 1.1
+  playerConfig: {fileID: 11400000, guid: 6080f72848ac67940a9c0e75f2bd382b, type: 2}
   lookSensitivity: 0.08
   maxPitchDegrees: 85
   playerCamera: {fileID: 714375003496467534}
@@ -160,6 +161,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   weaponConfig: {fileID: 11400000, guid: f99d1596776af7c46a03f79786a259a1, type: 2}
+  catalog: {fileID: 11400000, guid: 16ec7ec6cf1eea241afb786d0422d4d8, type: 2}
   controller: {fileID: 0}
   playerCamera: {fileID: 0}
   muzzle: {fileID: 0}

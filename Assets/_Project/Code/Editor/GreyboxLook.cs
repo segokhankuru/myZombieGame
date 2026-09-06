@@ -461,7 +461,7 @@ namespace Bunker.Editor
         {
             int changed = 0;
 
-            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid", "Shop_Station" })
+            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid", "WallBuy_C_Rifle", "Shop_Station" })
             {
                 GameObject marker = GameObject.Find(name);
                 if (marker == null) continue;
@@ -486,6 +486,16 @@ namespace Bunker.Editor
                     changed++;
                 }
 
+                // LEVHA ODAYA BAKAR (2026-09-05). Levhanin ince yuzu yerel +Z; isaret
+                // donmemisse levha duvarin icinde kalir ve ekranda hicbir sey gorunmez -
+                // oyun testinde "tezgah ve mermi panosu gorunmuyor" olarak okundu.
+                //
+                // Yon, isim listesinden degil GEOMETRIDEN turetiliyor: haritanin
+                // merkezine bakan bir levha, isaret nereye tasinirsa tasinsin dogru
+                // durur. Isim -> aci tablosu olsaydi, tezgahin ust kata tasinmasi gibi
+                // her tasima sessizce yanlis yon birakirdi.
+                if (TryFaceRoomCenter(plate, marker.transform.position)) changed++;
+
                 var renderer = plate.GetComponent<MeshRenderer>();
 
                 if (renderer != null && materials.TryGetValue(materialKey, out Material mat)
@@ -498,6 +508,50 @@ namespace Bunker.Editor
             }
 
             return changed;
+        }
+
+        /// <summary>
+        /// Levhayı haritanın yatay merkezine döndürür.
+        /// <b>Zaten doğruysa dokunmaz</b> (editor-tools.md: idempotency).
+        /// </summary>
+        /// <returns>Gerçekten döndürüldüyse <c>true</c>.</returns>
+        private static bool TryFaceRoomCenter(Transform plate, Vector3 markerPosition)
+        {
+            Vector3 center = BlockoutCenter();
+
+            Vector3 toCenter = center - markerPosition;
+            toCenter.y = 0f;
+
+            if (toCenter.sqrMagnitude < 0.01f) return false;
+
+            Quaternion wanted = Quaternion.LookRotation(toCenter.normalized, Vector3.up);
+
+            if (Quaternion.Angle(plate.rotation, wanted) < 1f) return false;
+
+            Undo.RecordObject(plate, "Levha yonu");
+            plate.rotation = wanted;
+            EditorUtility.SetDirty(plate);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gri kutunun yatay merkezi. Renderer sınırlarından okunur — bir sabitten
+        /// değil, çünkü harita ölçüleri <c>BlockoutSettings</c>'te ve burada ikinci bir
+        /// kopyası olamaz (SSoT).
+        /// </summary>
+        private static Vector3 BlockoutCenter()
+        {
+            GameObject root = GameObject.Find("LVL-01_Blockout");
+            if (root == null) return Vector3.zero;
+
+            MeshRenderer[] renderers = root.GetComponentsInChildren<MeshRenderer>(true);
+            if (renderers.Length == 0) return root.transform.position;
+
+            Bounds bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+
+            return bounds.center;
         }
 
         /// <summary>Kapı kanadına kilitli-kapı rengini verir (M1-09 okunabilirliği).</summary>

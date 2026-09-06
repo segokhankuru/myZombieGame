@@ -187,10 +187,21 @@ namespace Bunker.UI
 
             if (state == RerollState.Exhausted) return;
 
-            string label = state == RerollState.FreeAvailable ? "yenile (ucretsiz)" : "yenile (puanli)";
+            // FIYAT DUGMENIN USTUNDE YAZAR (2026-09-05). Onceki hali yalnizca
+            // "yenile (puanli)" diyordu: oyuncu kac puan gidecegini ancak bastiktan
+            // sonra ogreniyordu - ve o sirada yenileme aslinda hicbir sey almiyordu.
+            int cost = controller != null ? controller.RerollCost(index) : 0;
+
+            string label = cost > 0 ? $"yenile ({cost} puan)" : "yenile (ucretsiz)";
             var button = new Rect(rect.x + 14f, rect.yMax - 32f, rect.width - 28f, 24f);
 
+            // Puani yetmiyorsa dugme KAPALI ve sebebi gorunur: basip hicbir sey
+            // olmamasi, oyuncuya arayuzun bozuk oldugunu soyler.
+            bool affordable = cost <= 0 || (_score != null && _score.Spendable >= cost);
+
+            GUI.enabled = affordable;
             if (GUI.Button(button, label)) controller.RerollSlot(index, _score);
+            GUI.enabled = true;
         }
 
         private void DrawLoadout(float cx, float y)

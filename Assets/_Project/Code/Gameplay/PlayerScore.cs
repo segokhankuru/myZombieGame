@@ -64,6 +64,7 @@ namespace Bunker.Gameplay
 
             RunSignals.RunRestarted += OnRunRestarted;
             CardSignals.LoadoutChanged += OnLoadoutChanged;
+            RoundSignals.BossKilled += OnBossKilled;
         }
 
         public override void OnStopServer()
@@ -74,9 +75,12 @@ namespace Bunker.Gameplay
 
             RunSignals.RunRestarted -= OnRunRestarted;
             CardSignals.LoadoutChanged -= OnLoadoutChanged;
+            RoundSignals.BossKilled -= OnBossKilled;
 
             base.OnStopServer();
         }
+
+        private PlayerHealth _health;
 
         private void OnKillConfirmed(DamageKind kind, bool headshot)
         {
@@ -91,6 +95,56 @@ namespace Bunker.Gameplay
             RunSignals.Current.NoteKill(kind, headshot);
 
             Award(pointEvent);
+
+            // KAN ve GANIMET kartlarinin oldurme odulleri (M-03, 2026-09-05).
+            // Burada, cunku "oldurme" olayinin tek sahibi bu metot: silaha ve bicaga
+            // ayri ayri eklemek, ikisinden birinin unutulmasi demekti.
+            ApplyKillRewards();
+        }
+
+        /// <summary>
+        /// Öldürmenin kart ödülleri: <b>can</b> ve <b>mermi</b>.
+        ///
+        /// <para><b>Neden bu iki ödül:</b> ikisi de sürünün içinde kalmayı bir <i>seçim</i>
+        /// hâline getirir. Kaçmak yerine öldürmeye devam etmek, öldürdükçe hayatta
+        /// kalmak — kartların vaat ettiği "kan" hissi budur (SYS-02 Kan etiketi).</para>
+        ///
+        /// <para><b>Yalnızca sunucuda</b> (ADR-0004): can ve mermi kalıcı sonucu olan
+        /// kaynaklar.</para>
+        /// </summary>
+        private void ApplyKillRewards()
+        {
+            if (!isServer) return;
+
+            float heal = RunModifiers.Total(CardStat.HealOnKill);
+
+            // Referans bir kez cozulur: oldurme basina GetComponent, yogun bir turda
+            // saniyede onlarca arama demek (csharp-code.md).
+            if (heal > 0f)
+            {
+                if (_health == null) _health = GetComponent<PlayerHealth>();
+                _health?.ServerHealFraction(heal);
+            }
+
+            int ammo = Mathf.RoundToInt(RunModifiers.Total(CardStat.AmmoOnKill));
+
+            if (ammo > 0 && weapon != null) weapon.ServerAddReserve(ammo);
+        }
+
+        /// <summary>
+        /// Boss olduruldu: normal oldurme puani ZATEN yazildi, buraya FARK gelir.
+        ///
+        /// <para>Bossu oldurmek bir SECIM olmali - kacmak da mesru. Odul, o secimi
+        /// cazip kilan sey: alti kat puan, tezgahta bir kademe demektir.</para>
+        /// </summary>
+        private void OnBossKilled(float pointsMultiplier)
+        {
+            if (!isServer) return;
+
+            int extra = Mathf.RoundToInt(pointsMultiplier) - 1;
+            if (extra <= 0) return;
+
+            Award(PointEvent.BodyKill, extra);
         }
 
         /// <summary>Kart yiginin puan carpanlarini cuzdana gecirir (M-03).</summary>

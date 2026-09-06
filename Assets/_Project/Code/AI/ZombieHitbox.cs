@@ -46,6 +46,12 @@ namespace Bunker.AI
         /// <summary>Kutu kendi anatomisini bilir; silah bilmez.</summary>
         public bool CountsAsHeadshot => part == ZombiePart.Head;
 
+        /// <summary>
+        /// Kutunun sahibi olan zombi. Delici mermi "ayni yaratiga iki kez vurma"
+        /// kuralini bununla uygular: kafa ve govde ayni yaratigin parcalari.
+        /// </summary>
+        public IDamageable DamageRoot => owner != null ? owner : (IDamageable)this;
+
         private void Awake()
         {
             if (owner == null) owner = GetComponentInParent<ZombieAgent>();

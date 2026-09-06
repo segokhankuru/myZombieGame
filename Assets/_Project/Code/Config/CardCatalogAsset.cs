@@ -31,6 +31,10 @@ namespace Bunker.Config
             public float value;
             public bool soloValid = true;
             public bool coopValid = true;
+
+            /// <summary>Bir kez alinir ve havuzdan cikar. Varsayilan false: kartlarin
+            /// cogu tekrar cikabilir ve etkileri toplanir (CardDefinition.Unique).</summary>
+            public bool unique;
         }
 
         [SerializeField] private int version = 1;
@@ -56,7 +60,7 @@ namespace Bunker.Config
 
                 result.Add(new CardDefinition(e.id, e.displayName, e.text,
                                               e.tag, e.stat, e.value,
-                                              e.soloValid, e.coopValid));
+                                              e.soloValid, e.coopValid, e.unique));
             }
 
             return result;

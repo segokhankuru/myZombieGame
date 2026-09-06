@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class PlayerConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 1;
+        [SerializeField] private int version = 2;
 
         [Header("health")]
         [Tooltip("Oyuncunun tam cani. zombie.json'daki 'damage' aciklamasi bu sayiyi 100 kabul eder - degistirirsen o aciklamayi da guncelle, yoksa hasarin ne ifade ettigi kayboluyor. 100 can ve 30 hasar = dort vurusluk omur. Dusurursen tek bir yanlis kose turu bitirir; buyutursen zombiler kalabaligiyla degil sabirla oldurur ve tehdit hissi gider.")]
@@ -39,6 +39,23 @@ namespace Bunker.Config
         [Range(0.1f, 0.6f)]
         [SerializeField] private float healthLowFraction = 0.35f;
 
+        [Header("sprint")]
+        [Tooltip("Kosarken yurume hizinin carpani. 1.2'nin altinda oyuncu farki hissetmez ve tus bir aldatmacaya doner; 1.8'in ustunde zombi hiz kademeleri (rounds.json speed) anlamini yitirir ve gec turlarda kacmak bedava olur.")]
+        [Range(1.1f, 2.2f)]
+        [SerializeField] private float sprintSpeedMultiplier = 1.5f;
+
+        [Tooltip("Kesintisiz kosabilecegin en uzun sure. Kisa olmasi tasarim: kosu bir KACIS ARACI, bir hareket hizi degil. Uzatirsan harita kuculur ve barikat tutmanin yerini surekli kosmak alir; kisaltirsan bir odadan digerine gecmeye bile yetmez ve tus hic kullanilmaz.")]
+        [Range(2f, 10f)]
+        [SerializeField] private float sprintMaxSeconds = 4.5f;
+
+        [Tooltip("Kosmadigin her saniyede geri gelen kosu suresi. 0.5 ile tam dolum ~9 saniye surer, yani tur icinde iki kacistan fazlasi yok. Buyutursen kosu sureklilesir ve tavan anlamsizlasir.")]
+        [Range(0.1f, 2f)]
+        [SerializeField] private float sprintRechargePerSecond = 0.5f;
+
+        [Tooltip("Kosuya baslamak icin gereken en az birikmis sure. Sifir olursa oyuncu her saniye yarim adim kosar ve hareket titrer - okunmasi zor bir his. Buyutursen kosu, tam dolmadan hic kullanilamayan bir yetenege doner.")]
+        [Range(0f, 3f)]
+        [SerializeField] private float sprintMinSecondsToStart = 0.6f;
+
         /// <summary>Saf C# karsiligini uretir. Boot bunu bir kez cagirir.</summary>
         public PlayerConfig ToRuntime()
         {
@@ -47,7 +64,11 @@ namespace Bunker.Config
                 healthMaxPoints,
                 healthRegenDelaySeconds,
                 healthRegenPerSecond,
-                healthLowFraction);
+                healthLowFraction,
+                sprintSpeedMultiplier,
+                sprintMaxSeconds,
+                sprintRechargePerSecond,
+                sprintMinSecondsToStart);
         }
     }
 }

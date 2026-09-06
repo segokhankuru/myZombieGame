@@ -4,7 +4,7 @@
   "title": "Oyuncu",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "health"],
+  "required": ["version", "_meta", "health", "sprint"],
   "properties": {
     "version": {
       "type": "integer",
@@ -42,6 +42,30 @@
         "lowFraction": {
           "type": "number", "minimum": 0.1, "maximum": 0.6,
           "description": "Ekran kenari uyarisinin gorundugu can orani. Bir vurusluk canin (0.30) hemen ustunde olmali: uyariyi gordugunde HALA bir vurus hakkin kalsin. Dusurursen olum surpriz olur ve oyuncu haksizliga ugradigini hisseder; buyutursen uyari surekli yanar ve anlamini kaybeder."
+        }
+      }
+    },
+
+    "sprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speedMultiplier", "maxSeconds", "rechargePerSecond", "minSecondsToStart"],
+      "properties": {
+        "speedMultiplier": {
+          "type": "number", "minimum": 1.1, "maximum": 2.2,
+          "description": "Kosarken yurume hizinin carpani. 1.2'nin altinda oyuncu farki hissetmez ve tus bir aldatmacaya doner; 1.8'in ustunde zombi hiz kademeleri (rounds.json speed) anlamini yitirir ve gec turlarda kacmak bedava olur."
+        },
+        "maxSeconds": {
+          "type": "number", "minimum": 2, "maximum": 10,
+          "description": "Kesintisiz kosabilecegin en uzun sure. Kisa olmasi tasarim: kosu bir KACIS ARACI, bir hareket hizi degil. Uzatirsan harita kuculur ve barikat tutmanin yerini surekli kosmak alir; kisaltirsan bir odadan digerine gecmeye bile yetmez ve tus hic kullanilmaz."
+        },
+        "rechargePerSecond": {
+          "type": "number", "minimum": 0.1, "maximum": 2,
+          "description": "Kosmadigin her saniyede geri gelen kosu suresi. 0.5 ile tam dolum ~9 saniye surer, yani tur icinde iki kacistan fazlasi yok. Buyutursen kosu sureklilesir ve tavan anlamsizlasir."
+        },
+        "minSecondsToStart": {
+          "type": "number", "minimum": 0, "maximum": 3,
+          "description": "Kosuya baslamak icin gereken en az birikmis sure. Sifir olursa oyuncu her saniye yarim adim kosar ve hareket titrer - okunmasi zor bir his. Buyutursen kosu, tam dolmadan hic kullanilamayan bir yetenege doner."
         }
       }
     }

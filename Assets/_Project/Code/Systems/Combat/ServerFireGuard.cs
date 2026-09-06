@@ -36,7 +36,7 @@ namespace Bunker.Systems.Combat
     /// </summary>
     public sealed class ServerFireGuard
     {
-        private readonly WeaponConfig _config;
+        private readonly WeaponDefinition _config;
         private readonly float _tolerance;
 
         private readonly ActionRateLimiter _cadence;
@@ -53,14 +53,21 @@ namespace Bunker.Systems.Combat
         /// </param>
         private WeaponModifiers _mods = WeaponModifiers.None;
 
+        /// <summary>Uretilen ayardan (baslangic silahi) kurar. Testler bunu kullanir.</summary>
         public ServerFireGuard(WeaponConfig config, float toleranceSeconds = 0.12f)
+            : this(WeaponDefinition.FromConfig(config), toleranceSeconds) { }
+
+        public ServerFireGuard(WeaponDefinition config, float toleranceSeconds = 0.12f)
         {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            if (!config.IsValid)
+                throw new ArgumentException("Gecersiz silah tanimi (id bos).", nameof(config));
+
+            _config = config;
             _tolerance = toleranceSeconds < 0f ? 0f : toleranceSeconds;
 
             _cadence = new ActionRateLimiter(SecondsBetweenShots, _tolerance);
             _roundsInMagazine = MagazineCapacity;
-            _reserve = Math.Min(_config.MagazineStartingReserve, ReserveCapacity);
+            _reserve = Math.Min(_config.StartingReserve, ReserveCapacity);
         }
 
         /// <summary>
@@ -81,17 +88,17 @@ namespace Bunker.Systems.Combat
 
         public int MagazineCapacity => Math.Max(1, _config.MagazineCapacity + _mods.Magazine);
 
-        public int ReserveCapacity => Math.Max(0, _config.MagazineReserveCapacity + _mods.Reserve);
+        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
 
-        public float ReloadSeconds => _config.MagazineReloadSeconds / _mods.ReloadSpeedMultiplier;
+        public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
 
         public int RoundsInMagazine => _roundsInMagazine;
         public int Reserve => _reserve;
 
         private float SecondsBetweenShots =>
-            _config.FireRoundsPerMinute <= 0f
+            _config.RoundsPerMinute <= 0f
                 ? 0f
-                : 60f / (_config.FireRoundsPerMinute * _mods.FireRateMultiplier);
+                : 60f / (_config.RoundsPerMinute * _mods.FireRateMultiplier);
 
         /// <summary>
         /// İstemci "ateş ettim" dedi. Makul mü?
@@ -144,7 +151,7 @@ namespace Bunker.Systems.Combat
         public void Reset()
         {
             _roundsInMagazine = Math.Max(1, _config.MagazineCapacity);
-            _reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
+            _reserve = Math.Min(_config.StartingReserve, _config.ReserveCapacity);
             _cadence.Reset();
             _reloadRequestedTime = float.NegativeInfinity;
             _reloadPending = false;
@@ -153,10 +160,10 @@ namespace Bunker.Systems.Combat
         /// <summary>Bu atışın hasarı. Kafa çarpanı burada uygulanır.</summary>
         public float DamageFor(bool headshot)
         {
-            float damage = _config.FireDamage * _mods.DamageMultiplier;
+            float damage = _config.Damage * _mods.DamageMultiplier;
 
             return headshot
-                ? damage * (_config.FireHeadshotMultiplier + _mods.HeadshotMultiplier)
+                ? damage * (_config.HeadshotMultiplier + _mods.HeadshotMultiplier)
                 : damage;
         }
 

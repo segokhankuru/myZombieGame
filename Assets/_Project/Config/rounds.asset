@@ -12,12 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d27346ced8afa84e9897f29a8032a65, type: 3}
   m_Name: rounds
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.RoundsConfigAsset
-  version: 1
+  version: 3
   countPerPlayerAtRoundOne: 6
   countLinearAddPerPlayerPerRound: 1.5
   countLinearPhaseUntilRound: 9
   countGrowthMultiplierAfterLinear: 1.1
   countMaxConcurrent: 40
+  countAliveCapAtRoundOne: 5
+  countAliveCapAddPerRound: 1
   healthAtRoundOne: 150
   healthLinearAddPerRound: 100
   healthLinearPhaseUntilRound: 9
@@ -28,6 +30,14 @@ MonoBehaviour:
   speedRunMetersPerSecond: 3.6
   speedWalkUntilRound: 6
   speedJogUntilRound: 12
+  bossEveryRounds: 5
+  bossHealthMultiplier: 14
+  bossSpeedMultiplier: 0.75
+  bossDamageMultiplier: 2
+  bossScaleMultiplier: 1.7
+  bossPointsMultiplier: 6
+  roundEndReserveAmmoFraction01: 0.4
+  roundEndBarricadeBoardsFraction01: 0.4
   pacingBreatherSeconds: 10
   pacingSpawnIntervalSecondsAtRoundOne: 2
   pacingSpawnIntervalFloorSeconds: 0.25

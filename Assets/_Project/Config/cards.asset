@@ -22,6 +22,7 @@ MonoBehaviour:
     value: 0.2
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.ballistics.damage.2
     displayName: Sert Cekirdek II
     text: Silah hasari +%30.
@@ -30,6 +31,7 @@ MonoBehaviour:
     value: 0.3
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.ballistics.firerate.1
     displayName: Hizli Tetik
     text: Atis hizi +%15.
@@ -38,6 +40,7 @@ MonoBehaviour:
     value: 0.15
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.ballistics.firerate.2
     displayName: Hizli Tetik II
     text: Atis hizi +%25.
@@ -46,6 +49,7 @@ MonoBehaviour:
     value: 0.25
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.ballistics.headshot
     displayName: Keskin Nisan
     text: Kafa vurusu carpani 2x yerine 3x.
@@ -54,6 +58,7 @@ MonoBehaviour:
     value: 1
     soloValid: 1
     coopValid: 1
+    unique: 1
   - id: card.ballistics.magazine
     displayName: Genis Sarjor
     text: Sarjor +6 mermi.
@@ -62,6 +67,7 @@ MonoBehaviour:
     value: 6
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.ballistics.reserve
     displayName: Fisekik
     text: Yedek mermi tavani +120.
@@ -70,6 +76,52 @@ MonoBehaviour:
     value: 120
     soloValid: 1
     coopValid: 1
+    unique: 0
+  - id: card.ballistics.damage.3
+    displayName: Sert Cekirdek III
+    text: Silah hasari +%45.
+    tag: 0
+    stat: 1
+    value: 0.45
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.ballistics.magazine.2
+    displayName: Genis Sarjor II
+    text: Sarjor +10 mermi.
+    tag: 0
+    stat: 4
+    value: 10
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.ballistics.reserve.2
+    displayName: Cephanelik
+    text: Yedek mermi tavani +200.
+    tag: 0
+    stat: 5
+    value: 200
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.ballistics.penetration.1
+    displayName: Delici Mermi
+    text: Mermi bir zombiden GECER ve arkadakine de vurur.
+    tag: 0
+    stat: 16
+    value: 1
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.ballistics.penetration.2
+    displayName: Delici Mermi II
+    text: Mermi bir zombi daha deler.
+    tag: 0
+    stat: 16
+    value: 1
+    soloValid: 1
+    coopValid: 1
+    unique: 0
   - id: card.blood.maxhealth.1
     displayName: Kalin Deri
     text: Maksimum can +%25.
@@ -78,6 +130,7 @@ MonoBehaviour:
     value: 0.25
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.blood.maxhealth.2
     displayName: Kalin Deri II
     text: Maksimum can +%35.
@@ -86,6 +139,7 @@ MonoBehaviour:
     value: 0.35
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.blood.armor.1
     displayName: Yelek
     text: Alinan hasar %20 azalir.
@@ -94,6 +148,7 @@ MonoBehaviour:
     value: 0.25
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.blood.armor.2
     displayName: Yelek II
     text: Alinan hasar daha da azalir.
@@ -102,6 +157,7 @@ MonoBehaviour:
     value: 0.35
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.blood.regen
     displayName: Cabuk Toparlanma
     text: Can yenilenmesi %40 daha erken baslar.
@@ -110,6 +166,43 @@ MonoBehaviour:
     value: 0.4
     soloValid: 1
     coopValid: 1
+    unique: 1
+  - id: card.blood.maxhealth.3
+    displayName: Kalin Deri III
+    text: Maksimum can +%50.
+    tag: 2
+    stat: 9
+    value: 0.5
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.blood.armor.3
+    displayName: Agir Yelek
+    text: Alinan hasar belirgin azalir.
+    tag: 2
+    stat: 10
+    value: 0.5
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.blood.lifesteal.1
+    displayName: Kan Icici
+    text: Her oldurme maksimum caninin %6'si kadar iyilestirir.
+    tag: 2
+    stat: 18
+    value: 0.06
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.blood.lifesteal.2
+    displayName: Kan Icici II
+    text: Her oldurme %10 iyilestirir.
+    tag: 2
+    stat: 18
+    value: 0.1
+    soloValid: 1
+    coopValid: 1
+    unique: 0
   - id: card.tempo.movespeed.1
     displayName: Hafif Ayak
     text: Yurume hizi +%20.
@@ -118,6 +211,7 @@ MonoBehaviour:
     value: 0.2
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.tempo.movespeed.2
     displayName: Hafif Ayak II
     text: Yurume hizi +%30.
@@ -126,6 +220,7 @@ MonoBehaviour:
     value: 0.3
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.tempo.reload
     displayName: Tetik Parmagi
     text: Dolum %40 daha hizli.
@@ -134,6 +229,7 @@ MonoBehaviour:
     value: 0.4
     soloValid: 1
     coopValid: 1
+    unique: 1
   - id: card.tempo.slow
     displayName: Yavaslatma
     text: Vurdugun zombi %10 yavaslar.
@@ -142,6 +238,7 @@ MonoBehaviour:
     value: 0.1
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.tempo.knife
     displayName: Keskin Bicak
     text: Bicak hasari +%50.
@@ -150,6 +247,43 @@ MonoBehaviour:
     value: 0.5
     soloValid: 1
     coopValid: 1
+    unique: 0
+  - id: card.tempo.movespeed.3
+    displayName: Hafif Ayak III
+    text: Yurume hizi +%40.
+    tag: 3
+    stat: 8
+    value: 0.4
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.tempo.slow.2
+    displayName: Buz
+    text: Vurdugun zombi %20 yavaslar.
+    tag: 3
+    stat: 15
+    value: 0.2
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.tempo.knife.2
+    displayName: Kasap
+    text: Bicak hasari +%80.
+    tag: 3
+    stat: 7
+    value: 0.8
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.tempo.slow.3
+    displayName: Don
+    text: Vurdugun zombi cok daha fazla yavaslar.
+    tag: 3
+    stat: 15
+    value: 0.35
+    soloValid: 1
+    coopValid: 1
+    unique: 0
   - id: card.loot.killpoints.1
     displayName: Kelle Avcisi
     text: Oldurme puani +%25.
@@ -158,6 +292,7 @@ MonoBehaviour:
     value: 0.25
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.loot.killpoints.2
     displayName: Kelle Avcisi II
     text: Oldurme puani +%35.
@@ -166,6 +301,7 @@ MonoBehaviour:
     value: 0.35
     soloValid: 1
     coopValid: 1
+    unique: 0
   - id: card.loot.repairpoints
     displayName: Copcu
     text: Barikat tamiri iki kati puan.
@@ -174,6 +310,7 @@ MonoBehaviour:
     value: 1
     soloValid: 1
     coopValid: 1
+    unique: 1
   - id: card.loot.repairspeed
     displayName: Usta Elleri
     text: Barikat tamiri %50 daha hizli.
@@ -182,3 +319,67 @@ MonoBehaviour:
     value: 0.5
     soloValid: 1
     coopValid: 1
+    unique: 0
+  - id: card.loot.killpoints.3
+    displayName: Kelle Avcisi III
+    text: Oldurme puani +%50.
+    tag: 4
+    stat: 12
+    value: 0.5
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.loot.repairspeed.2
+    displayName: Marangoz
+    text: Barikat tamiri %80 daha hizli.
+    tag: 4
+    stat: 14
+    value: 0.8
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.loot.ammoonkill.1
+    displayName: Toplayici
+    text: Her oldurmede yedege 2 mermi.
+    tag: 4
+    stat: 19
+    value: 2
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.loot.ammoonkill.2
+    displayName: Toplayici II
+    text: Her oldurmede yedege 4 mermi.
+    tag: 4
+    stat: 19
+    value: 4
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.demolition.explode.1
+    displayName: Sarapnel
+    text: Oldurdugun zombi PATLAR ve cevresindekilere hasar verir.
+    tag: 1
+    stat: 17
+    value: 0.35
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.demolition.explode.2
+    displayName: Sarapnel II
+    text: Patlama cok daha guclu.
+    tag: 1
+    stat: 17
+    value: 0.55
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.demolition.explode.3
+    displayName: Zincirleme
+    text: Patlama, patlamayla olenleri de patlatacak kadar guclu.
+    tag: 1
+    stat: 17
+    value: 0.8
+    soloValid: 1
+    coopValid: 1
+    unique: 0

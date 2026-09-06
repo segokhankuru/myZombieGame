@@ -1,5 +1,7 @@
 using Bunker.Config;
 using Bunker.Systems.Cards;
+using Bunker.Systems.Config;
+using Bunker.Systems.Economy;
 using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
@@ -24,11 +26,20 @@ namespace Bunker.Gameplay
         [Tooltip("config/content/cards.json'dan uretilen katalog.")]
         [SerializeField] private CardCatalogAsset catalog;
 
+        [Tooltip("config/balance/economy.json'dan uretilen varlik. Puanli yenilemenin " +
+                 "fiyati buradan gelir.")]
+        [SerializeField] private EconomyConfigAsset economyConfig;
+
         [Tooltip("Tur basina kac secenek. SYS-02: uc karttan bir secim.")]
         [SerializeField] private int choicesPerDraft = 3;
 
         private CardPool _pool;
         private CardDraft _draft;
+        private EconomyConfig _economy;
+
+        // Draft'in acildigi tur. Yenileme fiyati turla artar: sabit fiyat gec
+        // turlarda bedavaya doner (economy.json v4).
+        private int _round = 1;
 
         private void Awake()
         {
@@ -46,6 +57,19 @@ namespace Bunker.Gameplay
             // farkli. Sabit tohum her run'da ayni uculeri verirdi.
             _pool = new CardPool(catalog.ToRuntime(), Random.Range(int.MinValue, int.MaxValue));
             _draft = new CardDraft(_pool, choicesPerDraft);
+
+            if (economyConfig == null)
+            {
+                // Sessiz varsayilan yok (config-protocol.md). Fiyat bilinmiyorsa
+                // puanli yenileme KAPALIDIR - bedava yenileme, ekranda "puanli"
+                // yazip hicbir sey almamaktan iyidir ve sebebi burada duruyor.
+                Debug.LogError("[Kart] economy.asset atanmamis - puanli yenileme kapali. " +
+                               "'Bunker/Zombi/Test Alanini Kur' baglar.", this);
+            }
+            else
+            {
+                _economy = economyConfig.ToRuntime();
+            }
         }
 
         private void OnEnable()
@@ -65,6 +89,8 @@ namespace Bunker.Gameplay
             // Run bittiyse draft acilmaz: skor ekraninin arkasinda kart secmek
             // anlamsiz.
             if (RunSignals.IsRunOver) return;
+
+            _round = round < 1 ? 1 : round;
 
             // Solo host: uzak istemci sifir. Co-op geldiginde bu bayrak
             // NetworkServer.connections sayisindan gelecek.
@@ -101,21 +127,42 @@ namespace Bunker.Gameplay
             CardSignals.NotifyPicked(card);
         }
 
-        /// <summary>Bir yuvayı yeniler. Puanlı yenilemenin bedelini burada alır.</summary>
+        /// <summary>
+        /// Bu yuvayı yenilemenin puan bedeli. Ücretsiz hak duruyorsa <c>0</c>.
+        ///
+        /// <para><b>Turla artar</b> (economy.json v4): sabit bir fiyat geç turlarda
+        /// bedavaya döner — tur 15'te 200 puan bir öldürmeden az eder ve yenileme bir
+        /// karar olmaktan çıkar.</para>
+        ///
+        /// <para>Arayüz de burayı okur: fiyatı <b>düğmenin üstünde</b> göstermek,
+        /// oyuncunun bastıktan sonra öğrenmesini engeller.</para>
+        /// </summary>
+        public int RerollCost(int slot)
+        {
+            if (_draft == null || !_draft.RerollCostsPoints(slot)) return 0;
+            if (_economy == null) return 0;
+
+            return _economy.PricesCardRerollBase +
+                   _economy.PricesCardRerollAddPerRound * (_round - 1);
+        }
+
+        /// <summary>
+        /// Bir yuvayı yeniler. Puanlı yenilemenin bedelini burada alır.
+        ///
+        /// <para><b>Önce ödeme, sonra yenileme</b> (tezgâhla aynı sıra): ters sırada,
+        /// puan yetmediğinde kart değişmiş olurdu — bedava yenileme.</para>
+        /// </summary>
         public void RerollSlot(int slot, PlayerScore score)
         {
             if (!CardSignals.IsDraftOpen) return;
 
-            bool costs = _draft.RerollCostsPoints(slot);
+            int cost = RerollCost(slot);
 
-            if (costs)
+            if (cost > 0)
             {
-                // TODO(systems-designer, SYS-02 §7c): bedel TURLA ARTMALI ve
-                // config/balance/cards.json'dan gelmeli. Sabit fiyat gec turlarda
-                // bedavaya doner. Simdilik yenileme puansiz - fiyat egrisi
-                // verilmeden uydurma bir sayi yazmak, denge kararini koda gommek
-                // olurdu (config-data.md).
-                _ = score;
+                // Puan yoksa yenileme YAPILMAZ ve hak da harcanmaz.
+                if (score == null) return;
+                if (score.TrySpend(cost) != PurchaseResult.Success) return;
             }
 
             _draft.RerollSlot(slot, CardSignals.Loadout, solo: true);

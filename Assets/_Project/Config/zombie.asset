@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03903ef60bfd0444694626f88d81934e, type: 3}
   m_Name: zombie
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.ZombieConfigAsset
-  version: 2
+  version: 5
   spawnEmergeDelaySeconds: 0.6
   windowEntryTriggerDistanceMeters: 1.8
   windowEntryVaultSeconds: 1.4
@@ -33,5 +33,11 @@ MonoBehaviour:
   navigationStuckSpeedMetersPerSecond: 0.15
   navigationStuckAfterSeconds: 1.5
   navigationStuckRecoverySeconds: 0.6
+  cardsExplosionRadiusMeters: 4.5
+  cardsExplosionShrapnelCount: 14
+  cardsExplosionSelfDamageFraction01: 0
+  swarmLateralSpreadMeters: 2.5
+  swarmSpreadFadeDistanceMeters: 4
+  swarmSpeedJitter01: 0.12
   budgetThinkHz: 8
   budgetAnimatorCullDistanceMeters: 15

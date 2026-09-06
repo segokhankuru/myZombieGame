@@ -73,7 +73,7 @@ namespace Bunker.Systems.Cards
             // ayni kartin iki yuvada birden cikmasi, uc secenegi ikiye dusurur.
             for (int i = 0; i < _slots.Length; i++)
             {
-                _slots[i] = _pool.Draw(loadout, solo, _slots, i);
+                _slots[i] = _pool.Draw(loadout, solo, _slots, ignoreIndex: -1);
             }
         }
 
@@ -94,7 +94,9 @@ namespace Bunker.Systems.Cards
                 ? RerollState.PaidAvailable
                 : RerollState.Exhausted;
 
-            _slots[index] = _pool.Draw(loadout, solo, _slots, index);
+            // Yenilenen yuvanin ESKI karti da disarida birakilir (ignoreIndex: -1):
+            // "yenile"ye basip ayni karti geri almak, harcanan hakki gorunmez kilardi.
+            _slots[index] = _pool.Draw(loadout, solo, _slots, ignoreIndex: -1);
             return true;
         }
 
@@ -160,15 +162,16 @@ namespace Bunker.Systems.Cards
         /// <summary>
         /// Bir kart çeker.
         ///
-        /// <para>Elenenler: zaten alınmış kartlar, bağlama uymayanlar (solo/co-op) ve
-        /// bu draft'ta başka bir yuvada duranlar.</para>
+        /// <para>Elenenler: zaten alınmış <b>tek seferlik</b> kartlar, bağlama
+        /// uymayanlar (solo/co-op) ve şu an ekranda duran kartlar. Tekrar edebilen bir
+        /// kartın elde olması onu elemez — etkisi toplanır.</para>
         ///
         /// <para><b>Havuz tükenirse geçersiz bir kart döner</b> — çağıran taraf yuvayı
         /// boş gösterir. Sessizce tekrar eden bir kart vermek, oyuncuya üç seçenek
         /// varmış gibi gösterip ikisini aynı yapardı.</para>
         /// </summary>
         public CardDefinition Draw(CardLoadout loadout, bool solo,
-                                   CardDefinition[] taken, int excludeUpTo)
+                                   CardDefinition[] taken, int ignoreIndex)
         {
             _candidates.Clear();
             float totalWeight = 0f;
@@ -178,8 +181,14 @@ namespace Bunker.Systems.Cards
                 CardDefinition c = _all[i];
 
                 if (!c.AllowedIn(solo)) continue;
-                if (loadout != null && loadout.Has(c.Id)) continue;
-                if (AlreadyInDraft(c.Id, taken, excludeUpTo)) continue;
+
+                // Yalnizca TEK SEFERLIK kartlar elden dolayi elenir. Digerleri tekrar
+                // cikabilir ve etkileri toplanir (2026-09-05): her alinan karti
+                // havuzdan silmek, 21 kartlik havuzu yirmi turda tuketiyor ve gec
+                // turlarda draft'i bos aciyordu.
+                if (c.Unique && loadout != null && loadout.Has(c.Id)) continue;
+
+                if (AlreadyInDraft(c.Id, taken, ignoreIndex)) continue;
 
                 _candidates.Add(c);
                 totalWeight += Weight(c, loadout);
@@ -198,13 +207,25 @@ namespace Bunker.Systems.Cards
             return _candidates[_candidates.Count - 1];
         }
 
-        private static bool AlreadyInDraft(string id, CardDefinition[] taken, int count)
+        /// <summary>
+        /// Bu id şu an ekranda duran yuvalardan birinde mi.
+        ///
+        /// <para><b>Yenilenen yuvanın kendisi de sayılır</b> (2026-09-05): önceki hâlde
+        /// kendi yuvası hariç tutuluyordu, yani "yenile"ye basmak <i>aynı kartı</i>
+        /// geri getirebiliyordu — oyun testinde ilk görülen şey buydu. Yenileme hakkı
+        /// bir kez harcanır; sonucun görünür şekilde değişmesi gerekir.</para>
+        ///
+        /// <para><paramref name="ignoreIndex"/> yalnızca ilk doldurma için: o sırada
+        /// henüz dolmamış yuvalar zaten geçersizdir, bu yüzden pratikte fark etmez ve
+        /// -1 geçilir.</para>
+        /// </summary>
+        private static bool AlreadyInDraft(string id, CardDefinition[] taken, int ignoreIndex)
         {
             if (taken == null) return false;
 
             for (int i = 0; i < taken.Length; i++)
             {
-                if (i == count) continue;
+                if (i == ignoreIndex) continue;
                 if (string.Equals(taken[i].Id, id, StringComparison.Ordinal)) return true;
             }
 

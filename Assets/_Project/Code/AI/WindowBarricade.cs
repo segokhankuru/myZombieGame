@@ -69,9 +69,36 @@ namespace Bunker.AI
             RefreshVisuals();
         }
 
-        private void OnEnable() => RunSignals.RunRestarted += OnRunRestarted;
+        private void OnEnable()
+        {
+            RunSignals.RunRestarted += OnRunRestarted;
+            RoundSignals.RoundEndRestock += OnRoundEndRestock;
+        }
 
-        private void OnDisable() => RunSignals.RunRestarted -= OnRunRestarted;
+        private void OnDisable()
+        {
+            RunSignals.RunRestarted -= OnRunRestarted;
+            RoundSignals.RoundEndRestock -= OnRoundEndRestock;
+        }
+
+        /// <summary>
+        /// Tur bitti: tahtaların bir kısmı kendiliğinden geri gelir (2026-09-05,
+        /// geliştirici kararı).
+        ///
+        /// <para><b>Kısmi, tam değil.</b> Tam yenilenme oyunu kolaylaştırıyordu ve o
+        /// yüzden kaldırılmıştı; hiç yenilenmemesi ise geç turlarda molanın tamamını
+        /// tamire bağlıyor ve tezgâha gitmeyi imkânsız kılıyordu. Oran
+        /// <c>rounds.json → roundEnd.barricadeBoardsFraction01</c>'de; buraya bir sayı
+        /// yazılmaz.</para>
+        /// </summary>
+        private void OnRoundEndRestock(float reserveAmmoFraction01, float boardsFraction01)
+        {
+            if (_barricade == null) return;
+
+            if (_barricade.RestoreFraction(boardsFraction01) <= 0) return;
+
+            RefreshVisuals();
+        }
 
         /// <summary>
         /// Yeni run: barikat tam hâline döner.

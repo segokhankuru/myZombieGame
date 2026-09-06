@@ -6,11 +6,13 @@
     "lastTuned": "2026-09-04"
   },
 
-  "_note": "M-03 kart havuzunun UYGULANABILIR ilk dilimi. SYS-02'de 55 kart tasarlandi ama cogu henuz olmayan sistemlere dokunuyor (patlama, kayma, drop, diriltme). Buradaki her kart BUGUN var olan bir sisteme baglanir - hicbiri sessizce hicbir sey yapmaz. Yikim etiketi bilerek BOS: patlama sistemi yok, ve calismayan bir kart en kotu kart turudur.",
+  "_note": "M-03 kart havuzunun UYGULANABILIR dilimi (2026-09-05: 21 -> 31 kart, kademeler eklendi). SYS-02'de 55 kart tasarlandi ama cogu henuz olmayan sistemlere dokunuyor (patlama, kayma, drop, diriltme). Buradaki her kart BUGUN var olan bir sisteme baglanir - hicbiri sessizce hicbir sey yapmaz. Yikim etiketi 2026-09-05 aksami DOLDURULDU: patlama artik var (ZombieAgent.TryExplode).",
 
   "_ids": "Id'ler KALICIDIR (config-data.md). Kaydedilen yigin, telemetri gecmisi ve ileride mod destegi bunlara baglanir. Gorunen ad degisebilir, id degisemez.",
 
-  "_beklemede": "Penetrasyon (card.ballistics.penetration) havuzdan CIKARILDI: ates yolunu RaycastAll'a cevirmeyi ve sunucu tarafinda cok hedefli dogrulama yapmayi gerektiriyor - kucuk bir is degil. Havuzda birakmak, oyuncunun secip hicbir sey hissetmedigi bir kart demekti. Ayni sebeple Yikim etiketi de bos.",
+  "_beklemede": "2026-09-05 aksami: penetrasyon ve YIKIM etiketi ARTIK UYGULANDI. Penetrasyon ates yolunu siralanmis coklu isabete cevirir (PlayerWeapon.FirePenetrating); yikim, olen zombiyi patlatir (ZombieAgent.TryExplode) ve yaricapi zombie.json cards bolumunden gelir. Hala BEKLEYEN: kayma/itme, drop (yerden esya), diriltme - ucu de olmayan sistemlere dokunuyor ve calismayan bir kart en kotu kart turudur.",
+
+  "_unique": "unique=true olan kart HAVUZDAN CIKAR alindiktan sonra; digerleri tekrar cikabilir ve etkileri toplanir (gelistirici karari, 2026-09-05). Gerekce: alinan her kartin havuzdan silinmesi 21 kartlik havuzu yirmi turda tuketiyordu ve gec turlarda draft bos aciliyordu. Tekrar edebilen kart ayni zamanda bir KARAR uretir - ayni seyi bir daha almak mi, yeni bir sey mi. unique yalnizca mutlak bir seyi bir kez degistiren kartlar icin: kafa carpani 2x->3x, tamir puani iki kati gibi. Bunlarin ikinci kopyasi ya anlamsizdir ya da metniyle yalan soyler.",
 
   "_tiers": "Bazi kartlarin iki kademesi var (I / II). Havuzu ucuza buyutur ve 'ayni seyi bir daha al' karari uretir - roguelite'larda kanitlanmis desen.",
 
@@ -19,25 +21,48 @@
     { "id": "card.ballistics.damage.2",    "name": "Sert Cekirdek II",  "tag": "Ballistics", "stat": "WeaponDamage",       "value": 0.30, "text": "Silah hasari +%30." },
     { "id": "card.ballistics.firerate.1",  "name": "Hizli Tetik",       "tag": "Ballistics", "stat": "FireRate",           "value": 0.15, "text": "Atis hizi +%15." },
     { "id": "card.ballistics.firerate.2",  "name": "Hizli Tetik II",    "tag": "Ballistics", "stat": "FireRate",           "value": 0.25, "text": "Atis hizi +%25." },
-    { "id": "card.ballistics.headshot",    "name": "Keskin Nisan",      "tag": "Ballistics", "stat": "HeadshotMultiplier", "value": 1.00, "text": "Kafa vurusu carpani 2x yerine 3x." },
+    { "id": "card.ballistics.headshot",    "name": "Keskin Nisan",      "tag": "Ballistics", "stat": "HeadshotMultiplier", "value": 1.00, "text": "Kafa vurusu carpani 2x yerine 3x.", "unique": true },
     { "id": "card.ballistics.magazine",    "name": "Genis Sarjor",      "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 6.00, "text": "Sarjor +6 mermi." },
     { "id": "card.ballistics.reserve",     "name": "Fisekik",           "tag": "Ballistics", "stat": "ReserveCapacity",    "value": 120.0, "text": "Yedek mermi tavani +120." },
+    { "id": "card.ballistics.damage.3",    "name": "Sert Cekirdek III", "tag": "Ballistics", "stat": "WeaponDamage",       "value": 0.45, "text": "Silah hasari +%45." },
+    { "id": "card.ballistics.magazine.2",  "name": "Genis Sarjor II",   "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 10.0, "text": "Sarjor +10 mermi." },
+    { "id": "card.ballistics.reserve.2",   "name": "Cephanelik",        "tag": "Ballistics", "stat": "ReserveCapacity",    "value": 200.0, "text": "Yedek mermi tavani +200." },
+
+    { "id": "card.ballistics.penetration.1", "name": "Delici Mermi",    "tag": "Ballistics", "stat": "Penetration",         "value": 1.00, "text": "Mermi bir zombiden GECER ve arkadakine de vurur." },
+    { "id": "card.ballistics.penetration.2", "name": "Delici Mermi II", "tag": "Ballistics", "stat": "Penetration",         "value": 1.00, "text": "Mermi bir zombi daha deler." },
 
     { "id": "card.blood.maxhealth.1",      "name": "Kalin Deri",        "tag": "Blood",      "stat": "MaxHealth",          "value": 0.25, "text": "Maksimum can +%25." },
     { "id": "card.blood.maxhealth.2",      "name": "Kalin Deri II",     "tag": "Blood",      "stat": "MaxHealth",          "value": 0.35, "text": "Maksimum can +%35." },
     { "id": "card.blood.armor.1",          "name": "Yelek",             "tag": "Blood",      "stat": "EffectiveHealth",    "value": 0.25, "text": "Alinan hasar %20 azalir." },
     { "id": "card.blood.armor.2",          "name": "Yelek II",          "tag": "Blood",      "stat": "EffectiveHealth",    "value": 0.35, "text": "Alinan hasar daha da azalir." },
-    { "id": "card.blood.regen",            "name": "Cabuk Toparlanma",  "tag": "Blood",      "stat": "RegenDelay",         "value": 0.40, "text": "Can yenilenmesi %40 daha erken baslar." },
+    { "id": "card.blood.regen",            "name": "Cabuk Toparlanma",  "tag": "Blood",      "stat": "RegenDelay",         "value": 0.40, "text": "Can yenilenmesi %40 daha erken baslar.", "unique": true },
+    { "id": "card.blood.maxhealth.3",      "name": "Kalin Deri III",    "tag": "Blood",      "stat": "MaxHealth",          "value": 0.50, "text": "Maksimum can +%50." },
+    { "id": "card.blood.armor.3",          "name": "Agir Yelek",        "tag": "Blood",      "stat": "EffectiveHealth",    "value": 0.50, "text": "Alinan hasar belirgin azalir." },
+    { "id": "card.blood.lifesteal.1",      "name": "Kan Icici",         "tag": "Blood",      "stat": "HealOnKill",         "value": 0.06, "text": "Her oldurme maksimum caninin %6'si kadar iyilestirir." },
+    { "id": "card.blood.lifesteal.2",      "name": "Kan Icici II",      "tag": "Blood",      "stat": "HealOnKill",         "value": 0.10, "text": "Her oldurme %10 iyilestirir." },
 
     { "id": "card.tempo.movespeed.1",      "name": "Hafif Ayak",        "tag": "Tempo",      "stat": "MoveSpeed",          "value": 0.20, "text": "Yurume hizi +%20." },
     { "id": "card.tempo.movespeed.2",      "name": "Hafif Ayak II",     "tag": "Tempo",      "stat": "MoveSpeed",          "value": 0.30, "text": "Yurume hizi +%30." },
-    { "id": "card.tempo.reload",           "name": "Tetik Parmagi",     "tag": "Tempo",      "stat": "ReloadSpeed",        "value": 0.40, "text": "Dolum %40 daha hizli." },
+    { "id": "card.tempo.reload",           "name": "Tetik Parmagi",     "tag": "Tempo",      "stat": "ReloadSpeed",        "value": 0.40, "text": "Dolum %40 daha hizli.", "unique": true },
     { "id": "card.tempo.slow",             "name": "Yavaslatma",        "tag": "Tempo",      "stat": "SlowOnHit",          "value": 0.10, "text": "Vurdugun zombi %10 yavaslar." },
     { "id": "card.tempo.knife",            "name": "Keskin Bicak",      "tag": "Tempo",      "stat": "MeleeDamage",        "value": 0.50, "text": "Bicak hasari +%50." },
+    { "id": "card.tempo.movespeed.3",      "name": "Hafif Ayak III",    "tag": "Tempo",      "stat": "MoveSpeed",          "value": 0.40, "text": "Yurume hizi +%40." },
+    { "id": "card.tempo.slow.2",           "name": "Buz",               "tag": "Tempo",      "stat": "SlowOnHit",          "value": 0.20, "text": "Vurdugun zombi %20 yavaslar." },
+    { "id": "card.tempo.knife.2",          "name": "Kasap",             "tag": "Tempo",      "stat": "MeleeDamage",        "value": 0.80, "text": "Bicak hasari +%80." },
+    { "id": "card.tempo.slow.3",           "name": "Don",               "tag": "Tempo",      "stat": "SlowOnHit",          "value": 0.35, "text": "Vurdugun zombi cok daha fazla yavaslar." },
 
     { "id": "card.loot.killpoints.1",      "name": "Kelle Avcisi",      "tag": "Loot",       "stat": "KillPoints",         "value": 0.25, "text": "Oldurme puani +%25." },
     { "id": "card.loot.killpoints.2",      "name": "Kelle Avcisi II",   "tag": "Loot",       "stat": "KillPoints",         "value": 0.35, "text": "Oldurme puani +%35." },
-    { "id": "card.loot.repairpoints",      "name": "Copcu",             "tag": "Loot",       "stat": "RepairPoints",       "value": 1.00, "text": "Barikat tamiri iki kati puan." },
-    { "id": "card.loot.repairspeed",       "name": "Usta Elleri",       "tag": "Loot",       "stat": "RepairSpeed",        "value": 0.50, "text": "Barikat tamiri %50 daha hizli." }
+    { "id": "card.loot.repairpoints",      "name": "Copcu",             "tag": "Loot",       "stat": "RepairPoints",       "value": 1.00, "text": "Barikat tamiri iki kati puan.", "unique": true },
+    { "id": "card.loot.repairspeed",       "name": "Usta Elleri",       "tag": "Loot",       "stat": "RepairSpeed",        "value": 0.50, "text": "Barikat tamiri %50 daha hizli." },
+    { "id": "card.loot.killpoints.3",      "name": "Kelle Avcisi III",  "tag": "Loot",       "stat": "KillPoints",         "value": 0.50, "text": "Oldurme puani +%50." },
+    { "id": "card.loot.repairspeed.2",     "name": "Marangoz",          "tag": "Loot",       "stat": "RepairSpeed",        "value": 0.80, "text": "Barikat tamiri %80 daha hizli." },
+
+    { "id": "card.loot.ammoonkill.1",      "name": "Toplayici",         "tag": "Loot",       "stat": "AmmoOnKill",         "value": 2.00, "text": "Her oldurmede yedege 2 mermi." },
+    { "id": "card.loot.ammoonkill.2",      "name": "Toplayici II",      "tag": "Loot",       "stat": "AmmoOnKill",         "value": 4.00, "text": "Her oldurmede yedege 4 mermi." },
+
+    { "id": "card.demolition.explode.1",   "name": "Sarapnel",          "tag": "Demolition", "stat": "ExplodeOnKill",      "value": 0.35, "text": "Oldurdugun zombi PATLAR ve cevresindekilere hasar verir." },
+    { "id": "card.demolition.explode.2",   "name": "Sarapnel II",       "tag": "Demolition", "stat": "ExplodeOnKill",      "value": 0.55, "text": "Patlama cok daha guclu." },
+    { "id": "card.demolition.explode.3",   "name": "Zincirleme",        "tag": "Demolition", "stat": "ExplodeOnKill",      "value": 0.80, "text": "Patlama, patlamayla olenleri de patlatacak kadar guclu." }
   ]
 }

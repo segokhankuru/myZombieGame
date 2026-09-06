@@ -44,9 +44,26 @@ namespace Bunker.Gameplay
             RunModifiers.AttachShop(_shop);
         }
 
-        private void OnEnable() => RunSignals.RunRestarted += OnRunRestarted;
+        private void OnEnable()
+        {
+            RunSignals.RunRestarted += OnRunRestarted;
+            RoundSignals.RoundStarted += OnRoundStarted;
+        }
 
-        private void OnDisable() => RunSignals.RunRestarted -= OnRunRestarted;
+        private void OnDisable()
+        {
+            RunSignals.RunRestarted -= OnRunRestarted;
+            RoundSignals.RoundStarted -= OnRoundStarted;
+        }
+
+        /// <summary>
+        /// Tur başladı: tezgâh menüsü açık kaldıysa <b>kapanır</b> (2026-09-05).
+        ///
+        /// <para>Mola biterken menüde kalmak, sürünün ilk zombisini menünün arkasından
+        /// karşılamak demekti. Tezgâhın "yalnızca molada açılır" kuralının kapanış
+        /// tarafı: kural açılışta konur, burada da kapanır.</para>
+        /// </summary>
+        private void OnRoundStarted(int round) => CardSignals.SetShopOpen(false);
 
         private void OnRunRestarted()
         {

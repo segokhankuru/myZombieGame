@@ -50,7 +50,7 @@ namespace Bunker.Systems.Combat
     /// </summary>
     public sealed class WeaponState
     {
-        private readonly WeaponConfig _config;
+        private readonly WeaponDefinition _config;
 
         private float _cycleRemaining;
         private float _reloadRemaining;
@@ -58,12 +58,20 @@ namespace Bunker.Systems.Combat
 
         private WeaponModifiers _mods = WeaponModifiers.None;
 
-        public WeaponState(WeaponConfig config)
+        /// <summary>Uretilen ayardan (baslangic silahi) kurar. Testler bunu kullanir.</summary>
+        public WeaponState(WeaponConfig config) : this(WeaponDefinition.FromConfig(config)) { }
+
+        public WeaponState(WeaponDefinition config)
         {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            // Struct: null olamaz ama GECERSIZ olabilir (bos id). Gecersiz bir tanimla
+            // kurulan silah, hic ates etmeyen bir silahtir - sessiz kalmasin.
+            if (!config.IsValid)
+                throw new ArgumentException("Gecersiz silah tanimi (id bos).", nameof(config));
+
+            _config = config;
 
             RoundsInMagazine = MagazineCapacity;
-            Reserve = Math.Min(_config.MagazineStartingReserve, ReserveCapacity);
+            Reserve = Math.Min(_config.StartingReserve, ReserveCapacity);
         }
 
         /// <summary>
@@ -85,10 +93,10 @@ namespace Bunker.Systems.Combat
         public int MagazineCapacity => Math.Max(1, _config.MagazineCapacity + _mods.Magazine);
 
         /// <summary>Kart etkileriyle yedek tavani.</summary>
-        public int ReserveCapacity => Math.Max(0, _config.MagazineReserveCapacity + _mods.Reserve);
+        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
 
         /// <summary>Kart etkileriyle dolum suresi.</summary>
-        public float ReloadSeconds => _config.MagazineReloadSeconds / _mods.ReloadSpeedMultiplier;
+        public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
         public int RoundsInMagazine { get; private set; }
         public int Reserve { get; private set; }
 
@@ -112,9 +120,9 @@ namespace Bunker.Systems.Combat
 
         /// <summary>Atışlar arası süre. <c>roundsPerMinute</c>'dan türetilir.</summary>
         public float SecondsBetweenShots =>
-            _config.FireRoundsPerMinute <= 0f
+            _config.RoundsPerMinute <= 0f
                 ? 0f
-                : 60f / (_config.FireRoundsPerMinute * _mods.FireRateMultiplier);
+                : 60f / (_config.RoundsPerMinute * _mods.FireRateMultiplier);
 
         /// <summary>
         /// Zamanı ilerletir. <b>Tamponlanmış bir atış isteği varsa ve silah hazırsa
@@ -144,7 +152,7 @@ namespace Bunker.Systems.Combat
         /// <param name="pressedThisFrame">Bu karede ateş isteği geldi mi.</param>
         public FireResult TryFire(bool pressedThisFrame)
         {
-            if (pressedThisFrame) _bufferedFireRemaining = _config.FeelInputBufferSeconds;
+            if (pressedThisFrame) _bufferedFireRemaining = _config.InputBufferSeconds;
 
             bool wants = pressedThisFrame || _bufferedFireRemaining > 0f;
             if (!wants) return FireResult.Cycling;
@@ -203,7 +211,7 @@ namespace Bunker.Systems.Combat
         public void Reset()
         {
             RoundsInMagazine = MagazineCapacity;
-            Reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
+            Reserve = Math.Min(_config.StartingReserve, _config.ReserveCapacity);
             _cycleRemaining = 0f;
             _reloadRemaining = 0f;
             _bufferedFireRemaining = 0f;
@@ -212,10 +220,10 @@ namespace Bunker.Systems.Combat
         /// <summary>Bir isabetin hasarı. Kafa çarpanı burada uygulanır, atış anında değil.</summary>
         public float DamageFor(bool headshot)
         {
-            float damage = _config.FireDamage * _mods.DamageMultiplier;
+            float damage = _config.Damage * _mods.DamageMultiplier;
 
             return headshot
-                ? damage * (_config.FireHeadshotMultiplier + _mods.HeadshotMultiplier)
+                ? damage * (_config.HeadshotMultiplier + _mods.HeadshotMultiplier)
                 : damage;
         }
 

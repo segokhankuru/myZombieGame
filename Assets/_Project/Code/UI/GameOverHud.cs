@@ -1,4 +1,7 @@
 using System.Text;
+using Bunker.Gameplay;
+using Bunker.Systems.Net;
+using Bunker.Systems.Combat;
 using Bunker.Systems.Rounds;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -152,8 +155,54 @@ namespace Bunker.UI
 
             GUI.Label(new Rect(cx - 150f, top + 140f, 320f, 180f), _body, _bodyStyle);
 
-            GUI.Label(new Rect(cx - 300f, top + 320f, 600f, 30f),
-                      "R    yeniden basla", _hintStyle);
+            // SENI NE OLDURDU (2026-09-05). Iki oturumdur "birden oldum" cumlesi
+            // tahmine dayaniyordu; oldureni yazmak o tahmini bitirir. 30 hasar bir
+            // zombi vurusu, 300 hasar bambaska bir sey demektir.
+            if (CombatFeedback.LastLethalAmount > 0f)
+            {
+                string kind = CombatFeedback.LastLethalKind switch
+                {
+                    DamageKind.Melee => "zombi vurusu",
+                    DamageKind.Environment => "patlama / cevre",
+                    _ => "mermi"
+                };
+
+                GUI.color = new Color(1f, 0.5f, 0.4f);
+                GUI.Label(new Rect(cx - 300f, top + 290f, 600f, 26f),
+                          $"son vurus: {Mathf.RoundToInt(CombatFeedback.LastLethalAmount)} hasar  ({kind})",
+                          _hintStyle);
+                GUI.color = Color.white;
+            }
+
+            // ÖLÜM EKRANI BIR CIKIS KAPISI DA OLMALI (2026-09-06, geliştirici):
+            // yalnızca "R" yazan bir ekran, oyuncuyu ya yeniden başlamaya ya da
+            // Alt+F4'e zorlar. Ölüm, oturumu bitirmenin en doğal anı — menüye dönüş
+            // orada olmazsa hiçbir yerde yok demektir.
+            const float w = 240f;
+            const float h = 38f;
+            float y = top + 315f;
+
+            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "YENIDEN BASLA   (R)"))
+            {
+                RunSignals.RequestRestart();
+            }
+
+            y += h + 8f;
+
+            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "ANA MENU"))
+            {
+                SessionSignals.RequestLeave();
+            }
+
+            y += h + 8f;
+
+            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "CIKIS"))
+            {
+                SessionSignals.RequestQuit();
+            }
+
+            // Imlec ekran acilinca zaten serbest birakiliyor (PlayerController,
+            // OnRunEnded) - dugmeler tiklanabilir.
         }
 
         /// <summary>Ekranın metnini bir kez kurar. Yalnızca run bitiminde çağrılır.</summary>

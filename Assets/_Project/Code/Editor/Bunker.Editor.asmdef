@@ -11,6 +11,7 @@
         "Bunker.UI",
         "Mirror",
         "Mirror.Components",
+        "Mirror.Transports",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.Universal.Runtime"
     ],

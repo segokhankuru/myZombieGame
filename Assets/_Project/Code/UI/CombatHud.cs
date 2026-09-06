@@ -1,6 +1,7 @@
 using System.Text;
 using Bunker.Gameplay;
 using Bunker.Systems.Rounds;
+using Bunker.Systems.Settings;
 using UnityEngine;
 
 namespace Bunker.UI
@@ -39,6 +40,7 @@ namespace Bunker.UI
         private PlayerHealth _health;
         private PlayerRepair _repair;
         private PlayerInteract _interact;
+        private PlayerController _controller;
         private float _searchTimer;
 
         private readonly StringBuilder _text = new StringBuilder(128);
@@ -88,6 +90,7 @@ namespace Bunker.UI
                 _health = weapons[i].GetComponent<PlayerHealth>();
                 _repair = weapons[i].GetComponent<PlayerRepair>();
                 _interact = weapons[i].GetComponent<PlayerInteract>();
+                _controller = weapons[i].GetComponent<PlayerController>();
                 return;
             }
         }
@@ -111,6 +114,7 @@ namespace Bunker.UI
             // Can uyarisi EN ALTTA cizilir: nisangahin ve yazinin ustune binmemeli.
             // Bilgiyi kapatan bir uyari, uyardigi seyi kotu gosterir.
             DrawHealth();
+            DrawSprint();
             DrawCrosshair();
             DrawReadout();
         }
@@ -160,12 +164,53 @@ namespace Bunker.UI
             GUI.color = Color.white;
         }
 
+        /// <summary>
+        /// Koşu göstergesi: can barının hemen altında ince bir çubuk (2026-09-05).
+        ///
+        /// <para><b>Neden bir gösterge şart:</b> koşu 4,5 saniyelik <i>sınırlı</i> bir
+        /// kaynak. Göstergesi olmadan oyuncu ne zaman koşabileceğini tahmin etmek
+        /// zorunda kalır ve tam kaçması gereken anda Shift'in çalışmadığını görür —
+        /// oyuncunun "oyun beni yüzüstü bıraktı" diye okuduğu şey tam olarak budur.</para>
+        ///
+        /// <para><b>Dolu ve koşulmuyorken çizilmez</b>: hiçbir şey söylemeyen bir
+        /// gösterge, ekranda yer kaplamaktan başka bir şey yapmaz.</para>
+        /// </summary>
+        private void DrawSprint()
+        {
+            if (_controller == null) return;
+
+            float fraction = _controller.SprintFraction01;
+            if (fraction >= 1f && !_controller.IsSprinting) return;
+
+            const float barWidth = 220f;
+            const float barHeight = 6f;
+            float x = 24f;
+            float y = Screen.height - 70f;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.5f);
+            Rect(x, y, barWidth, barHeight);
+
+            // Bilgi renkle TEK BASINA tasinmiyor (ui-code.md): cubugun uzunlugu da
+            // ayni seyi soyluyor. Renk yalnizca "su an kosuyorsun"u ekliyor.
+            GUI.color = _controller.IsSprinting
+                ? new Color(0.45f, 0.80f, 0.95f)
+                : new Color(0.45f, 0.55f, 0.60f);
+
+            Rect(x, y, barWidth * fraction, barHeight);
+
+            GUI.color = Color.white;
+        }
+
         private void DrawCrosshair()
         {
+            // Nisangah kapatilabilir (M-04): bazi oyuncular temiz ekran ister ve
+            // silahin dogal dogrulugu zaten merkezden gecer.
+            if (!GameSettings.ShowCrosshair && _weapon.HitMarkerRemaining <= 0f) return;
+
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
 
-            bool hit = _weapon.HitMarkerRemaining > 0f;
+            bool hit = GameSettings.ShowHitMarker && _weapon.HitMarkerRemaining > 0f;
 
             // Isabet isareti nisangahin KENDISINI degistirir: ayri bir sekil ciziip
             // ustune bindirmek, kaosun icinde iki ayri sey okumaya zorlar (PILLAR-04).

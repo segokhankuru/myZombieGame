@@ -15,8 +15,9 @@ namespace Bunker.Systems.Tests
         private static CardDefinition Card(string id, CardTag tag = CardTag.Ballistics,
                                            CardStat stat = CardStat.WeaponDamage,
                                            float value = 0.2f,
-                                           bool solo = true, bool coop = true) =>
-            new CardDefinition(id, id, string.Empty, tag, stat, value, solo, coop);
+                                           bool solo = true, bool coop = true,
+                                           bool unique = false) =>
+            new CardDefinition(id, id, string.Empty, tag, stat, value, solo, coop, unique);
 
         private static List<CardDefinition> Pool(int count, CardTag tag = CardTag.Ballistics)
         {
@@ -28,13 +29,29 @@ namespace Bunker.Systems.Tests
         // ---------------------------------------------------------------- loadout
 
         [Test]
-        public void AyniKart_IkiKezAlinamaz()
+        public void TekSeferlikKart_IkiKezAlinamaz()
         {
             var loadout = new CardLoadout();
 
-            Assert.IsTrue(loadout.Add(Card("card.a")));
-            Assert.IsFalse(loadout.Add(Card("card.a")));
+            Assert.IsTrue(loadout.Add(Card("card.a", unique: true)));
+            Assert.IsFalse(loadout.Add(Card("card.a", unique: true)));
             Assert.AreEqual(1, loadout.Count);
+        }
+
+        [Test]
+        public void TekrarEdebilenKart_IkiKezAlinir_EtkisiToplanir()
+        {
+            // 2026-09-05: kartlarin cogu artik tekrar cikabilir. Ikinci kopyanin
+            // sessizce reddedilmesi, oyuncunun secip hicbir sey hissetmedigi kart
+            // demek olurdu - kart sisteminin en pahali hata turu.
+            var loadout = new CardLoadout();
+            CardDefinition card = Card("card.a", CardTag.Ballistics, CardStat.WeaponDamage, 0.20f);
+
+            Assert.IsTrue(loadout.Add(card));
+            Assert.IsTrue(loadout.Add(card));
+
+            Assert.AreEqual(2, loadout.Count);
+            Assert.AreEqual(1.40f, loadout.Multiplier(CardStat.WeaponDamage), 0.001f);
         }
 
         [Test]
@@ -154,28 +171,74 @@ namespace Bunker.Systems.Tests
         }
 
         [Test]
-        public void Draft_AlinmisKartTekrarCikmaz()
+        public void Draft_AlinmisTekSeferlikKart_TekrarCikmaz()
         {
-            var loadout = new CardLoadout();
-            var draft = new CardDraft(new CardPool(Pool(6), seed: 3));
+            var cards = new List<CardDefinition>
+            {
+                Card("bir.kez", CardTag.Ballistics, CardStat.HeadshotMultiplier, 1f, unique: true),
+                Card("dolgu.a"),
+                Card("dolgu.b"),
+                Card("dolgu.c")
+            };
 
-            // Havuzu neredeyse tuket.
-            for (int round = 0; round < 3; round++)
+            var loadout = new CardLoadout();
+            loadout.Add(cards[0]);
+
+            var draft = new CardDraft(new CardPool(cards, seed: 3));
+
+            // Tohumdan bagimsiz olmali: tek seferlik kart, hangi tohumda olursa olsun
+            // bir daha CIKMAMALI.
+            for (int round = 0; round < 20; round++)
             {
                 draft.Open(loadout, solo: true);
-                draft.Pick(0, loadout);
+
+                for (int i = 0; i < draft.SlotCount; i++)
+                {
+                    Assert.AreNotEqual("bir.kez", draft.Slot(i).Id,
+                        "Alinmis tek seferlik kart tekrar cikti.");
+                }
             }
+        }
+
+        [Test]
+        public void Draft_AlinmisTekrarEdebilenKart_YineCikabilir()
+        {
+            // Onceki kural her alinan karti havuzdan siliyordu: 21 kartlik havuz
+            // yirmi turda tukeniyor ve draft BOS aciliyordu (2026-09-05).
+            var cards = new List<CardDefinition> { Card("tekrar.eder") };
+
+            var loadout = new CardLoadout();
+            loadout.Add(cards[0]);
+
+            var draft = new CardDraft(new CardPool(cards, seed: 7), choiceCount: 1);
+            draft.Open(loadout, solo: true);
+
+            Assert.AreEqual("tekrar.eder", draft.Slot(0).Id);
+        }
+
+        [Test]
+        public void Yenileme_AyniKartiGeriGetirmez()
+        {
+            // Oyun testi (2026-09-05): "yenile"ye basmak ayni karti geri getirebiliyordu.
+            // Harcanan bir hakkin sonucu GORUNUR sekilde degismeli.
+            var draft = new CardDraft(new CardPool(Pool(20), seed: 11));
+            var loadout = new CardLoadout();
 
             draft.Open(loadout, solo: true);
 
-            for (int i = 0; i < draft.SlotCount; i++)
-            {
-                if (!draft.Slot(i).IsValid) continue;
-                Assert.IsFalse(loadout.Has(draft.Slot(i).Id) && draft.Slot(i).Id != draft.Slot(i).Id);
-            }
+            string before = draft.Slot(0).Id;
 
-            // Elde uc kart var; kalan uc karttan hicbiri elde olmamali.
-            Assert.AreEqual(3, loadout.Count);
+            Assert.IsTrue(draft.RerollSlot(0, loadout, solo: true));
+            Assert.AreNotEqual(before, draft.Slot(0).Id);
+
+            // Ikinci (puanli) yenileme de ayni kurala tabi.
+            string second = draft.Slot(0).Id;
+            Assert.IsTrue(draft.RerollSlot(0, loadout, solo: true));
+            Assert.AreNotEqual(second, draft.Slot(0).Id);
+
+            // Diger yuvalarla da carpismaz: uc secenek uc AYRI kart demek.
+            Assert.AreNotEqual(draft.Slot(0).Id, draft.Slot(1).Id);
+            Assert.AreNotEqual(draft.Slot(0).Id, draft.Slot(2).Id);
         }
 
         [Test]
@@ -297,7 +360,7 @@ namespace Bunker.Systems.Tests
 
             for (int i = 0; i < 400; i++)
             {
-                CardDefinition drawn = pool.Draw(loadout, solo: true, taken: null, excludeUpTo: 0);
+                CardDefinition drawn = pool.Draw(loadout, solo: true, taken: null, ignoreIndex: -1);
                 if (drawn.Tag == CardTag.Tempo) tempo++;
             }
 

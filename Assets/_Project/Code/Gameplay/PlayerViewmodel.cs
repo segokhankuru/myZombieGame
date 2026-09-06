@@ -57,6 +57,13 @@ namespace Bunker.Gameplay
 
         // ---------------------------------------------------------------- kurulum
 
+        // Silah gorunumu (2026-09-06): hangi silahin govdesi kurulu, hangi
+        // materyaller kullanildi ve namlu ucu nerede.
+        private string _builtWeaponId;
+        private Material _gunMaterial;
+        private Material _accentMaterial;
+        private Vector3 _muzzleTip = new Vector3(0f, 0.005f, 0.235f);
+
         private void Awake()
         {
             if (playerCamera == null) playerCamera = GetComponentInChildren<Camera>(true);
@@ -118,6 +125,10 @@ namespace Bunker.Gameplay
 
         private void LateUpdate()
         {
+            // Silah degistiyse govdeyi yeniden kur. Kare basina bir string
+            // karsilastirmasi; degismedigi surece hicbir sey yapmaz.
+            RebuildGun();
+
             // Kamera LateUpdate'te donuyor (PlayerController); el ondan SONRA
             // yerlesmeli, yoksa hizli donuste bir kare geride kalir ve titrer.
             if (_rig == null) return;
@@ -248,6 +259,43 @@ namespace Bunker.Gameplay
         /// Gri kutu silahını ve bıçağını kurar. Ölçüler santimetre düzeyinde: kameraya
         /// yakın duran bir nesne birkaç santimetre büyüdüğünde ekranın yarısını kaplar.
         /// </summary>
+        /// <summary>
+        /// Eldeki silahın gövdesini kurar; silah değişince yeniden çağrılır.
+        ///
+        /// <para><b>Namlu ucu şekilden gelir</b>: pompalının namlusu tabancanınkinden
+        /// 16 cm daha ileride ve alev orada patlamalı. Sabit bir konum, taramalıda
+        /// alevin gövdenin içinde patlaması demek olurdu.</para>
+        /// </summary>
+        private void RebuildGun()
+        {
+            if (_gun == null) return;
+
+            string id = weapon != null ? weapon.Current.Id : "weapon.pistol";
+            if (id == _builtWeaponId) return;
+
+            _builtWeaponId = id;
+
+            // Onceki gövde temizlenir. Alev ve isik AYRI tutuluyor (onlar silahin
+            // degil, atisin parcasi) - o yuzden yalnizca isimli govde parcalari gider.
+            for (int i = _gun.childCount - 1; i >= 0; i--)
+            {
+                Transform child = _gun.GetChild(i);
+                if (child == null) continue;
+                if (child.name == "MuzzleFlash" || child.name == "MuzzleLight") continue;
+
+                Destroy(child.gameObject);
+            }
+
+            _muzzleTip = WeaponShape.Build(_gun, id, 1f, _gunMaterial, _accentMaterial);
+
+            if (_muzzleFlash != null) _muzzleFlash.transform.localPosition = _muzzleTip;
+
+            if (_muzzleLight != null)
+            {
+                _muzzleLight.transform.localPosition = _muzzleTip + new Vector3(0f, 0.015f, 0.045f);
+            }
+        }
+
         private void BuildRig()
         {
             Material gunMaterial = MakeMaterial(new Color(0.16f, 0.17f, 0.19f));
@@ -264,17 +312,20 @@ namespace Bunker.Gameplay
             gun.transform.localPosition = GunHome;
             _gun = gun.transform;
 
-            Part(_gun, "Slide", new Vector3(0f, 0f, 0f), new Vector3(0.045f, 0.055f, 0.24f), gunMaterial);
-            Part(_gun, "Barrel", new Vector3(0f, 0.005f, 0.16f), new Vector3(0.022f, 0.022f, 0.12f), gunMaterial);
-            Part(_gun, "Grip", new Vector3(0f, -0.075f, -0.06f), new Vector3(0.040f, 0.110f, 0.055f), accentMaterial);
-            Part(_gun, "Sight", new Vector3(0f, 0.038f, 0.10f), new Vector3(0.010f, 0.014f, 0.012f), accentMaterial);
+            // Silahin GORUNUSU sinifina gore (2026-09-06): taramali tabanca gibi
+            // gorunemez. Siluet, arayuzun en hizli okunan parcasi (PILLAR-04) ve
+            // savasin ortasinda kimse yazi okumaz.
+            _gunMaterial = gunMaterial;
+            _accentMaterial = accentMaterial;
+
+            RebuildGun();
 
             // --- namlu alevi: atisin CIKTIGINI soyleyen sey. Isik da var, cunku
             //     karanlik bir kosede yalnizca alev yeterince okunmuyor.
             _muzzleFlash = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             _muzzleFlash.name = "MuzzleFlash";
             _muzzleFlash.transform.SetParent(_gun, false);
-            _muzzleFlash.transform.localPosition = new Vector3(0f, 0.005f, 0.235f);
+            _muzzleFlash.transform.localPosition = _muzzleTip;
             _muzzleFlash.transform.localScale = new Vector3(0.075f, 0.075f, 0.11f);
             Destroy(_muzzleFlash.GetComponent<Collider>());
 
@@ -284,7 +335,7 @@ namespace Bunker.Gameplay
 
             var lightHost = new GameObject("MuzzleLight");
             lightHost.transform.SetParent(_gun, false);
-            lightHost.transform.localPosition = new Vector3(0f, 0.02f, 0.28f);
+            lightHost.transform.localPosition = _muzzleTip + new Vector3(0f, 0.015f, 0.045f);
 
             _muzzleLight = lightHost.AddComponent<Light>();
             _muzzleLight.type = LightType.Point;

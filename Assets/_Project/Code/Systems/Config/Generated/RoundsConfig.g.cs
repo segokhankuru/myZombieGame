@@ -40,6 +40,14 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 10 .. 60 | JSON: count.maxConcurrent</remarks>
         public readonly int CountMaxConcurrent;
 
+        /// <summary>Tur 1'de sahada AYNI ANDA durabilecek zombi. Turun toplami degil, anlik yuku. Cok dusukse sure bos beklemekle gecer ve tur uzar; cok yuksekse oyuncu barikata donup tamir edecek bosluk bulamaz - oyun testinde tam olarak bu goruldu.</summary>
+        /// <remarks>Aralik: 2 .. 30 | JSON: count.aliveCapAtRoundOne</remarks>
+        public readonly int CountAliveCapAtRoundOne;
+
+        /// <summary>Her tur anlik tavana eklenen zombi. Tavan her zaman maxConcurrent ile sinirlidir. Dusurursen gec turlar seyrek ve kolay kalir; buyutursen ayni tavan sorununa geri donulur.</summary>
+        /// <remarks>Aralik: 0 .. 4 | JSON: count.aliveCapAddPerRound</remarks>
+        public readonly float CountAliveCapAddPerRound;
+
         /// <summary>Tur 1 zombi cani. Baslangic silahinin kac isabetle oldurdugunu belirler. Cok dusukse silah guclu hissetmez cunku her sey tek vurusla olur; cok yuksekse baslangic silahi ise yaramaz gorunur.</summary>
         /// <remarks>Aralik: 50 .. 300 | JSON: health.atRoundOne</remarks>
         public readonly float HealthAtRoundOne;
@@ -80,6 +88,38 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 2 .. 20 | JSON: speed.jogUntilRound</remarks>
         public readonly int SpeedJogUntilRound;
 
+        /// <summary>Kac turda bir boss cikar. Sik olursa boss sıradanlasir ve bir olay olmaktan cikar; seyrek olursa oyuncu onu tanimadan tur 20'ye gelir.</summary>
+        /// <remarks>Aralik: 2 .. 20 | JSON: boss.everyRounds</remarks>
+        public readonly int BossEveryRounds;
+
+        /// <summary>Boss cani = turun zombi cani x bu. Dusuk olursa boss bir zombiden farksizlasir; yuksek olursa oyuncunun butun mermisini yer ve tur bir sunger dovmeye doner.</summary>
+        /// <remarks>Aralik: 3 .. 40 | JSON: boss.healthMultiplier</remarks>
+        public readonly float BossHealthMultiplier;
+
+        /// <summary>Boss hizi = turun hizi x bu. BIRIN ALTINDA olmali: cok canli VE hizli bir dusman, oyuncuya kacmaktan baska secenek birakmaz ve o da isleyen bir plan degildir. Yavas olmasi, onu bir KOSU DONGUSU problemi yapar.</summary>
+        /// <remarks>Aralik: 0.4 .. 1.2 | JSON: boss.speedMultiplier</remarks>
+        public readonly float BossSpeedMultiplier;
+
+        /// <summary>Boss vurusu = normal zombi hasari x bu. Iki vurusla oldurmemeli ama iki vurus da onemli olmali.</summary>
+        /// <remarks>Aralik: 1 .. 4 | JSON: boss.damageMultiplier</remarks>
+        public readonly float BossDamageMultiplier;
+
+        /// <summary>Gorsel buyukluk. Boss'un kalabaligin icinde ILK BAKISTA taninmasi sart (PILLAR-04); renk tek basina yetmez cunku sahne loş.</summary>
+        /// <remarks>Aralik: 1.1 .. 3 | JSON: boss.scaleMultiplier</remarks>
+        public readonly float BossScaleMultiplier;
+
+        /// <summary>Oldurme puani carpani. Bossu oldurmek bir SECIM olmali: kacmak da mesru, ama oldurmek tezgaha gidecek puani vermeli.</summary>
+        /// <remarks>Aralik: 1 .. 20 | JSON: boss.pointsMultiplier</remarks>
+        public readonly float BossPointsMultiplier;
+
+        /// <summary>Tur temizlendiginde yedek mermi TAVANININ bu orani kadar mermi geri gelir. Sifir olursa mermi tamamen satin almaya baglanir ve tek harcama kalir; 1'e yaklasirsa mermi bir kaynak olmaktan cikar ve duvardaki mermi noktasi anlamsizlasir.</summary>
+        /// <remarks>Aralik: 0 .. 1 | JSON: roundEnd.reserveAmmoFraction01</remarks>
+        public readonly float RoundEndReserveAmmoFraction01;
+
+        /// <summary>Tur temizlendiginde her pencerede tam barikatin bu orani kadar tahta geri gelir. Sifir olursa gec turlarda butun mola tamirle gecer ve tezgaha gitmek imkansizlasir; 1'e yaklasirsa tamir etmek bir karar olmaktan cikar.</summary>
+        /// <remarks>Aralik: 0 .. 1 | JSON: roundEnd.barricadeBoardsFraction01</remarks>
+        public readonly float RoundEndBarricadeBoardsFraction01;
+
         /// <summary>Turlar arasi nefes molasi. Cok kisa olursa PILLAR-03'un ritmi bozulur ve oyun yorucu olur; cok uzun olursa gerilim soguр.</summary>
         /// <remarks>Aralik: 3 .. 20 | JSON: pacing.breatherSeconds</remarks>
         public readonly float PacingBreatherSeconds;
@@ -97,12 +137,14 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public RoundsConfig(
-            int version = 1,
+            int version = 3,
             float countPerPlayerAtRoundOne = 6f,
             float countLinearAddPerPlayerPerRound = 1.5f,
             int countLinearPhaseUntilRound = 9,
             float countGrowthMultiplierAfterLinear = 1.1f,
             int countMaxConcurrent = 40,
+            int countAliveCapAtRoundOne = 5,
+            float countAliveCapAddPerRound = 1f,
             float healthAtRoundOne = 150f,
             float healthLinearAddPerRound = 100f,
             int healthLinearPhaseUntilRound = 9,
@@ -113,6 +155,14 @@ namespace Bunker.Systems.Config
             float speedRunMetersPerSecond = 3.6f,
             int speedWalkUntilRound = 6,
             int speedJogUntilRound = 12,
+            int bossEveryRounds = 5,
+            float bossHealthMultiplier = 14f,
+            float bossSpeedMultiplier = 0.75f,
+            float bossDamageMultiplier = 2f,
+            float bossScaleMultiplier = 1.7f,
+            float bossPointsMultiplier = 6f,
+            float roundEndReserveAmmoFraction01 = 0.4f,
+            float roundEndBarricadeBoardsFraction01 = 0.4f,
             float pacingBreatherSeconds = 10f,
             float pacingSpawnIntervalSecondsAtRoundOne = 2f,
             float pacingSpawnIntervalFloorSeconds = 0.25f)
@@ -123,6 +173,8 @@ namespace Bunker.Systems.Config
             CountLinearPhaseUntilRound = countLinearPhaseUntilRound;
             CountGrowthMultiplierAfterLinear = countGrowthMultiplierAfterLinear;
             CountMaxConcurrent = countMaxConcurrent;
+            CountAliveCapAtRoundOne = countAliveCapAtRoundOne;
+            CountAliveCapAddPerRound = countAliveCapAddPerRound;
             HealthAtRoundOne = healthAtRoundOne;
             HealthLinearAddPerRound = healthLinearAddPerRound;
             HealthLinearPhaseUntilRound = healthLinearPhaseUntilRound;
@@ -133,6 +185,14 @@ namespace Bunker.Systems.Config
             SpeedRunMetersPerSecond = speedRunMetersPerSecond;
             SpeedWalkUntilRound = speedWalkUntilRound;
             SpeedJogUntilRound = speedJogUntilRound;
+            BossEveryRounds = bossEveryRounds;
+            BossHealthMultiplier = bossHealthMultiplier;
+            BossSpeedMultiplier = bossSpeedMultiplier;
+            BossDamageMultiplier = bossDamageMultiplier;
+            BossScaleMultiplier = bossScaleMultiplier;
+            BossPointsMultiplier = bossPointsMultiplier;
+            RoundEndReserveAmmoFraction01 = roundEndReserveAmmoFraction01;
+            RoundEndBarricadeBoardsFraction01 = roundEndBarricadeBoardsFraction01;
             PacingBreatherSeconds = pacingBreatherSeconds;
             PacingSpawnIntervalSecondsAtRoundOne = pacingSpawnIntervalSecondsAtRoundOne;
             PacingSpawnIntervalFloorSeconds = pacingSpawnIntervalFloorSeconds;

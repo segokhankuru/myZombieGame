@@ -36,22 +36,46 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0.1 .. 0.6 | JSON: health.lowFraction</remarks>
         public readonly float HealthLowFraction;
 
+        /// <summary>Kosarken yurume hizinin carpani. 1.2'nin altinda oyuncu farki hissetmez ve tus bir aldatmacaya doner; 1.8'in ustunde zombi hiz kademeleri (rounds.json speed) anlamini yitirir ve gec turlarda kacmak bedava olur.</summary>
+        /// <remarks>Aralik: 1.1 .. 2.2 | JSON: sprint.speedMultiplier</remarks>
+        public readonly float SprintSpeedMultiplier;
+
+        /// <summary>Kesintisiz kosabilecegin en uzun sure. Kisa olmasi tasarim: kosu bir KACIS ARACI, bir hareket hizi degil. Uzatirsan harita kuculur ve barikat tutmanin yerini surekli kosmak alir; kisaltirsan bir odadan digerine gecmeye bile yetmez ve tus hic kullanilmaz.</summary>
+        /// <remarks>Aralik: 2 .. 10 | JSON: sprint.maxSeconds</remarks>
+        public readonly float SprintMaxSeconds;
+
+        /// <summary>Kosmadigin her saniyede geri gelen kosu suresi. 0.5 ile tam dolum ~9 saniye surer, yani tur icinde iki kacistan fazlasi yok. Buyutursen kosu sureklilesir ve tavan anlamsizlasir.</summary>
+        /// <remarks>Aralik: 0.1 .. 2 | JSON: sprint.rechargePerSecond</remarks>
+        public readonly float SprintRechargePerSecond;
+
+        /// <summary>Kosuya baslamak icin gereken en az birikmis sure. Sifir olursa oyuncu her saniye yarim adim kosar ve hareket titrer - okunmasi zor bir his. Buyutursen kosu, tam dolmadan hic kullanilamayan bir yetenege doner.</summary>
+        /// <remarks>Aralik: 0 .. 3 | JSON: sprint.minSecondsToStart</remarks>
+        public readonly float SprintMinSecondsToStart;
+
         /// <summary>
         /// Varsayilanlar <c>config/balance/player.json</c> dosyasindan URETILDI.
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public PlayerConfig(
-            int version = 1,
+            int version = 2,
             float healthMaxPoints = 100f,
             float healthRegenDelaySeconds = 4f,
             float healthRegenPerSecond = 25f,
-            float healthLowFraction = 0.35f)
+            float healthLowFraction = 0.35f,
+            float sprintSpeedMultiplier = 1.5f,
+            float sprintMaxSeconds = 4.5f,
+            float sprintRechargePerSecond = 0.5f,
+            float sprintMinSecondsToStart = 0.6f)
         {
             Version = version;
             HealthMaxPoints = healthMaxPoints;
             HealthRegenDelaySeconds = healthRegenDelaySeconds;
             HealthRegenPerSecond = healthRegenPerSecond;
             HealthLowFraction = healthLowFraction;
+            SprintSpeedMultiplier = sprintSpeedMultiplier;
+            SprintMaxSeconds = sprintMaxSeconds;
+            SprintRechargePerSecond = sprintRechargePerSecond;
+            SprintMinSecondsToStart = sprintMinSecondsToStart;
         }
     }
 }

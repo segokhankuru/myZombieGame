@@ -55,9 +55,22 @@ namespace Bunker.AI
         private void OnDisable() => ZombieTargets.Unregister(this);
 
         /// <summary>Zombi vuruşu buraya iner. Can yoksa sessizce yutulur.</summary>
-        public void ReceiveAttack(float damage)
+        /// <param name="sourcePosition">
+        /// Vuran zombinin konumu. HUD bunu YON gostergesine cevirir (2026-09-05):
+        /// "arkadan mi yedim onden mi" sorusu cevapsiz kalirsa oyuncu dogru tepkiyi
+        /// veremez ve olum haksizlik gibi okunur.
+        /// </param>
+        public void ReceiveAttack(float damage, Vector3 sourcePosition)
         {
-            _damageable?.ApplyDamage(new DamageInfo(damage, DamageKind.Melee));
+            LastAttackerPosition = sourcePosition;
+
+            // Yon hasarla birlikte gidiyor: HUD "nereden yedim" gostergesini bundan
+            // cizer (DamageInfo.SourceX/SourceZ).
+            _damageable?.ApplyDamage(new DamageInfo(damage, DamageKind.Melee, false,
+                                                    sourcePosition.x, sourcePosition.z));
         }
+
+        /// <summary>Son vuranin konumu. Can bileseni hasar olayina bunu ekler.</summary>
+        public Vector3 LastAttackerPosition { get; private set; }
     }
 }

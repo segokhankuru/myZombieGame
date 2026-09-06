@@ -121,7 +121,11 @@ namespace Bunker.Editor.ConfigTools
                     // tekrardan kacinsin diye etiketten turetiliyor; istisna gerekirse
                     // JSON'a acik alan eklenir.
                     soloValid = c.Has("soloValid") ? c["soloValid"].AsBool : tag != CardTag.Team,
-                    coopValid = c.Has("coopValid") ? c["coopValid"].AsBool : true
+                    coopValid = c.Has("coopValid") ? c["coopValid"].AsBool : true,
+
+                    // Varsayilan TEKRAR EDEBILIR: alinan her karti havuzdan silmek,
+                    // 21 kartlik havuzu yirmi turda tuketiyordu (2026-09-05).
+                    unique = c.Has("unique") && c["unique"].AsBool
                 });
             }
 

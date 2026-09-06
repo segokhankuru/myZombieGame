@@ -35,6 +35,7 @@ namespace Bunker.Audio
         ZombieLegBreak,
 
         // --- dunya
+        Explosion,
         BarricadeTear,
         BarricadeRepair,
         PlayerHurt,
