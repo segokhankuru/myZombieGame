@@ -416,3 +416,11 @@ Buna %25 tampon ekle. Part-time gerçekçi hedef: **18 ay.**
 **Tek soru:** *"20 dakika oynadıktan sonra tekrar oynamak istediniz mi?"*
 
 Cevap "hayır" ise sanat, asset ve içerik üretimine geçme. Gri kutuda eğlenceli olmayan bir oyun, güzel grafiklerle de eğlenceli olmaz. Bu türde oyunun kaderi o ilk 20 dakikada belirlenir.
+
+---
+
+> **Not (2026-09-04):** §3.3'teki kart draft sıklığı (**her 3 turda bir**) artık
+> `design/systems/SYS-02-kart-sistemi.md` §7b'de yaşıyor — sistemin kendi
+> spesifikasyonunda. Bu doküman bir **referans**tır, kaynak değil (SSoT).
+> §3.3'ün "10 sn timer" satırı da **geçersiz**: sayaçsız tasarım
+> `design/ux/draft-ekrani.md`'de gerekçesiyle kabul edildi.

@@ -1,5 +1,7 @@
 using System;
+using Bunker.Audio;
 using Bunker.Systems.Ai;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Config;
 using Bunker.Systems.Combat;
 using UnityEngine;
@@ -39,6 +41,17 @@ namespace Bunker.AI
                  "kesmesi (culling) sonradan degil bastan kurulmali.")]
         [SerializeField] private Animator animator;
 
+        [Header("Govde parcalari (surunme icin)")]
+        [Tooltip("Butun gorselin kokü. Zombi surunmeye dustugunde EGILEN ve ALCALAN sey " +
+                 "bu - tek tek parcalar degil.")]
+        [SerializeField] private Transform visualRig;
+
+        [Tooltip("Sol bacak. Koptugunda gizlenir ve yere bir parca dusurulur.")]
+        [SerializeField] private GameObject legLeft;
+
+        [Tooltip("Sag bacak.")]
+        [SerializeField] private GameObject legRight;
+
         [Header("Hata ayiklama")]
         [Tooltip("Durum rengi ve gizmo. Ilk oyun testinde masrafini cikarir (ai-code.md).")]
         [SerializeField] private bool debugVisuals = true;
@@ -68,7 +81,44 @@ namespace Bunker.AI
         private bool _simulated = true;
         private bool _initialized;
 
+        // Kart kaynakli yavaslatma. Havuzdan cikan zombi bunu TASIMAMALI -
+        // Reset'te sifirlanir (systems-code.md: havuzlanmis nesne onceki hayatindan
+        // durum tasiyamaz).
+        private float _cardSlowMultiplier = 1f;
+
         private float _baseSpeed;
+
+        // --- suru cephesi (2026-09-05)
+        // Bu zombinin serit numarasi. Dogum sirasindan gelir ve HAVUZDAN CIKARKEN
+        // yeniden verilir: sabit kalsaydi, ayni havuz nesnesi her hayatinda ayni
+        // seritte kosar ve dagilim zamanla bozulurdu.
+        private int _swarmIndex;
+        private float _swarmLateralMeters;
+
+        // Dogum sayaci. Serit atamasi RASTGELE degil SIRAYLA yapilir (SwarmFormation):
+        // rastgele olsaydi arka arkaya dogan uc zombi ayni tarafa dusebilirdi.
+        private static int _swarmCursor;
+
+        // --- surunme (2026-09-05) ---
+        // Bacak basina emilen hasar. Esigi asan bacak KOPAR ve zombi surunmeye duser.
+        private float _legDamageLeft;
+        private float _legDamageRight;
+        private bool _legLostLeft;
+        private bool _legLostRight;
+        private bool _crawling;
+
+        private CapsuleCollider _bodyCollider;
+        private Vector3 _rigHomePosition;
+        private Quaternion _rigHomeRotation;
+        private float _standHeight;
+        private Vector3 _standCenter;
+        private float _agentStandHeight;
+        private float _agentBaseRadius;
+
+        // Ortam homurtusu: arkadan gelen zombinin DUYULMASI icin. Her zombi kendi
+        // sayacini tutar, hepsi ayni anda inlemesin diye rastgele baslar.
+        private float _groanTimer;
+
         private bool _dying;
         private float _deathTimer;
         private Quaternion _deathStartRotation;
@@ -78,6 +128,35 @@ namespace Bunker.AI
         private bool _hasNetTarget;
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        // --- boss (2026-09-06)
+        // Boss ayri bir prefab DEGIL: ayni zombi, farkli carpanlarla. Zorluk egrisi
+        // tek yerde (rounds.json) kalsin diye.
+        private float _damageMultiplier = 1f;
+        private float _bodyScale = 1f;
+
+        /// <summary>Bu zombi boss mu. Ekonomi ve arayuz okur.</summary>
+        public bool IsBoss { get; private set; }
+
+        // --- bolgesel isabet parlamasi (2026-09-05)
+        //
+        // Once yalnizca GOVDE parliyordu: sendeleme rengi bodyRenderer'a yaziliyordu ve
+        // kafaya da bacaga da vursan beyazlayan yer aynidiydi. Yani vurus kutulari
+        // vardi ama oyuncu NEREYE vurdugunu goremiyordu - nisan almanin odulu ekranda
+        // hic gorunmuyordu.
+        //
+        // Artik her vurus kutusunun kendi gorseli, kendi sayaciyla parlar.
+        private Renderer[] _partRenderers;
+        private Color[] _partBaseColors;
+        private float[] _partFlashTimers;
+
+        /// <summary>
+        /// İsabet parlamasının süresi. <b>Denge değil sunum sayısı</b>
+        /// (csharp-code.md'nin mühendislik sabiti istisnası): 120 ms, bir vuruşu
+        /// okunur kılacak kadar uzun, arka arkaya isabetleri tek bir beyaz lekeye
+        /// çevirmeyecek kadar kısa.
+        /// </summary>
+        private const float PartFlashSeconds = 0.12f;
 
         /// <summary>Zombi öldüğünde bir kez tetiklenir. Ekonomi ve tur sayacı buna bağlanır.</summary>
         public event Action<ZombieAgent, DamageKind, bool> Killed;
@@ -100,6 +179,9 @@ namespace Bunker.AI
 
         /// <summary>Govde. Kafa kutusu ayri bir bilesendir (ZombieHitbox).</summary>
         public bool CountsAsHeadshot => false;
+
+        /// <summary>Bu zombinin kendisi. Vurus kutulari da buraya isaret eder.</summary>
+        public IDamageable DamageRoot => this;
         public float HealthFraction01 => _initialized ? _health.Fraction01 : 0f;
 
         // ---------------------------------------------------------------- kurulum
@@ -115,9 +197,32 @@ namespace Bunker.AI
             if (bodyRenderer == null) bodyRenderer = GetComponentInChildren<Renderer>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
 
+            // Ayakta duran halin olculeri BIR KEZ okunur: surunmeden ayaga donerken
+            // geri yazilacak degerler bunlar. Prefab'tan her seferinde okumak yerine
+            // burada saklamak, havuzdan cikan zombinin onceki hayatinin egik govdesini
+            // tasimasini imkansiz kilar (systems-code.md).
+            _bodyCollider = GetComponent<CapsuleCollider>();
+
+            if (_bodyCollider != null)
+            {
+                _standHeight = _bodyCollider.height;
+                _standCenter = _bodyCollider.center;
+            }
+
+            _agentStandHeight = _navAgent.height;
+            _agentBaseRadius = _navAgent.radius;
+
+            if (visualRig != null)
+            {
+                _rigHomePosition = visualRig.localPosition;
+                _rigHomeRotation = visualRig.localRotation;
+            }
+
             // Her zombi kendi fazinda dusunur. Ayni karede dusunen 40 zombi, o karede
             // 40 yol istegi demektir; kaydirmak ayni is yukunu zamana yayar.
             _thinkPhaseOffset = UnityEngine.Random.value;
+
+            BuildPartRenderers();
         }
 
         /// <summary>
@@ -142,7 +247,32 @@ namespace Bunker.AI
         public void Spawn(ZombieConfig config, float maxHealth, float speedMetersPerSecond,
                           WindowEntry entryWindow, Vector3 position)
         {
+            Spawn(config, maxHealth, speedMetersPerSecond, entryWindow, position,
+                  bossScale: 1f, damageMultiplier: 1f);
+        }
+
+        /// <summary>
+        /// Boss doğumu (2026-09-06): aynı zombi, farklı çarpanlarla.
+        ///
+        /// <para><b>Neden ayrı bir prefab değil:</b> boss ayrı bir varlık olsaydı zorluk
+        /// eğrisi iki yerden yönetilirdi — turun canı <c>rounds.json</c>'da, boss'unki
+        /// başka bir dosyada, ve ikisi zamanla ayrışırdı. Boss <b>turun zombisinin
+        /// katı</b> olarak tanımlı; eğri tek yerde kalıyor.</para>
+        ///
+        /// <para><b>Ölçek havuzdan çıkarken SIFIRLANIR</b>: aksi hâlde bir boss öldükten
+        /// sonra havuza dönen nesne, bir sonraki hayatında dev bir normal zombi olurdu
+        /// (systems-code.md: havuzlanmış nesne önceki hayatından durum taşıyamaz).</para>
+        /// </summary>
+        public void Spawn(ZombieConfig config, float maxHealth, float speedMetersPerSecond,
+                          WindowEntry entryWindow, Vector3 position,
+                          float bossScale, float damageMultiplier)
+        {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+
+            IsBoss = bossScale > 1.001f;
+            _damageMultiplier = damageMultiplier <= 0f ? 1f : damageMultiplier;
+
+            ApplyBodyScale(bossScale);
 
             if (_brain == null) _brain = new ZombieBrain(_config);
             else _brain.Reset();
@@ -164,7 +294,36 @@ namespace Bunker.AI
 
             SetCollidersEnabled(true);
 
-            _baseSpeed = speedMetersPerSecond;
+            // Suru cephesi: serit, hiz sapmasi ve kacinma onceligi (2026-09-05).
+            // Ucu birlikte calisir - biri eksik olursa zombiler yine tek sira dizilir.
+            _swarmIndex = _swarmCursor++;
+            if (_swarmCursor > 100000) _swarmCursor = 0;   // tasma yok, sayac dolaninca basa
+
+            _swarmLateralMeters = SwarmFormation.LateralOffsetMeters(
+                _swarmIndex, _config.SwarmLateralSpreadMeters);
+
+            _navAgent.avoidancePriority = SwarmFormation.AvoidancePriority(_swarmIndex);
+
+            _baseSpeed = speedMetersPerSecond *
+                         SwarmFormation.SpeedMultiplier(_swarmIndex, _config.SwarmSpeedJitter01);
+
+            // Havuzdan cikan zombi onceki hayatinin yavaslatmasini TASIMAZ
+            // (systems-code.md: pooled nesnenin sifirlama sozlesmesi). Bu satir
+            // olmasaydi bir saat oynadiktan sonra ortaya cikan turden bir hata olurdu:
+            // yeni dogan zombiler sebepsiz yavas.
+            _cardSlowMultiplier = 1f;
+
+            // Havuzdan cikan zombi onceki hayatinin beyaz parlamasini da tasimaz.
+            ClearPartFlashes();
+
+            // Havuzdan cikan zombi ONCEKI HAYATININ KOPMUS BACAGIYLA dogamaz. Bu
+            // sifirlama olmasaydi bir saat oynadiktan sonra havuzun tamami surunen
+            // zombilerden olusurdu ve sebebi cok uzakta gorunurdu.
+            RestoreLimbs();
+
+            // Homurtu sayaci rastgele baslar: kirk zombinin ayni anda inlemesi tek bir
+            // ugultu olur ve YON bilgisi kaybolur - sesin butun isi zaten o.
+            _groanTimer = UnityEngine.Random.Range(0.5f, 4f);
 
             // Once ajani KAPAT, sonra konumu yaz: acik bir ajan transform yazmasini
             // yok sayar ve nesneyi kendi ic konumuna geri ceker.
@@ -249,6 +408,10 @@ namespace Bunker.AI
         {
             if (!_initialized) return;
 
+            // Isabet parlamalari her kare soner - vekilde de, olurken de: parlamayi
+            // dusunme adimina baglamak, 125 ms'lik beyaz lekeler uretirdi.
+            TickPartFlashes(Time.deltaTime);
+
             // Yikilma ani her kare surulur ve baska hicbir sey calismaz: olu zombi
             // dusunmez, yol bulmaz, sendelemez.
             if (_dying)
@@ -332,7 +495,8 @@ namespace Bunker.AI
                 needsWindowEntry: needsWindow,
                 distanceToWindowMeters: distanceToWindow,
                 actualSpeedMetersPerSecond: actualSpeed,
-                windowBlocked: windowBlocked);
+                windowBlocked: windowBlocked,
+                reachMultiplier: _bodyScale);
 
             ZombieState before = _brain.State;
             _brain.Tick(thinkDelta, senses);
@@ -350,9 +514,17 @@ namespace Bunker.AI
             // Sendeleme hizi (M1-13). Taban hiz turdan gelir; carpani beyin verir.
             if (_navAgent.enabled)
             {
-                _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier;
+                // Kart etkisi: "Yavaslatma" karti vurulan zombiyi yavaslatir (M-03).
+                // Beynin sendeleme carpaniyla CARPILIR, toplanmaz: ikisi ayri
+                // katman (SYS-02 §3.1) ve toplansalardi sendeleme sirasinda
+                // yavaslatma etkisiz kalirdi.
+                // Surunme carpani da CARPILIR: bacagi kopmus ve ayrica yavaslatilmis
+                // bir zombi iki etkiyi birden tasimali.
+                _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier * _cardSlowMultiplier *
+                                  (_crawling ? _config.CrawlSpeedMultiplier : 1f);
             }
 
+            TickGroan(thinkDelta);
             DriveMovement(thinkDelta);
         }
 
@@ -362,14 +534,50 @@ namespace Bunker.AI
             {
                 case ZombieState.Vaulting:
                     BeginVault();
+                    GameAudio.PlayAt(SfxId.ZombieVault, _transform.position);
                     break;
 
                 case ZombieState.Stuck:
                     RecoverFromStuck();
                     break;
+
+                case ZombieState.WindingUp:
+                    // Telegrafın SESLİ yarısı. Ekrandaki renk değişimi yalnızca zombiye
+                    // BAKAN oyuncuya bir şey söyler; arkadan gelen zombinin hazırlığı
+                    // yalnızca sesle okunabilir (ai-code.md: her anlamlı eylemin
+                    // okunabilir bir hazırlığı olmalı).
+                    GameAudio.PlayAt(SfxId.ZombieAttack, _transform.position);
+                    break;
+
+                case ZombieState.Chasing when from == ZombieState.Emerging ||
+                                              from == ZombieState.Vaulting:
+                    GameAudio.PlayAt(SfxId.ZombieAlert, _transform.position);
+                    break;
             }
 
             if (from == ZombieState.Vaulting) EndVault();
+        }
+
+        /// <summary>
+        /// Aralıklı homurtu. <b>Oyunun en ucuz gerilim aracı ve M-01'in en büyük
+        /// eksiği:</b> arkadan gelen zombi duyulmuyorsa oyuncunun arkasını dönmesi için
+        /// bir sebep yoktur, yani harita bilgisi tek yönlü kalır.
+        ///
+        /// <para>Ses 3B: yön ve mesafe taşır. Aralık rastgele, çünkü düzenli aralıklı
+        /// bir ses birkaç dakika sonra duyulmaz olur.</para>
+        /// </summary>
+        private void TickGroan(float dt)
+        {
+            _groanTimer -= dt;
+            if (_groanTimer > 0f) return;
+
+            _groanTimer = UnityEngine.Random.Range(3.5f, 8f);
+
+            // Yalnizca binaya girmis ya da yaklasan zombi inler; henuz belirmekte olan
+            // zombinin sesi, oyuncuya daha dogmadan yer bildirirdi.
+            if (_brain.State == ZombieState.Emerging || _brain.State == ZombieState.Dead) return;
+
+            GameAudio.PlayAt(SfxId.ZombieGroan, _transform.position);
         }
 
         // ---------------------------------------------------------------- hareket
@@ -396,13 +604,53 @@ namespace Bunker.AI
             Vector3 destination = _brain.MoveIntent switch
             {
                 ZombieMoveIntent.Window when _window != null => _window.OutsidePoint,
-                ZombieMoveIntent.Player when _target != null => _target.GroundPosition,
+                ZombieMoveIntent.Player when _target != null => SpreadDestination(_target.GroundPosition),
                 _ => _transform.position
             };
 
             // SetDestination asenkron yol hesabi tetikler; senkron yol hesabi yasak
             // (ai-code.md).
             _navAgent.SetDestination(destination);
+        }
+
+        /// <summary>
+        /// Hedefi bu zombinin <b>şeridine</b> kaydırır (2026-09-05).
+        ///
+        /// <para>Kayma <b>yaklaşma yönüne dik</b>: sürü, oyuncuya doğru bir <i>cephe</i>
+        /// hâlinde gelir, tek sıra bir konvoy hâlinde değil. Sabit bir dünya eksenine
+        /// göre kaydırsaydık, oyuncu döndüğünde cephe anlamsız bir açıya düşerdi.</para>
+        ///
+        /// <para><b>Yakında şerit söner</b> (<see cref="SwarmFormation.SpreadWeight01"/>):
+        /// sönmeseydi zombi oyuncunun yanına gidip orada durur, saldıramazdı.</para>
+        ///
+        /// <para><b>Kaydırılan nokta NavMesh'e oturtulur.</b> Duvarın içine düşen bir
+        /// hedef, ajanı "ulaşılamaz hedef" durumuna sokar ve zombi olduğu yerde
+        /// bekler — ai-code.md'nin dört navigasyon hatasından biri. Oturmuyorsa şerit
+        /// bırakılır ve doğrudan oyuncuya gidilir; dar koridorda doğru davranış budur.</para>
+        /// </summary>
+        private Vector3 SpreadDestination(Vector3 targetGround)
+        {
+            if (Mathf.Approximately(_swarmLateralMeters, 0f)) return targetGround;
+
+            Vector3 toTarget = targetGround - _transform.position;
+            toTarget.y = 0f;
+
+            float distance = toTarget.magnitude;
+            if (distance < 0.001f) return targetGround;
+
+            float weight = SwarmFormation.SpreadWeight01(distance, _config.SwarmSpreadFadeDistanceMeters);
+            if (weight <= 0f) return targetGround;
+
+            Vector3 forward = toTarget / distance;
+            Vector3 right = Vector3.Cross(Vector3.up, forward);
+
+            Vector3 shifted = targetGround + right * (_swarmLateralMeters * weight);
+
+            // Yaricap KUCUK: genis bir ornekleme duvarin obur tarafina denk gelebilir
+            // ve zombiyi odanin disina yollardi (RecoverFromStuck ile ayni ders).
+            return NavMesh.SamplePosition(shifted, out NavMeshHit hit, 1.5f, NavMesh.AllAreas)
+                ? hit.position
+                : targetGround;
         }
 
         private void FaceTarget(float dt)
@@ -519,13 +767,60 @@ namespace Bunker.AI
 
         // ---------------------------------------------------------------- saldiri ve hasar
 
+        /// <summary>
+        /// Vuruş iner — <b>ama önce mesafe BİR KEZ DAHA ölçülür</b> (2026-09-06 hatası).
+        ///
+        /// <para><b>Bulunan hata:</b> beyin mesafeyi <i>düşünme adımında</i> ölçüyordu
+        /// (saniyede 8 kez, yani 125 ms'de bir) ve vuruş o ölçüme göre iniyordu. Koşan
+        /// bir oyuncu 125 ms'de 0,94 metre gidiyor; menzil toleransıyla (0,6 m) birlikte
+        /// bu, <b>üç metre uzaktan yenen bir vuruş</b> demekti. Geliştiricinin
+        /// <i>"mesafe varken bir şekilde hit yiyorum"</i> cümlesi tam olarak buydu.</para>
+        ///
+        /// <para><b>Boss'ta daha da beterdi:</b> boss 1,7 kat büyük ama menzili normal
+        /// zombiyle aynıydı — yani gövdesi çok daha uzaktayken, merkezleri arasındaki
+        /// mesafe hâlâ menzilin içindeydi. Menzil artık <b>gövde ölçeğiyle</b> birlikte
+        /// büyüyor: büyük bir yaratığın uzun kolu olması okunabilir, "görünmeyen bir
+        /// menzil" değil.</para>
+        ///
+        /// <para><b>Neden iki kontrol (beyinde ve burada):</b> beyindeki kontrol
+        /// <i>niyeti</i> belirler — vuruşu başlatmaya değer mi. Buradaki kontrol
+        /// <i>sonucu</i> belirler — hâlâ menzilde mi. Telegrafın bedeli budur: oyuncu
+        /// hazırlığı görüp geri çekilirse vuruş ISKALAMALI (ai-code.md).</para>
+        /// </summary>
         private void LandAttack()
         {
             if (_target == null || !_target.IsTargetable) return;
-            _target.ReceiveAttack(_config.AttackDamage);
+
+            // Menzil GOVDE OLCEGIYLE buyur: boss'un kolu da buyuk.
+            float reach = (_config.AttackRangeMeters + _config.AttackRangeToleranceMeters)
+                          * _bodyScale;
+
+            Vector3 toTarget = _target.GroundPosition - _transform.position;
+            toTarget.y = 0f;   // yukseklik farki menzili yemez (ust kat / rampa)
+
+            if (toTarget.sqrMagnitude > reach * reach)
+            {
+                // Iskaladi: oyuncu telegrafi okuyup cekildi. Sessiz kalmasi dogru -
+                // "hicbir sey olmamasi" zaten iskalamanin geri bildirimi.
+                return;
+            }
+
+            // Boss daha agir vurur: carpan dogum aninda verildi (rounds.json boss).
+            _target.ReceiveAttack(_config.AttackDamage * _damageMultiplier, _transform.position);
         }
 
-        public DamageResult ApplyDamage(in DamageInfo damage)
+        public DamageResult ApplyDamage(in DamageInfo damage) =>
+            ApplyDamageToPart(damage, ZombiePart.Body);
+
+        /// <summary>
+        /// Hasarı <b>nereye geldiğini bilerek</b> uygular. Vuruş kutusu çağırır
+        /// (<see cref="ZombieHitbox"/>); silah hangi parçaya isabet ettiğini bilmez.
+        ///
+        /// <para><b>Bacak ayrı sayılır:</b> yeterince hasar emen bacak kopar ve zombi
+        /// ölmeden sürünmeye düşer. Bu, nişan almanın ikinci ödülüdür — kafa bitirir,
+        /// bacak yavaşlatır — ve kalabalığın içine ritim farkı koyar.</para>
+        /// </summary>
+        public DamageResult ApplyDamageToPart(in DamageInfo damage, ZombiePart part)
         {
             if (!_initialized) return default;
 
@@ -540,13 +835,171 @@ namespace Bunker.AI
             // Hasar emilmediyse (olu hedef) tepki de yok.
             if (result.Absorbed <= 0f) return result;
 
+            // Kart etkisi: mermi degdikce zombi yavaslar. Carpan ISABET BASINA
+            // yeniden hesaplanir, birikmez - biriken bir yavaslatma zombiyi durdurur
+            // ve "Buz" karti (SYS-02) tam da o birikmeyi ayri bir kart olarak satar.
+            float slow = RunModifiers.Total(CardStat.SlowOnHit);
+            // Taban 0.15 (2026-09-05): "Don" gibi ust kademe kartlarin gercekten
+            // DONDURABILMESI icin. 0.25 tabani, kartlarin toplami ne olursa olsun
+            // zombiyi yuruyebilir birakiyordu ve ust kademe kart hissedilmiyordu.
+            if (slow > 0f) _cardSlowMultiplier = Mathf.Clamp(1f - slow, 0.15f, 1f);
+
             // M1-13: vurusun bir karsiligi olmali. Sendeleme kararini beyin verir
             // (hazirlanan vurusu kesmek dahil), gorunur kismini burasi surer.
             _brain.NotifyHit(damage.Headshot);
             ApplyKnockback();
             ApplyDebugColor();
 
+            // Parlama durum renginden SONRA: tersi sirada durum rengi parlamayi ayni
+            // karede silerdi.
+            FlashPart(part);
+
+            GameAudio.PlayAt(SfxId.ZombieHurt, _transform.position);
+
+            AccumulateLimbDamage(part, result.Absorbed);
+
             return result;
+        }
+
+        // ---------------------------------------------------------------- surunme
+
+        /// <summary>
+        /// Bacağa gelen hasarı biriktirir ve eşiği aşınca bacağı koparır.
+        ///
+        /// <para><b>Eşik tur canına oranlıdır</b>, sabit bir sayı değil: 25 000 canlı
+        /// bir tur 30 zombisinin bacağını iki mermide koparmak, geç turlarda sürünün
+        /// tamamını yerde sürünen bir kalabalığa çevirirdi.</para>
+        ///
+        /// <para>Ölüm bunun önündedir: yeterli hasar zaten zombiyi öldürür. Yani bacak
+        /// koparmak, <b>öldürmeye yetmeyen</b> isabetlerin ödülüdür.</para>
+        /// </summary>
+        private void AccumulateLimbDamage(ZombiePart part, float absorbed)
+        {
+            if (absorbed <= 0f) return;
+            if (part != ZombiePart.LegLeft && part != ZombiePart.LegRight) return;
+
+            float threshold = _health.Max * _config.CrawlLegBreakHealthFraction;
+            if (threshold <= 0f) return;
+
+            if (part == ZombiePart.LegLeft)
+            {
+                if (_legLostLeft) return;
+
+                _legDamageLeft += absorbed;
+                if (_legDamageLeft >= threshold) BreakLeg(true);
+            }
+            else
+            {
+                if (_legLostRight) return;
+
+                _legDamageRight += absorbed;
+                if (_legDamageRight >= threshold) BreakLeg(false);
+            }
+        }
+
+        private void BreakLeg(bool left)
+        {
+            GameObject leg = left ? legLeft : legRight;
+
+            if (left) _legLostLeft = true;
+            else _legLostRight = true;
+
+            if (leg != null)
+            {
+                DropSeveredLeg(leg);
+                leg.SetActive(false);
+            }
+
+            GameAudio.PlayAt(SfxId.ZombieLegBreak, _transform.position);
+
+            if (!_crawling) EnterCrawl();
+        }
+
+        /// <summary>
+        /// Kopan bacağı yere düşürür. <b>Zombinin kendi bacağı kullanılmaz</b> —
+        /// o havuzlanmış bir nesnenin parçasıdır ve sahneye bırakılırsa bir sonraki
+        /// doğumda geri gelmez (systems-code.md: havuzun sıfırlama sözleşmesi).
+        /// </summary>
+        private void DropSeveredLeg(GameObject source)
+        {
+            var renderer = source.GetComponent<Renderer>();
+            if (renderer == null) return;
+
+            GameObject piece = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            piece.name = "SeveredLeg";
+            piece.transform.SetPositionAndRotation(source.transform.position,
+                                                   source.transform.rotation);
+            piece.transform.localScale = source.transform.lossyScale;
+
+            var pieceRenderer = piece.GetComponent<Renderer>();
+            pieceRenderer.sharedMaterial = renderer.sharedMaterial;
+            pieceRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            // Carpistirici kapali: yerdeki bir bacaga oyuncunun ya da baska zombilerin
+            // takilmasi, okunabilirligi (PILLAR-04) bir goruntu ucuna satmak olurdu.
+            Destroy(piece.GetComponent<Collider>());
+
+            // Kisa omur: cesetler gibi bunlar da birikirse hem kare butcesi hem
+            // okunabilirlik bozulur.
+            Destroy(piece, 8f);
+        }
+
+        /// <summary>
+        /// Zombiyi sürünmeye düşürür: gövde eğilir, alçalır, yavaşlar.
+        ///
+        /// <para><b>Çarpıştırıcı da alçalır.</b> Yalnızca görseli eğmek, yerde sürünen
+        /// bir zombiyi havada duran görünmez bir kapsülden vurulur hâlde bırakırdı —
+        /// oyuncunun "vuruyorum ama gitmiyor" diye okuyacağı cinsten bir hata.</para>
+        /// </summary>
+        private void EnterCrawl()
+        {
+            _crawling = true;
+
+            float height = Mathf.Max(0.3f, _config.CrawlBodyHeightMeters);
+
+            if (visualRig != null)
+            {
+                // Kok kalca hizasinda duruyor (prefab boyle kuruluyor), yani buradan
+                // dondurmek govdeyi ONE ve ASAGI yatirir - ayaklarindan dondurmek
+                // zombiyi bir metre one atardi.
+                visualRig.localPosition = new Vector3(_rigHomePosition.x, height * 0.5f, _rigHomePosition.z);
+                visualRig.localRotation = _rigHomeRotation * Quaternion.Euler(75f, 0f, 0f);
+            }
+
+            if (_bodyCollider != null)
+            {
+                _bodyCollider.height = height;
+                _bodyCollider.center = new Vector3(_standCenter.x, height * 0.5f, _standCenter.z);
+            }
+
+            if (_navAgent != null) _navAgent.height = height;
+        }
+
+        /// <summary>Ayaklara ve ayakta duran gövdeye geri döner. Yalnızca doğumda.</summary>
+        private void RestoreLimbs()
+        {
+            _legDamageLeft = 0f;
+            _legDamageRight = 0f;
+            _legLostLeft = false;
+            _legLostRight = false;
+            _crawling = false;
+
+            if (legLeft != null) legLeft.SetActive(true);
+            if (legRight != null) legRight.SetActive(true);
+
+            if (visualRig != null)
+            {
+                visualRig.localPosition = _rigHomePosition;
+                visualRig.localRotation = _rigHomeRotation;
+            }
+
+            if (_bodyCollider != null && _standHeight > 0f)
+            {
+                _bodyCollider.height = _standHeight;
+                _bodyCollider.center = _standCenter;
+            }
+
+            if (_navAgent != null && _agentStandHeight > 0f) _navAgent.height = _agentStandHeight;
         }
 
         /// <summary>
@@ -578,9 +1031,16 @@ namespace Bunker.AI
             // Ceset carpismasi kalirsa oyuncu ve diger zombiler olulere takilir.
             SetCollidersEnabled(false);
 
+            GameAudio.PlayAt(SfxId.ZombieDeath, _transform.position);
+
             // Oldurme HEMEN bildirilir: puan ve tur sayaci beklemez. Cesedin sahnede
             // kalmasi gorsel bir mesele, oyun mantiginin degil.
             Killed?.Invoke(this, kind, headshot);
+
+            // YIKIM kartlari: olen zombi patlar (M-03'un eksik kalan etiketi).
+            // Oldurme bildiriminden SONRA: patlamanin oldurdukleri de kendi puanlarini
+            // yazar ve zincirleme patlama mumkun olur - ama once bu olum sayilir.
+            TryExplode();
 
             // M1-13: olumun bir ani olmali. Zombinin aninda yok olmasi, oldurmenin
             // SAYILMAMIS gibi hissettirdigi seydir - oyuncunun basardigi seyi gorecek
@@ -590,6 +1050,140 @@ namespace Bunker.AI
             _deathStartRotation = _transform.rotation;
 
             if (!_dying) FinishDeath();
+        }
+
+        /// <summary>
+        /// Ölen zombi patlar — <b>Yıkım</b> kartları (2026-09-05).
+        ///
+        /// <para><b>Neden burada, silahta değil:</b> patlamayı öldüren <i>şey</i>
+        /// tetiklemez, <b>ölüm</b> tetikler. Silahta olsaydı bıçakla, patlamayla ya da
+        /// barikatla ölen zombi patlamazdı ve kart "bazen çalışan" bir karta dönerdi —
+        /// oyuncunun kuralı öğrenemediği en kötü tür.</para>
+        ///
+        /// <para><b>Zincirleme patlama serbest ve bilinçli:</b> patlamanın öldürdüğü
+        /// zombi de patlar. Sürünün ortasında tek bir öldürmenin zinciri başlatması,
+        /// kartın vaat ettiği andır. Sonsuz döngü riski yok: her zombi yalnızca bir kez
+        /// ölür (<c>HealthPool</c> ölümü bir kez bildirir).</para>
+        ///
+        /// <para><b>Kendi kendini vurmaz:</b> patlayan zombi zaten ölü ve
+        /// <c>IsAlive</c> false; kutuları da kapatıldı.</para>
+        /// </summary>
+        private void TryExplode()
+        {
+            float power = RunModifiers.Total(CardStat.ExplodeOnKill);
+            if (power <= 0f) return;
+
+            float radius = _config.CardsExplosionRadiusMeters;
+            if (radius <= 0f) return;
+
+            float damage = _health.Max * power;
+            if (damage <= 0f) return;
+
+            int shrapnel = _config.CardsExplosionShrapnelCount;
+            if (shrapnel <= 0) return;
+
+            GameAudio.PlayAt(SfxId.Explosion, _transform.position);
+            ExplosionFlash.Show(_transform.position, radius);
+
+            // Parca basina hasar: TOPLAM hasar parca sayisina bolunur. Yakindaki
+            // zombi cok parca yer, koseden bakan bir tane - "isabet alan hasar alir".
+            float perShrapnel = damage / shrapnel;
+
+            Vector3 origin = _transform.position + Vector3.up * 0.9f;
+            float selfFraction = _config.CardsExplosionSelfDamageFraction01;
+
+            for (int i = 0; i < shrapnel; i++)
+            {
+                Vector3 direction = ShrapnelDirection(i, shrapnel);
+
+                // HER PARCA BIR ISIN: duvar onu DURDURUR (2026-09-06 bulgusu -
+                // "patlama yuzeyi asiyor ve arkasindakilere hasar veriyor"). Kure
+                // sorgusu geometriyi hic gormuyordu; isin gorur.
+                if (!Physics.Raycast(origin, direction, out RaycastHit hit, radius,
+                                     ~0, QueryTriggerInteraction.Ignore))
+                {
+                    continue;
+                }
+
+                var target = hit.collider.GetComponent<IDamageable>();
+                if (target == null || !target.IsAlive) continue;
+
+                IDamageable identity = target.DamageRoot ?? target;
+                if (identity == (IDamageable)this) continue;
+
+                // OYUNCU AYRI HESAPLANIR (2026-09-05 hatasi): ilk surum patlamayi
+                // yaricaptaki HERKESE uyguluyordu ve oyuncu da bir IDamageable.
+                // Sarapnel karti alan oyuncu, yanindaki zombiyi oldurdugu anda
+                // aninda oluyordu. Oran zombie.json'da ve varsayilani SIFIR.
+                if (!(identity is ZombieAgent))
+                {
+                    if (selfFraction <= 0f) continue;
+
+                    target.ApplyDamage(new DamageInfo(perShrapnel * selfFraction,
+                                                      DamageKind.Environment, false,
+                                                      _transform.position.x,
+                                                      _transform.position.z));
+                    continue;
+                }
+
+                target.ApplyDamage(new DamageInfo(perShrapnel, DamageKind.Environment));
+            }
+        }
+
+        /// <summary>
+        /// Gövde ölçeği: boss büyük görünür, normal zombi kendi boyunda.
+        ///
+        /// <para><b>Ölçek her doğumda yazılır</b>, yalnızca boss olurken değil: havuzdan
+        /// çıkan nesne önceki hayatının boyunu taşırsa, bir boss öldükten sonra sıradan
+        /// zombiler dev olarak doğar. Bir saat oynadıktan sonra ortaya çıkan türden bir
+        /// hata (systems-code.md).</para>
+        ///
+        /// <para><b>NavMeshAgent'ın yarıçapı da ölçeklenir</b>: yalnızca görseli
+        /// büyütmek, kapıdan geçebilen ama gövdesi duvara giren bir boss üretirdi.</para>
+        /// </summary>
+        private void ApplyBodyScale(float scale)
+        {
+            if (scale <= 0f) scale = 1f;
+            if (Mathf.Approximately(_bodyScale, scale)) return;
+
+            _bodyScale = scale;
+            _transform.localScale = Vector3.one * scale;
+
+            if (_navAgent != null)
+            {
+                // Ajanin yaricapi ve boyu OLCEKLE birlikte buyur; Unity bunu
+                // transform'dan turetmez.
+                _navAgent.radius = _agentBaseRadius * scale;
+                _navAgent.height = _agentStandHeight * scale;
+            }
+        }
+
+        /// <summary>
+        /// Şarapnel parçalarının yönü. <b>Rastgele değil, küreye eşit dağıtılmış</b>
+        /// (Fibonacci küresi).
+        ///
+        /// <para><b>Neden rastgele değil:</b> rastgele yönlerde on dört parça, kümelenir
+        /// ve boşluk bırakır — aynı mesafedeki iki zombiden biri beş parça yerken
+        /// diğeri hiç almayabilir. Oyuncu bunu "patlama bazen çalışıyor" diye okur.
+        /// Eşit dağıtım, patlamanın <b>öğrenilebilir</b> olmasını sağlar (ai-code.md:
+        /// tahmin edilebilir, optimal olandan iyidir).</para>
+        ///
+        /// <para>Dağılım biraz yukarı eğik: zemine giden parçalar boşa gider, zombiler
+        /// ayakta durur.</para>
+        /// </summary>
+        private static Vector3 ShrapnelDirection(int index, int count)
+        {
+            // Altin aci: ardisik indisler kurenin en uzak noktalarina duser.
+            const float goldenAngle = 2.399963f;
+
+            float y = 1f - (index + 0.5f) * 2f / count;   // -1..1
+            y = y * 0.6f + 0.15f;                          // zemine degil, govdeye
+
+            float radiusAtY = Mathf.Sqrt(Mathf.Max(0f, 1f - y * y));
+            float theta = goldenAngle * index;
+
+            return new Vector3(Mathf.Cos(theta) * radiusAtY, y, Mathf.Sin(theta) * radiusAtY)
+                .normalized;
         }
 
         /// <summary>
@@ -655,6 +1249,119 @@ namespace Bunker.AI
         /// aracımız bu; PILLAR-04 gri kutuda da geçerli. `renderer.material` <b>kullanılmaz</b>
         /// — o materyali klonlar ve her zombi ayrı çizim çağrısı olur (shader-graphics.md).
         /// </summary>
+        /// <summary>
+        /// Her vuruş kutusunun görselini bir kez toplar.
+        ///
+        /// <para><b>Vuruş kutusundan gidilir, isimden değil</b>: anatominin nerede
+        /// olduğunu zaten <see cref="ZombieHitbox"/> biliyor. İsimle aramak, yeni bir
+        /// zombi tipinde sessizce yanlış parçayı parlatırdı.</para>
+        ///
+        /// <para>Gövde ayrı: onun görseli durum rengini de taşıyan
+        /// <see cref="bodyRenderer"/>.</para>
+        /// </summary>
+        private void BuildPartRenderers()
+        {
+            int partCount = Enum.GetValues(typeof(ZombiePart)).Length;
+
+            _partRenderers = new Renderer[partCount];
+            _partBaseColors = new Color[partCount];
+            _partFlashTimers = new float[partCount];
+
+            _partRenderers[(int)ZombiePart.Body] = bodyRenderer;
+
+            ZombieHitbox[] hitboxes = GetComponentsInChildren<ZombieHitbox>(true);
+
+            for (int i = 0; i < hitboxes.Length; i++)
+            {
+                int index = (int)hitboxes[i].Part;
+                if (_partRenderers[index] != null) continue;
+
+                _partRenderers[index] = hitboxes[i].GetComponent<Renderer>();
+            }
+
+            // Temel renk bir kez okunur. `sharedMaterial` OKUNUR, `material` DEGIL:
+            // ikincisi materyali klonlar ve her zombi ayri cizim cagrisi olur
+            // (shader-graphics.md).
+            for (int i = 0; i < _partRenderers.Length; i++)
+            {
+                Renderer r = _partRenderers[i];
+                if (r == null || r.sharedMaterial == null) continue;
+
+                _partBaseColors[i] = r.sharedMaterial.HasProperty(BaseColorId)
+                    ? r.sharedMaterial.GetColor(BaseColorId)
+                    : Color.grey;
+            }
+        }
+
+        /// <summary>
+        /// Vurulan bölgeyi beyaza çakar. <b>Sadece o bölge</b> (2026-09-05) — kafaya
+        /// vurunca kafa, bacağa vurunca bacak.
+        /// </summary>
+        private void FlashPart(ZombiePart part)
+        {
+            if (_partRenderers == null) return;
+
+            int index = (int)part;
+            Renderer r = _partRenderers[index];
+            if (r == null) return;
+
+            _partFlashTimers[index] = PartFlashSeconds;
+
+            r.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetColor(BaseColorId, Color.white);
+            r.SetPropertyBlock(_propertyBlock);
+        }
+
+        /// <summary>
+        /// Süresi dolan parlamaları geri alır.
+        ///
+        /// <para>Sayaç işlemeyen bir parça hiç dokunulmaz: kare başına 40 zombi × 4
+        /// parça property block yazmak, hiçbir şey olmadığında bile bedel ödemek
+        /// olurdu.</para>
+        /// </summary>
+        private void TickPartFlashes(float dt)
+        {
+            if (_partFlashTimers == null) return;
+
+            for (int i = 0; i < _partFlashTimers.Length; i++)
+            {
+                if (_partFlashTimers[i] <= 0f) continue;
+
+                _partFlashTimers[i] -= dt;
+                if (_partFlashTimers[i] > 0f) continue;
+
+                _partFlashTimers[i] = 0f;
+
+                // Govde durum rengini tasir; digerleri kendi temel rengine doner.
+                if (i == (int)ZombiePart.Body) ApplyDebugColor();
+                else RestorePartColor(i);
+            }
+        }
+
+        private void RestorePartColor(int index)
+        {
+            Renderer r = _partRenderers[index];
+            if (r == null) return;
+
+            r.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetColor(BaseColorId, _partBaseColors[index]);
+            r.SetPropertyBlock(_propertyBlock);
+        }
+
+        /// <summary>Bütün parlamaları anında söndürür (ölüm, havuza iade).</summary>
+        private void ClearPartFlashes()
+        {
+            if (_partFlashTimers == null) return;
+
+            for (int i = 0; i < _partFlashTimers.Length; i++)
+            {
+                if (_partFlashTimers[i] <= 0f) continue;
+
+                _partFlashTimers[i] = 0f;
+                if (i != (int)ZombiePart.Body) RestorePartColor(i);
+            }
+        }
+
         private void ApplyDebugColor()
         {
             if (!debugVisuals || bodyRenderer == null) return;
@@ -675,13 +1382,14 @@ namespace Bunker.AI
                 _ => Color.black
             };
 
-            // Sendeleme beyaza dogru bir parlama: durum renginin USTUNE binir, onun
-            // yerine gecmez. Ayri bir renk olsaydi "vuruldu" ve "ne yapiyor" bilgisi
-            // birbirini gizlerdi (PILLAR-04).
-            if (_brain != null && _brain.IsFlinching)
-            {
-                c = Color.Lerp(c, Color.white, 0.65f);
-            }
+            // Sendeleme beyazi ARTIK BURADA DEGIL (2026-09-05): govdeye yazildigi
+            // surece, kafaya da bacaga da vursan beyazlayan yer govdeydi ve vurus
+            // kutulari ekranda hicbir sey soylemiyordu. Parlama artik VURULAN
+            // bolgeye iniyor (FlashPart); durum rengi burada saf kaliyor.
+            //
+            // Parlama surerken durum rengini geri yazmak, parlamayi tek karede
+            // silerdi.
+            if (_partFlashTimers != null && _partFlashTimers[(int)ZombiePart.Body] > 0f) return;
 
             bodyRenderer.GetPropertyBlock(_propertyBlock);
             _propertyBlock.SetColor(BaseColorId, c);

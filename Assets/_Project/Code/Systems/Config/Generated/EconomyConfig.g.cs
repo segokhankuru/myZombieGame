@@ -68,12 +68,28 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 300 .. 3000 | JSON: prices.mysteryBox</remarks>
         public readonly int PricesMysteryBox;
 
+        /// <summary>Bir kart yuvasinin PUANLI yenilemesinin tur 1 fiyati (ilk yenileme her zaman ucretsiz, SYS-02 §7c). Bedava olursa yenileme bir karar olmaktan cikar ve oyuncu her yuvayi begenene kadar cevirir; cok pahali olursa hic kullanilmaz ve kotu bir uclu turun odulunu siler.</summary>
+        /// <remarks>Aralik: 0 .. 2000 | JSON: prices.cardRerollBase</remarks>
+        public readonly int PricesCardRerollBase;
+
+        /// <summary>Yenileme fiyatinin tur basina artisi. Sabit fiyat gec turlarda bedavaya doner - tur 15'te 250 puan bir oldurmeden az eder. Artis, yenilemenin bedelini turun puan olcegiyle ayni bantta tutar.</summary>
+        /// <remarks>Aralik: 0 .. 500 | JSON: prices.cardRerollAddPerRound</remarks>
+        public readonly int PricesCardRerollAddPerRound;
+
+        /// <summary>Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md.</summary>
+        /// <remarks>Aralik: 1 .. 40 | JSON: ammo.magazinesPerPurchase</remarks>
+        public readonly int AmmoMagazinesPerPurchase;
+
+        /// <summary>Duvardan bir mermi aliminin fiyati. Silah bandindan (prices.wallWeapon*) AYRI bir sayi: o bant ileride gercek silahlar icin, bu yalnizca mermi muslugu. Dusurursen mermi bedavaya yakinlasir ve puanin tek harcama yeri kapilar olur - tur ekonomisi tek yonlu kalir; buyutursen oyuncu her turu bicakla gecirmek zorunda kalir ve silah tasimanin sebebi kaybolur.</summary>
+        /// <remarks>Aralik: 50 .. 3000 | JSON: ammo.refillCost</remarks>
+        public readonly int AmmoRefillCost;
+
         /// <summary>
         /// Varsayilanlar <c>config/balance/economy.json</c> dosyasindan URETILDI.
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public EconomyConfig(
-            int version = 1,
+            int version = 4,
             int awardsHit = 10,
             int awardsBodyKill = 60,
             int awardsHeadshotKill = 100,
@@ -85,7 +101,11 @@ namespace Bunker.Systems.Config
             int pricesDoorExpensive = 2000,
             int pricesWallWeaponCheap = 500,
             int pricesWallWeaponMid = 1200,
-            int pricesMysteryBox = 950)
+            int pricesMysteryBox = 950,
+            int pricesCardRerollBase = 200,
+            int pricesCardRerollAddPerRound = 50,
+            int ammoMagazinesPerPurchase = 5,
+            int ammoRefillCost = 250)
         {
             Version = version;
             AwardsHit = awardsHit;
@@ -100,6 +120,10 @@ namespace Bunker.Systems.Config
             PricesWallWeaponCheap = pricesWallWeaponCheap;
             PricesWallWeaponMid = pricesWallWeaponMid;
             PricesMysteryBox = pricesMysteryBox;
+            PricesCardRerollBase = pricesCardRerollBase;
+            PricesCardRerollAddPerRound = pricesCardRerollAddPerRound;
+            AmmoMagazinesPerPurchase = ammoMagazinesPerPurchase;
+            AmmoRefillCost = ammoRefillCost;
         }
     }
 }

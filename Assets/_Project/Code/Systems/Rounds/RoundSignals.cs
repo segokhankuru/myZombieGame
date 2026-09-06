@@ -27,9 +27,67 @@ namespace Bunker.Systems.Rounds
         /// <summary>Tur temizlendi (tur numarası).</summary>
         public static event Action<int> RoundCleared;
 
-        public static void RaiseRoundStarted(int round) => RoundStarted?.Invoke(round);
+        /// <summary>
+        /// Tur temizlendi ve <b>kısmi yenilenme</b> zamanı geldi (2026-09-05).
+        /// Birinci sayı yedek mermi oranı, ikincisi barikat tahtası oranı — ikisi de
+        /// 0..1 ve <c>rounds.json</c>'daki <c>roundEnd</c> grubundan gelir.
+        ///
+        /// <para><b>Neden oranlar olayla taşınıyor:</b> silah <c>Bunker.Gameplay</c>'de,
+        /// barikat <c>Bunker.AI</c>'da; ikisi de tur ayarını okumaz ve okumamalı. Turu
+        /// yürüten taraf (tek config sahibi) sayıyı hesaplayıp yayınlar, tüketiciler
+        /// yalnızca uygular. Aksi hâlde aynı denge sayısı üç ayrı bileşene bağlanırdı
+        /// (config-data.md).</para>
+        ///
+        /// <para><b>RoundCleared'dan ayrı bir olay</b>, çünkü <c>RoundCleared</c>'ın
+        /// aboneleri (kart draft'ı, ses) yenilenmeyi umursamaz ve imzasını değiştirmek
+        /// hepsini kırardı.</para>
+        /// </summary>
+        public static event Action<float, float> RoundEndRestock;
 
-        public static void RaiseRoundCleared(int round) => RoundCleared?.Invoke(round);
+        /// <summary>
+        /// Şu an mola mı (tur açık değil).
+        ///
+        /// <para><b>Neden burada duruyor:</b> tezgâh <c>Bunker.Gameplay</c>'de, turu
+        /// yürüten <c>ZombieDirector</c> <c>Bunker.AI</c>'da ve ikisi birbirini görmez.
+        /// Tezgâhın "şimdi açılabilir miyim" sorusunu sorabildiği tek yer burası.</para>
+        ///
+        /// <para>Run başında <c>true</c>: oyun molayla başlar (RoundRunner).</para>
+        /// </summary>
+        public static bool IsBreather { get; private set; } = true;
+
+        /// <summary>
+        /// Boss olduruldu; carpani puani yazacak tarafa gider.
+        ///
+        /// <para><b>Neden ayri bir olay:</b> "bu bir boss'du" bilgisi yalnizca AI
+        /// tarafinda var - silah hangi zombiyi vurdugunu bilmez ve bilmemeli
+        /// (IDamageable'in tamami bu ayrimin uzerine kurulu).</para>
+        /// </summary>
+        public static event Action<float> BossKilled;
+
+        public static void RaiseBossKilled(float pointsMultiplier) =>
+            BossKilled?.Invoke(pointsMultiplier);
+
+        public static void RaiseRoundStarted(int round)
+        {
+            IsBreather = false;
+            RoundStarted?.Invoke(round);
+        }
+
+        public static void RaiseRoundCleared(int round)
+        {
+            IsBreather = true;
+            RoundCleared?.Invoke(round);
+        }
+
+        /// <summary>
+        /// Kısmi yenilenmeyi yayınlar. <b>Yalnızca turu yürüten taraf çağırır</b>
+        /// (ADR-0004: kalıcı sonucu olan her şey host'ta).
+        /// </summary>
+        public static void RaiseRoundEndRestock(float reserveAmmoFraction01,
+                                                float barricadeBoardsFraction01)
+        {
+            RoundEndRestock?.Invoke(reserveAmmoFraction01, barricadeBoardsFraction01);
+        }
 
         /// <summary>
         /// Bütün abonelikleri siler.
@@ -44,6 +102,9 @@ namespace Bunker.Systems.Rounds
         {
             RoundStarted = null;
             RoundCleared = null;
+            RoundEndRestock = null;
+            BossKilled = null;
+            IsBreather = true;
         }
     }
 }

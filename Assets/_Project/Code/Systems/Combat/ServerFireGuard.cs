@@ -36,7 +36,7 @@ namespace Bunker.Systems.Combat
     /// </summary>
     public sealed class ServerFireGuard
     {
-        private readonly WeaponConfig _config;
+        private readonly WeaponDefinition _config;
         private readonly float _tolerance;
 
         private readonly ActionRateLimiter _cadence;
@@ -51,21 +51,54 @@ namespace Bunker.Systems.Combat
         /// makul bir gidiş-dönüş için marj. Bu bir denge değeri değildir, o yüzden
         /// config'te değil burada yaşar (config-data.md'nin mühendislik sabiti istisnası).
         /// </param>
+        private WeaponModifiers _mods = WeaponModifiers.None;
+
+        /// <summary>Uretilen ayardan (baslangic silahi) kurar. Testler bunu kullanir.</summary>
         public ServerFireGuard(WeaponConfig config, float toleranceSeconds = 0.12f)
+            : this(WeaponDefinition.FromConfig(config), toleranceSeconds) { }
+
+        public ServerFireGuard(WeaponDefinition config, float toleranceSeconds = 0.12f)
         {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            if (!config.IsValid)
+                throw new ArgumentException("Gecersiz silah tanimi (id bos).", nameof(config));
+
+            _config = config;
             _tolerance = toleranceSeconds < 0f ? 0f : toleranceSeconds;
 
             _cadence = new ActionRateLimiter(SecondsBetweenShots, _tolerance);
-            _roundsInMagazine = Math.Max(1, _config.MagazineCapacity);
-            _reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
+            _roundsInMagazine = MagazineCapacity;
+            _reserve = Math.Min(_config.StartingReserve, ReserveCapacity);
         }
+
+        /// <summary>
+        /// Kart etkilerini uygular (M-03).
+        ///
+        /// <para><b>WeaponState ile AYNI degerleri almak zorunda.</b> Istemcinin atis
+        /// hizi artip sunucununki artmasaydi, dogrulayici mesru atislari reddederdi -
+        /// BUG-002'nin birebir tekrari, ve o hata oyun testinde "arada bir tik
+        /// yeniyor" diye okunmustu.</para>
+        /// </summary>
+        public void ApplyModifiers(in WeaponModifiers modifiers)
+        {
+            _mods = modifiers;
+
+            if (_roundsInMagazine > MagazineCapacity) _roundsInMagazine = MagazineCapacity;
+            if (_reserve > ReserveCapacity) _reserve = ReserveCapacity;
+        }
+
+        public int MagazineCapacity => Math.Max(1, _config.MagazineCapacity + _mods.Magazine);
+
+        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
+
+        public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
 
         public int RoundsInMagazine => _roundsInMagazine;
         public int Reserve => _reserve;
 
         private float SecondsBetweenShots =>
-            _config.FireRoundsPerMinute <= 0f ? 0f : 60f / _config.FireRoundsPerMinute;
+            _config.RoundsPerMinute <= 0f
+                ? 0f
+                : 60f / (_config.RoundsPerMinute * _mods.FireRateMultiplier);
 
         /// <summary>
         /// İstemci "ateş ettim" dedi. Makul mü?
@@ -101,7 +134,7 @@ namespace Bunker.Systems.Combat
         public void NoteReload(float now)
         {
             if (_reserve <= 0) return;
-            if (_roundsInMagazine >= _config.MagazineCapacity) return;
+            if (_roundsInMagazine >= MagazineCapacity) return;
 
             _reloadRequestedTime = now;
             _reloadPending = true;
@@ -111,31 +144,37 @@ namespace Bunker.Systems.Combat
         public void AddReserve(int amount)
         {
             if (amount <= 0) return;
-            _reserve = Math.Min(_reserve + amount, _config.MagazineReserveCapacity);
+            _reserve = Math.Min(_reserve + amount, ReserveCapacity);
         }
 
         /// <summary>Yeni run.</summary>
         public void Reset()
         {
             _roundsInMagazine = Math.Max(1, _config.MagazineCapacity);
-            _reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
+            _reserve = Math.Min(_config.StartingReserve, _config.ReserveCapacity);
             _cadence.Reset();
             _reloadRequestedTime = float.NegativeInfinity;
             _reloadPending = false;
         }
 
         /// <summary>Bu atışın hasarı. Kafa çarpanı burada uygulanır.</summary>
-        public float DamageFor(bool headshot) =>
-            headshot ? _config.FireDamage * _config.FireHeadshotMultiplier : _config.FireDamage;
+        public float DamageFor(bool headshot)
+        {
+            float damage = _config.Damage * _mods.DamageMultiplier;
+
+            return headshot
+                ? damage * (_config.HeadshotMultiplier + _mods.HeadshotMultiplier)
+                : damage;
+        }
 
         private void SettlePendingReload(float now)
         {
             if (!_reloadPending) return;
-            if (now - _reloadRequestedTime < _config.MagazineReloadSeconds - _tolerance) return;
+            if (now - _reloadRequestedTime < ReloadSeconds - _tolerance) return;
 
             _reloadPending = false;
 
-            int needed = _config.MagazineCapacity - _roundsInMagazine;
+            int needed = MagazineCapacity - _roundsInMagazine;
             int moved = Math.Min(needed, _reserve);
 
             _roundsInMagazine += moved;

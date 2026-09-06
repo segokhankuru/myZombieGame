@@ -4,7 +4,7 @@
   "title": "Tur olcekleme",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "count", "health", "speed", "pacing"],
+  "required": ["version", "_meta", "count", "health", "speed", "boss", "roundEnd", "pacing"],
   "properties": {
     "version": {
       "type": "integer",
@@ -30,7 +30,9 @@
         "linearAddPerPlayerPerRound",
         "linearPhaseUntilRound",
         "growthMultiplierAfterLinear",
-        "maxConcurrent"
+        "maxConcurrent",
+        "aliveCapAtRoundOne",
+        "aliveCapAddPerRound"
       ],
       "properties": {
         "perPlayerAtRoundOne": {
@@ -52,6 +54,14 @@
         "maxConcurrent": {
           "type": "integer", "minimum": 10, "maximum": 60,
           "description": "Ayni anda canli olabilecek maksimum zombi. Turun geri kalani sirada bekler. Bu bir denge degeri degil, PERF-BUDGET.md'den gelen performans tavanidir - artirmadan once olcum gerekir."
+        },
+        "aliveCapAtRoundOne": {
+          "type": "integer", "minimum": 2, "maximum": 30,
+          "description": "Tur 1'de sahada AYNI ANDA durabilecek zombi. Turun toplami degil, anlik yuku. Cok dusukse sure bos beklemekle gecer ve tur uzar; cok yuksekse oyuncu barikata donup tamir edecek bosluk bulamaz - oyun testinde tam olarak bu goruldu."
+        },
+        "aliveCapAddPerRound": {
+          "type": "number", "minimum": 0, "maximum": 4,
+          "description": "Her tur anlik tavana eklenen zombi. Tavan her zaman maxConcurrent ile sinirlidir. Dusurursen gec turlar seyrek ve kolay kalir; buyutursen ayni tavan sorununa geri donulur."
         }
       }
     },
@@ -117,6 +127,55 @@
         "jogUntilRound": {
           "type": "integer", "minimum": 2, "maximum": 20,
           "description": "Bu tura kadar tempolu, sonrasinda kosar. Erken gelirse oyuncu haritayi ogrenemeden panige girer."
+        }
+      }
+    },
+
+    "boss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["everyRounds", "healthMultiplier", "speedMultiplier", "damageMultiplier", "scaleMultiplier", "pointsMultiplier"],
+      "description": "Boss zombi: her N turda bir tane. Turun zombisinin CARPANLARIYLA tanimlanir, ayri bir varlik olarak degil - boylece zorluk egrisi tek yerden (health, speed) yonetilmeye devam eder.",
+      "properties": {
+        "everyRounds": {
+          "type": "integer", "minimum": 2, "maximum": 20,
+          "description": "Kac turda bir boss cikar. Sik olursa boss sıradanlasir ve bir olay olmaktan cikar; seyrek olursa oyuncu onu tanimadan tur 20'ye gelir."
+        },
+        "healthMultiplier": {
+          "type": "number", "minimum": 3, "maximum": 40,
+          "description": "Boss cani = turun zombi cani x bu. Dusuk olursa boss bir zombiden farksizlasir; yuksek olursa oyuncunun butun mermisini yer ve tur bir sunger dovmeye doner."
+        },
+        "speedMultiplier": {
+          "type": "number", "minimum": 0.4, "maximum": 1.2,
+          "description": "Boss hizi = turun hizi x bu. BIRIN ALTINDA olmali: cok canli VE hizli bir dusman, oyuncuya kacmaktan baska secenek birakmaz ve o da isleyen bir plan degildir. Yavas olmasi, onu bir KOSU DONGUSU problemi yapar."
+        },
+        "damageMultiplier": {
+          "type": "number", "minimum": 1, "maximum": 4,
+          "description": "Boss vurusu = normal zombi hasari x bu. Iki vurusla oldurmemeli ama iki vurus da onemli olmali."
+        },
+        "scaleMultiplier": {
+          "type": "number", "minimum": 1.1, "maximum": 3,
+          "description": "Gorsel buyukluk. Boss'un kalabaligin icinde ILK BAKISTA taninmasi sart (PILLAR-04); renk tek basina yetmez cunku sahne loş."
+        },
+        "pointsMultiplier": {
+          "type": "number", "minimum": 1, "maximum": 20,
+          "description": "Oldurme puani carpani. Bossu oldurmek bir SECIM olmali: kacmak da mesru, ama oldurmek tezgaha gidecek puani vermeli."
+        }
+      }
+    },
+
+    "roundEnd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reserveAmmoFraction01", "barricadeBoardsFraction01"],
+      "properties": {
+        "reserveAmmoFraction01": {
+          "type": "number", "minimum": 0, "maximum": 1,
+          "description": "Tur temizlendiginde yedek mermi TAVANININ bu orani kadar mermi geri gelir. Sifir olursa mermi tamamen satin almaya baglanir ve tek harcama kalir; 1'e yaklasirsa mermi bir kaynak olmaktan cikar ve duvardaki mermi noktasi anlamsizlasir."
+        },
+        "barricadeBoardsFraction01": {
+          "type": "number", "minimum": 0, "maximum": 1,
+          "description": "Tur temizlendiginde her pencerede tam barikatin bu orani kadar tahta geri gelir. Sifir olursa gec turlarda butun mola tamirle gecer ve tezgaha gitmek imkansizlasir; 1'e yaklasirsa tamir etmek bir karar olmaktan cikar."
         }
       }
     },

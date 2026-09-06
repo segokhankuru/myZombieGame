@@ -225,5 +225,51 @@ namespace Bunker.Systems.Tests
             Assert.AreEqual(0.25f, b.RepairProgress01, 0.02f);
             Assert.AreEqual(0f, b.TearProgress01, 0.001f, "tamir sokumu sifirladi");
         }
+
+        // ---------------------------------------------------------------- tur sonu
+
+        [Test]
+        public void TurSonu_KismenYenilenir()
+        {
+            // 2026-09-05, gelistirici karari: tam yenilenme oyunu kolaylastiriyordu,
+            // hic yenilenmemesi ise molanin tamamini tamire baglıyordu.
+            Barricade b = Make(perWindow: 4, startingCount: 4);
+
+            while (b.Boards > 0) b.Tear(999f);
+
+            Assert.AreEqual(2, b.RestoreFraction(0.40f), "4 tahtanin %40'i ~2 tahta");
+            Assert.AreEqual(2, b.Boards);
+        }
+
+        [Test]
+        public void TurSonu_TamBarikatiASMAZ()
+        {
+            Barricade b = Make(perWindow: 4, startingCount: 4);
+
+            Assert.AreEqual(0, b.RestoreFraction(0.40f), "tam barikatta eklenecek tahta yok");
+            Assert.AreEqual(4, b.Boards);
+        }
+
+        [Test]
+        public void TurSonu_OranSifirsa_HicbirSeyOlmaz()
+        {
+            Barricade b = Make(perWindow: 4, startingCount: 4);
+            b.Tear(999f);
+
+            Assert.AreEqual(0, b.RestoreFraction(0f));
+            Assert.AreEqual(3, b.Boards);
+        }
+
+        [Test]
+        public void TurSonu_CokKucukOran_YineDeBirTahta()
+        {
+            // "Yenilendi" deyip hicbir seyin degismemesi, oyuncuya kurali YANLIS
+            // ogretir.
+            Barricade b = Make(perWindow: 4, startingCount: 4);
+            b.Tear(999f);
+
+            Assert.AreEqual(1, b.RestoreFraction(0.01f));
+            Assert.AreEqual(4, b.Boards);
+        }
     }
 }

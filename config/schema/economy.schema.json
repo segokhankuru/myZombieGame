@@ -4,7 +4,7 @@
   "title": "Ekonomi",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "awards", "penalty", "prices"],
+  "required": ["version", "_meta", "awards", "penalty", "prices", "ammo"],
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
 
@@ -64,7 +64,7 @@
     "prices": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["doorCheap", "doorMid", "doorExpensive", "wallWeaponCheap", "wallWeaponMid", "mysteryBox"],
+      "required": ["doorCheap", "doorMid", "doorExpensive", "wallWeaponCheap", "wallWeaponMid", "mysteryBox", "cardRerollBase", "cardRerollAddPerRound"],
       "description": "Fiyat bantlari. Belirli bir kapi ya da silah, config/content icinden bu bantlardan birini ismen secer - fiyat tek yerde durur.",
       "properties": {
         "doorCheap":       { "type": "integer", "minimum": 100, "maximum": 3000, "description": "Ilk genisleme. Tur 3-5 civarinda ulasilabilir olmali; daha gec olursa baslangic odasi bogar." },
@@ -72,7 +72,26 @@
         "doorExpensive":   { "type": "integer", "minimum": 500, "maximum": 10000, "description": "Son genisleme ya da kestirme. Kosu dongusunu kapatan kapi buysa fiyati dongunun ne zaman acilacagini belirler." },
         "wallWeaponCheap": { "type": "integer", "minimum": 100, "maximum": 2000, "description": "Baslangic silahindan ilk yukseltme." },
         "wallWeaponMid":   { "type": "integer", "minimum": 300, "maximum": 4000, "description": "Orta sinif duvar silahi." },
-        "mysteryBox":      { "type": "integer", "minimum": 300, "maximum": 3000, "description": "Rastgele silah dagiticisi. Kumar oldugu icin duvar silahindan pahali olmali; ucuzsa duvar silahlari hic satin alinmaz." }
+        "mysteryBox":      { "type": "integer", "minimum": 300, "maximum": 3000, "description": "Rastgele silah dagiticisi. Kumar oldugu icin duvar silahindan pahali olmali; ucuzsa duvar silahlari hic satin alinmaz." },
+        "cardRerollBase":  { "type": "integer", "minimum": 0, "maximum": 2000, "description": "Bir kart yuvasinin PUANLI yenilemesinin tur 1 fiyati (ilk yenileme her zaman ucretsiz, SYS-02 §7c). Bedava olursa yenileme bir karar olmaktan cikar ve oyuncu her yuvayi begenene kadar cevirir; cok pahali olursa hic kullanilmaz ve kotu bir uclu turun odulunu siler." },
+        "cardRerollAddPerRound": { "type": "integer", "minimum": 0, "maximum": 500, "description": "Yenileme fiyatinin tur basina artisi. Sabit fiyat gec turlarda bedavaya doner - tur 15'te 250 puan bir oldurmeden az eder. Artis, yenilemenin bedelini turun puan olcegiyle ayni bantta tutar." }
+      }
+    },
+
+    "ammo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["magazinesPerPurchase", "refillCost"],
+      "description": "Duvardan bir alimda ne kadar mermi gelir. Fiyat 'prices' altinda; burada MIKTAR var. Ikisi birlikte mermi ekonomisinin musluk debisini belirler.",
+      "properties": {
+        "magazinesPerPurchase": {
+          "type": "integer", "minimum": 1, "maximum": 40,
+          "description": "Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md."
+        },
+        "refillCost": {
+          "type": "integer", "minimum": 50, "maximum": 3000,
+          "description": "Duvardan bir mermi aliminin fiyati. Silah bandindan (prices.wallWeapon*) AYRI bir sayi: o bant ileride gercek silahlar icin, bu yalnizca mermi muslugu. Dusurursen mermi bedavaya yakinlasir ve puanin tek harcama yeri kapilar olur - tur ekonomisi tek yonlu kalir; buyutursen oyuncu her turu bicakla gecirmek zorunda kalir ve silah tasimanin sebebi kaybolur."
+        }
       }
     }
   }

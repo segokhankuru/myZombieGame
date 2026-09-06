@@ -3,13 +3,17 @@
     "rootNamespace": "Bunker.Editor",
     "references": [
         "Bunker.Systems",
+        "Bunker.Audio",
         "Bunker.Config",
         "Bunker.Gameplay",
         "Bunker.Net",
         "Bunker.AI",
         "Bunker.UI",
         "Mirror",
-        "Mirror.Components"
+        "Mirror.Components",
+        "Mirror.Transports",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"

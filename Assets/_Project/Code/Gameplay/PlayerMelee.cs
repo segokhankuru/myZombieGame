@@ -1,6 +1,9 @@
 using System;
+using Bunker.Audio;
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
+using Bunker.Systems.Rounds;
 using Bunker.Systems.Config;
 using Mirror;
 using UnityEngine;
@@ -44,6 +47,23 @@ namespace Bunker.Gameplay
         // (csharp-code.md).
         private static readonly Collider[] SwingHits = new Collider[24];
 
+        // Nisan yolundaki isabetler icin ayri tampon. Bicak once BAKTIGIN yere bakar
+        // (2026-09-05); koni taramasi yalnizca yedek.
+        private static readonly RaycastHit[] SwingRayHits = new RaycastHit[16];
+
+        /// <summary>
+        /// Savuruş ışınının kalınlığı. Bıçak bir iğne değil: tam ortayı tutturmayı
+        /// zorunlu kılmak, oyuncunun "vurdum ama saymadı" diye okuduğu şeydir.
+        /// </summary>
+        private const float SwingProbeRadiusMeters = 0.18f;
+
+        /// <summary>
+        /// Savuruş başladı. <b>Yerel, aynı karede</b> — el modeli ve ses buna bağlanır.
+        /// Hazırlık süresi boyunca bıçağın hareket ediyor olması, bekleme süresini
+        /// bir gecikme değil bir AGIRLIK olarak okutur (gameplay-code.md).
+        /// </summary>
+        public event Action SwingStarted;
+
         /// <summary>Bir bıçak öldürmesi onaylandı. Ekonomi buna bağlanır.</summary>
         public event Action<DamageKind, bool> KillConfirmed;
 
@@ -81,6 +101,12 @@ namespace Bunker.Gameplay
 
             if (!isLocalPlayer) return;
 
+            // Run bitti: girdi kesilir (M1-11, AC-3).
+            // Run bitti YA DA tur arasi ekrani acik: girdi kesilir. Ekran acikken
+            // ates etmek, bakis cevirmek ya da satin almak, fareyle kart secmeyi
+            // imkansiz kilardi.
+            if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen) return;
+
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
 
@@ -100,6 +126,9 @@ namespace Bunker.Gameplay
             // tamamlanınca iner. Sifir olsaydi bicak bir tusa basmaktan ibaret olurdu.
             _pendingSwingDelay = _config.SwingWindupSeconds;
             _swingPending = true;
+
+            SwingStarted?.Invoke();
+            GameAudio.Play(SfxId.KnifeSwing);
 
             if (_pendingSwingDelay <= 0f) ReleaseSwing();
         }
@@ -124,6 +153,18 @@ namespace Bunker.Gameplay
             CmdSwing(cam.position, cam.forward);
         }
 
+        /// <summary>Bıçak bir şeye değdi. Savuruşun boşa gitmediğini söyleyen tek şey.</summary>
+        [TargetRpc]
+        private void TargetReportSwingHit(NetworkConnection target, Vector3 hitPoint, float damage, bool killed)
+        {
+            GameAudio.Play(SfxId.KnifeHit);
+
+            // Bicagin hasar sayisi da gorunur (2026-09-05): bicak en yuksek puani
+            // veren ve en riskli oldurme yolu - ne kadar vurdugunu gormeden o riski
+            // almaya deger mi bilinmez.
+            CombatFeedback.RaiseDamageDealt(hitPoint, damage, false, killed);
+        }
+
         /// <summary>
         /// Hasarın uygulandığı tek yer. <b>Her RPC bir güven sınırıdır</b> (netcode.md):
         /// savuruş hızı sunucuda ayrıca sayılır.
@@ -143,8 +184,22 @@ namespace Bunker.Gameplay
                 return;
             }
 
+            // ONCE NISAN YOLU (2026-09-05): baktigin yere hangi VURUS KUTUSU denk
+            // geliyorsa oraya iner - kafaya nisan alip savurmak kafayi, bacaga nisan
+            // alip savurmak bacagi vurur. Onceki surumde yalnizca koni taramasi vardi
+            // ve her zaman merkeze EN YAKIN kutuyu seciyordu, yani bicak nereye
+            // baktigindan bagimsiz olarak hep govdeye iniyordu.
+            IDamageable aimed = FindAimedTarget(origin, forward);
+
+            if (aimed != null)
+            {
+                Strike(aimed);
+                return;
+            }
+
             // Bicak bir isin degil bir KONI: kalabalikta savurmak ise yaramali, ama
-            // arkani donup vurmak yaramamali.
+            // arkani donup vurmak yaramamali. Isin bosa gittiginde koni yedege gecer -
+            // yoksa kalabaligin ortasinda savurmak bosa dusebilirdi.
             int count = Physics.OverlapSphereNonAlloc(origin, _config.SwingRangeMeters, SwingHits,
                                                       ~0, QueryTriggerInteraction.Ignore);
             if (count == 0) return;
@@ -177,10 +232,78 @@ namespace Bunker.Gameplay
 
             if (best == null) return;
 
+            Strike(best);
+        }
+
+        /// <summary>
+        /// Nişan yolundaki ilk canlı vuruş kutusu.
+        ///
+        /// <para><b>Küre taraması, ince ışın değil:</b> bıçak bir iğne değil. Tam
+        /// ortayı tutturmayı zorunlu kılmak, oyuncunun "vurdum ama saymadı" diye
+        /// okuduğu şeydir.</para>
+        ///
+        /// <para>Duvar, tahta ve zemin de ışını kesebilir — ilk çarpılan şey canlı bir
+        /// hedef değilse savuruş oraya iner ve boşa gider. Bu doğru: duvarın arkasından
+        /// bıçaklamak, mermiyle duvardan geçmekle aynı şey olurdu.</para>
+        /// </summary>
+        private IDamageable FindAimedTarget(Vector3 origin, Vector3 forward)
+        {
+            int count = Physics.SphereCastNonAlloc(origin, SwingProbeRadiusMeters, forward,
+                                                   SwingRayHits, _config.SwingRangeMeters,
+                                                   ~0, QueryTriggerInteraction.Ignore);
+            if (count == 0) return null;
+
+            IDamageable best = null;
+            float bestDistance = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider c = SwingRayHits[i].collider;
+                if (c == null) continue;
+
+                // Kendi collider'ini vurmak: savuran oyuncunun kendisi.
+                if (c.transform.IsChildOf(transform)) continue;
+
+                float distance = SwingRayHits[i].distance;
+                if (distance >= bestDistance) continue;
+
+                var target = c.GetComponent<IDamageable>();
+
+                // Canli bir hedef degilse yine de YOLU KESER: arkasindaki zombiye
+                // gecmemeli. Bu yuzden 'best' null birakilip mesafe guncelleniyor.
+                bestDistance = distance;
+                best = target != null && target.IsAlive ? target : null;
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Hasar sayısının ekranda görüneceği nokta.
+        ///
+        /// <para>Bıçak bir ışın değil bir koni; tek bir "çarpma noktası" yok. Vurulan
+        /// şeyin kendi konumu, sayıyı doğru zombinin üstüne koymaya yeter.</para>
+        /// </summary>
+        private static Vector3 HitPointOf(IDamageable target)
+        {
+            return target is Component component
+                ? component.transform.position + Vector3.up
+                : Vector3.zero;
+        }
+
+        /// <summary>Hasarı uygular ve geri bildirimi yollar. <b>Yalnızca sunucuda.</b></summary>
+        private void Strike(IDamageable target)
+        {
             // Kafa kutusuna bicak carpani uygulanmaz: bicak zaten en yuksek puani
             // veriyor, ustune kafa carpani vermek silahi tamamen gereksiz kilardi.
-            DamageResult result = best.ApplyDamage(
-                new DamageInfo(_config.SwingDamage, DamageKind.Melee));
+            DamageResult result = target.ApplyDamage(
+                new DamageInfo(_config.SwingDamage *
+                               RunModifiers.Multiplier(CardStat.MeleeDamage),
+                               DamageKind.Melee));
+
+            // Isabet geri bildirimi YALNIZCA savurana gider: kisisel bir bilgidir
+            // (silahtaki TargetReportHit ile ayni gerekce).
+            TargetReportSwingHit(connectionToClient, HitPointOf(target), result.Absorbed, result.Killed);
 
             if (result.Killed) KillConfirmed?.Invoke(DamageKind.Melee, false);
         }

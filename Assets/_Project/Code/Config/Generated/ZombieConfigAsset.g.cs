@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class ZombieConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 1;
+        [SerializeField] private int version = 5;
 
         [Header("spawn")]
         [Tooltip("Zombi dogduktan sonra hareket etmeden once bekledigi sure. Sifir olursa zombiler dogar dogmaz kosar ve oyuncu belirme anini goremez - PILLAR-04 (kaosta okunabilirlik) burada kirilir. Cok uzun olursa surunun temposu duser ve pencere savunmasi kolaylasir.")]
@@ -78,6 +78,19 @@ namespace Bunker.Config
         [Range(0f, 5f)]
         [SerializeField] private float hitReactionDeathLingerSeconds = 0.7f;
 
+        [Header("crawl")]
+        [Tooltip("Bir bacagin kopmasi icin o bacagin emmesi gereken hasar, zombinin tur canina oran olarak. Kucultursen her carpisma bacak koparir ve surunen zombi kuralin kendisi olur - ayakta gelen tehdit kaybolur; buyutursen bacak vurmak hicbir zaman odullenmez ve oyuncu govdeye nisan almaya geri doner.")]
+        [Range(0.05f, 1f)]
+        [SerializeField] private float crawlLegBreakHealthFraction = 0.3f;
+
+        [Tooltip("Surunen zombinin tur hizina uygulanan carpan. 1e yaklasirsa bacagi koparmak gorsel bir suslemeye doner; cok kucultursen surunen zombi tehdit olmaktan cikar ve oyuncu onlari yok sayar - ki bu, yerde surunen bir dusmanin verecegi panigi bosa harcamaktir.")]
+        [Range(0.1f, 0.9f)]
+        [SerializeField] private float crawlSpeedMultiplier = 0.45f;
+
+        [Tooltip("Surunen zombinin govde yuksekligi. Alcalmasi hem gorsel hem taktik: nisan cizgisi degisir, kalabaligin arasindan gorunmez olur. Cok alcaltirsan gri kutuda zemine gomulur ve vurulamaz hale gelir.")]
+        [Range(0.3f, 1.2f)]
+        [SerializeField] private float crawlBodyHeightMeters = 0.55f;
+
         [Header("navigation")]
         [Tooltip("Zombinin yeni yol istemeler arasi sure. Kucultursen zombiler oyuncuyu daha yakin takip eder ama yol bulma maliyeti dogrusal artar (PERF-BUDGET); buyutursen zombiler oyuncunun eski konumuna kosar ve kandirilmis gorunur. Bu bir denge degeri kadar performans degeridir.")]
         [Range(0.1f, 2f)]
@@ -94,6 +107,32 @@ namespace Bunker.Config
         [Tooltip("Kurtarma denemesinin suresi (yeniden yol, gerekirse NavMesh'e geri isinlama). Kisa olursa kurtarma tutmadan biter ve zombi tekrar sikisir; uzun olursa zombi acikta bekler.")]
         [Range(0.1f, 3f)]
         [SerializeField] private float navigationStuckRecoverySeconds = 0.6f;
+
+        [Header("cards")]
+        [Tooltip("Olen zombinin patlama yaricapi (Yikim kartlari). Kucuk olursa patlama yalnizca ust uste duran zombileri vurur ve kart hissedilmez; buyuk olursa tek bir oldurme butun surudu siler ve nisan almanin anlami kalmaz.")]
+        [Range(1f, 10f)]
+        [SerializeField] private float cardsExplosionRadiusMeters = 4.5f;
+
+        [Tooltip("Patlamanin firlattigi sarapnel sayisi. Toplam hasar bu sayiya BOLUNUR: az parca = her biri agir ama cogu bosa gider (piyango); cok parca = yakindaki zombi cogunu yer, uzaktaki birkacini (okunabilir). 4'un altinda patlama bir sans oyununa doner, 40'in ustunde kure sorgusundan farksizlasir ve isin maliyeti buyur.")]
+        [Range(4, 40)]
+        [SerializeField] private int cardsExplosionShrapnelCount = 14;
+
+        [Tooltip("Patlamanin OYUNCUYA verdigi hasarin orani. Sifir: patlama oyuncuyu yakmaz. Sifirdan buyuk yapmak kartı bir risk-odul karari haline getirir ama yakin dovusu (bicak) cezalandirir - once oynanarak denenmeli.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float cardsExplosionSelfDamageFraction01 = 0f;
+
+        [Header("swarm")]
+        [Tooltip("Her zombinin hedefe giderken tuttugu yanal serit. Sifir yaparsan hepsi tek sira dizilir (eski hali). Cok buyutursen zombiler oyuncuya gelmek yerine yanlardan dolasir ve tehdit dagilir; dar koridorlarda da bosuna yol arar.")]
+        [Range(0f, 6f)]
+        [SerializeField] private float swarmLateralSpreadMeters = 2.5f;
+
+        [Tooltip("Bu mesafeden yakinda serit SONER ve zombi dogrudan oyuncuya gelir. Sonmeseydi zombiler oyuncunun yanindan gecip durur ve saldiramazdi. Kucultursen cephe son anda tek noktaya toplanir; buyutursen zombiler uzaktan dagilir ama yakinda hala kuyruk yapar.")]
+        [Range(1f, 12f)]
+        [SerializeField] private float swarmSpreadFadeDistanceMeters = 4f;
+
+        [Tooltip("Zombi basina hiz sapmasi (0.12 = +/-%12). Ayni hizda giden zombiler konvoy halinde kalir; kucuk bir sapma dizilimi kendiliginden bozar. Buyutursen turun hiz kademesi (rounds.json speed) anlamini yitirir ve bazi zombiler beklenmedik sekilde hizli olur.")]
+        [Range(0f, 0.3f)]
+        [SerializeField] private float swarmSpeedJitter01 = 0.12f;
 
         [Header("budget")]
         [Tooltip("Bir zombinin saniyede kac kez dusundugu. Kare basina degil - kare hizindan bagimsizdir. Buyutursen zombiler daha tepkisel olur ve islemci maliyeti dogrusal artar; kucultursen zombiler gec tepki verir ve oyuncu yanlarindan yururken uyuyor gorunur. Bu bir performans tavanidir, artirmadan once olcum gerekir (PERF-BUDGET.md).")]
@@ -122,10 +161,19 @@ namespace Bunker.Config
                 hitReactionHeadshotFlinchMultiplier,
                 hitReactionKnockbackMeters,
                 hitReactionDeathLingerSeconds,
+                crawlLegBreakHealthFraction,
+                crawlSpeedMultiplier,
+                crawlBodyHeightMeters,
                 navigationRepathIntervalSeconds,
                 navigationStuckSpeedMetersPerSecond,
                 navigationStuckAfterSeconds,
                 navigationStuckRecoverySeconds,
+                cardsExplosionRadiusMeters,
+                cardsExplosionShrapnelCount,
+                cardsExplosionSelfDamageFraction01,
+                swarmLateralSpreadMeters,
+                swarmSpreadFadeDistanceMeters,
+                swarmSpeedJitter01,
                 budgetThinkHz,
                 budgetAnimatorCullDistanceMeters);
         }

@@ -72,3 +72,11 @@ docs/archive/
 
 # Kurulum kaynagi - .claude/ icine kopyalandi, tekrar commit etmeye gerek yok
 claude-code-unity-studio-master/
+# M1-12 olcum kayitlari - kaynak degil, veri. Koke SABITLI: sabitlenmezse
+# Assets/_Project/Code/Systems/Telemetry/ kaynak klasoru de yutulur ve
+# oradaki kod hic commit edilmez (sessizce).
+/telemetry/
+
+# ---------------------------------------------------------------- olcum verisi
+# Build klasoru git.e girmez: 167 MB derleme ciktisi, kaynak degil.
+/Build/

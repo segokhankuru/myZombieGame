@@ -14,11 +14,19 @@ namespace Bunker.Systems.Tests
             float breather = 10f,
             int maxConcurrent = 40,
             float perPlayerAtRoundOne = 6f,
-            float spawnIntervalAtRoundOne = 2f)
+            float spawnIntervalAtRoundOne = 2f,
+            int aliveCapAtRoundOne = 60,
+            float aliveCapAddPerRound = 0f)
         {
+            // Anlik tavan (2026-09-05) VARSAYILAN OLARAK KAPALI tutuluyor: bu sinifin
+            // eski testleri PERF-BUDGET tavanini (maxConcurrent) olcuyor ve iki tavan
+            // ayni anda calisirsa hangisinin dogurdugunu olctugu okunmaz olurdu.
+            // Anlik tavanin kendi testi asagida.
             var scaling = new RoundScaling(new RoundsConfig(
                 countPerPlayerAtRoundOne: perPlayerAtRoundOne,
                 countMaxConcurrent: maxConcurrent,
+                countAliveCapAtRoundOne: aliveCapAtRoundOne,
+                countAliveCapAddPerRound: aliveCapAddPerRound,
                 pacingBreatherSeconds: breather,
                 pacingSpawnIntervalSecondsAtRoundOne: spawnIntervalAtRoundOne));
 
@@ -140,6 +148,46 @@ namespace Bunker.Systems.Tests
             int budget = runner.Tick(5f, 7);
 
             Assert.AreEqual(3, budget, "tavana 3 kisilik yer var, 3 dogar");
+        }
+
+        [Test]
+        public void AnlikTavan_DolduysaDogumDurur()
+        {
+            // 2026-09-05 oyun testi: turun butun zombileri kisa araliklarla arka
+            // arkaya doguyordu; sahada yigilinca barikata donup tamir etmek imkansiz
+            // hale geliyordu. Anlik tavan, baskiyi SABIT tutar.
+            RoundRunner runner = Started(Runner(perPlayerAtRoundOne: 15f,
+                                                spawnIntervalAtRoundOne: 0.1f,
+                                                aliveCapAtRoundOne: 5));
+
+            Assert.AreEqual(0, runner.Tick(5f, 5), "anlik tavan doluyken hic dogmaz");
+            Assert.AreEqual(2, runner.Tick(5f, 3), "tavanda iki kisilik yer varsa iki dogar");
+        }
+
+        [Test]
+        public void AnlikTavan_TurlaBuyur()
+        {
+            var scaling = new RoundScaling(new RoundsConfig(
+                countAliveCapAtRoundOne: 5,
+                countAliveCapAddPerRound: 1,
+                countMaxConcurrent: 40));
+
+            Assert.AreEqual(5, scaling.AliveCapForRound(1));
+            Assert.AreEqual(9, scaling.AliveCapForRound(5));
+            Assert.AreEqual(24, scaling.AliveCapForRound(20));
+        }
+
+        [Test]
+        public void AnlikTavan_PerformansTavaniniASAMAZ()
+        {
+            // maxConcurrent bir denge degeri degil, PERF-BUDGET tavani: anlik tavan
+            // onu asarsa olculmemis bir yuke girilmis olur.
+            var scaling = new RoundScaling(new RoundsConfig(
+                countAliveCapAtRoundOne: 30,
+                countAliveCapAddPerRound: 4,
+                countMaxConcurrent: 40));
+
+            Assert.AreEqual(40, scaling.AliveCapForRound(50));
         }
 
         // ---------------------------------------------------------------- turun bitmesi

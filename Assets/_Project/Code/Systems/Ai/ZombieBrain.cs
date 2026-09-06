@@ -56,13 +56,24 @@ namespace Bunker.Systems.Ai
         /// </summary>
         public readonly bool WindowBlocked;
 
+        /// <summary>
+        /// Bu yaratığın <b>erişim çarpanı</b> (2026-09-06). Boss 1,7 kat büyük ve kolu
+        /// da o kadar uzun; normal zombide 1.
+        ///
+        /// <para><b>Neden çarpan, menzilin kendisi değil:</b> menzil bir denge sayısı ve
+        /// <c>zombie.json</c>'da yaşıyor. Buraya menzil koymak aynı sayının ikinci bir
+        /// kopyasını üretirdi (config-data.md).</para>
+        /// </summary>
+        public readonly float ReachMultiplier;
+
         public ZombieSenses(
             bool hasTarget,
             float distanceToTargetMeters,
             bool needsWindowEntry = false,
             float distanceToWindowMeters = 0f,
             float actualSpeedMetersPerSecond = 0f,
-            bool windowBlocked = false)
+            bool windowBlocked = false,
+            float reachMultiplier = 1f)
         {
             HasTarget = hasTarget;
             DistanceToTargetMeters = distanceToTargetMeters;
@@ -70,6 +81,7 @@ namespace Bunker.Systems.Ai
             DistanceToWindowMeters = distanceToWindowMeters;
             ActualSpeedMetersPerSecond = actualSpeedMetersPerSecond;
             WindowBlocked = windowBlocked;
+            ReachMultiplier = reachMultiplier <= 0f ? 1f : reachMultiplier;
         }
     }
 
@@ -269,7 +281,8 @@ namespace Bunker.Systems.Ai
                         Enter(ZombieState.ApproachingWindow);
                     }
                     else if (senses.HasTarget &&
-                             senses.DistanceToTargetMeters <= _config.AttackRangeMeters)
+                             senses.DistanceToTargetMeters <=
+                             _config.AttackRangeMeters * senses.ReachMultiplier)
                     {
                         Enter(ZombieState.WindingUp);
                     }
@@ -285,7 +298,8 @@ namespace Bunker.Systems.Ai
                     // Telegrafin bedeli: oyuncu geri cekildiyse vurus iskalar.
                     bool inReach = senses.HasTarget &&
                                    senses.DistanceToTargetMeters <=
-                                   _config.AttackRangeMeters + _config.AttackRangeToleranceMeters;
+                                   (_config.AttackRangeMeters + _config.AttackRangeToleranceMeters) *
+                                   senses.ReachMultiplier;
 
                     if (inReach)
                     {

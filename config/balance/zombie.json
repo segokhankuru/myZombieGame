@@ -1,13 +1,13 @@
 {
   "$schema": "../schema/zombie.schema.json",
-  "version": 1,
+  "version": 5,
   "_meta": {
     "owner": "ai-programmer",
     "system": "SYS-zombi",
-    "lastTuned": "2026-09-02"
+    "lastTuned": "2026-09-05"
   },
 
-  "_note": "M1-04 baslangic degerleri. Zombinin tura gore degisen ozellikleri (can, hiz, adet) rounds.json'da; burasi tur numarasindan bagimsiz karakteri: ne kadar once telefonu belli eder, pencereyi kac saniyede asar, kac vurur. Hicbiri kanit degil, hepsi hipotez - ilk oyun testinde kalibre edilecek.",
+  "_note": "v5 (2026-09-06): patlama SARAPNEL oldu. v4 kure sorgusuydu - yaricaptaki herkese TAM hasar veriyor, duvarin arkasina geciyor ve oyunu kolaylastiriyordu. Gelistirici: el bombasi mantigi olsun, sarapneller belli alana firlar ve ISABET ALAN hasar alir. Artik patlama explosionShrapnelCount kadar parca firlatir; her parca bir isindir, ilk carptigi seye toplam hasarin 1/N kadarini verir ve DUVAR onu durdurur. Bir zombi konuma gore bir ya da bes parca yiyebilir - yakin olan cok, koseden bakan az. v4 (2026-09-05): cards bolumu - Yikim etiketi artik gercek. Olen zombinin patlamasinin YARICAPI burada; gucu kartin kendi degerinde (CardStat.ExplodeOnKill). Yaricap kart basina degil TEK bir sayi: iki farkli yaricap, oyuncunun patlamanin nereye kadar ulastigini ogrenmesini imkansiz kilardi. v3 (2026-09-05): swarm bolumu eklendi - zombiler ARKA ARKAYA TEK SIRA diziliyordu ve hedef almak kolaylasiyordu. Ucu birden: her zombiye yanal bir seritin (lateralSpreadMeters), hedefe yaklasirken sonen (spreadFadeDistanceMeters); hiza kucuk bir sapma (speedJitter01) ki konvoy kendiliginden dagilsin; ve zombi basina farkli NavMesh kacinma onceligi - esit oncelikli ajanlar kuyruga girer, sirayla gecer. v2 (2026-09-05): crawl bolumu eklendi - bacagi koparilan zombi surunerek devam eder. M1-04 baslangic degerleri. Zombinin tura gore degisen ozellikleri (can, hiz, adet) rounds.json'da; burasi tur numarasindan bagimsiz karakteri: ne kadar once telefonu belli eder, pencereyi kac saniyede asar, kac vurur. Hicbiri kanit degil, hepsi hipotez - ilk oyun testinde kalibre edilecek.",
 
   "spawn": {
     "emergeDelaySeconds": 0.6
@@ -34,11 +34,29 @@
     "deathLingerSeconds": 0.7
   },
 
+  "crawl": {
+    "legBreakHealthFraction": 0.30,
+    "speedMultiplier": 0.45,
+    "bodyHeightMeters": 0.55
+  },
+
   "navigation": {
     "repathIntervalSeconds": 0.35,
     "stuckSpeedMetersPerSecond": 0.15,
     "stuckAfterSeconds": 1.5,
     "stuckRecoverySeconds": 0.6
+  },
+
+  "cards": {
+    "explosionRadiusMeters": 4.5,
+    "explosionShrapnelCount": 14,
+    "explosionSelfDamageFraction01": 0.0
+  },
+
+  "swarm": {
+    "lateralSpreadMeters": 2.5,
+    "spreadFadeDistanceMeters": 4.0,
+    "speedJitter01": 0.12
   },
 
   "budget": {

@@ -4,6 +4,18 @@ using UnityEngine;
 namespace Bunker.AI
 {
     /// <summary>
+    /// Zombinin neresine isabet edildiği. <b>Anatomi vuruş kutusunun kendisinde</b>
+    /// yaşar; silah nereye çarptığını bilmez.
+    /// </summary>
+    public enum ZombiePart
+    {
+        Body,
+        Head,
+        LegLeft,
+        LegRight
+    }
+
+    /// <summary>
     /// Zombinin üstündeki bir vuruş kutusu. Silah (M1-06) ışını neye çarptığını bilmez;
     /// çarptığı şey ne olduğunu <b>kendisi</b> söyler.
     ///
@@ -11,22 +23,34 @@ namespace Bunker.AI
     /// yapılabilirdi, ama o zaman kafa kutusunun varlığı proje ayarlarında saklı bir
     /// bilgi olurdu. Bileşen olarak prefab'ta görünür ve yeni zombi tipi eklerken
     /// unutulmaz.</para>
+    ///
+    /// <para><b>Bacaklar da bir kutudur</b> (2026-09-05): kafa zombiyi bitirir, bacak
+    /// onu <i>yavaşlatır</i>. Nişan almanın iki ayrı ödülü olması, sürünün içinde hedef
+    /// seçmeyi bir karar hâline getirir — üçüncü bir zombi tipi yazmadan.</para>
     /// </summary>
     [AddComponentMenu("Bunker/Zombie Hitbox")]
     public sealed class ZombieHitbox : MonoBehaviour, IDamageable
     {
-        [Tooltip("Kafa kutusu mu. Ekonomi kafa vurusuna ayri puan verir (SYS-ekonomi).")]
-        [SerializeField] private bool head;
+        [Tooltip("Bu kutu zombinin neresi. Ekonomi kafa vurusuna ayri puan verir " +
+                 "(SYS-ekonomi); bacak vurusu zombiyi surunmeye dusurur.")]
+        [SerializeField] private ZombiePart part = ZombiePart.Body;
 
         [Tooltip("Hasari yazacak zombi. Bos birakilirsa ust nesnelerde aranir.")]
         [SerializeField] private ZombieAgent owner;
 
-        public bool IsHead => head;
+        public ZombiePart Part => part;
+        public bool IsHead => part == ZombiePart.Head;
         public ZombieAgent Owner => owner;
         public bool IsAlive => owner != null && owner.IsAlive;
 
         /// <summary>Kutu kendi anatomisini bilir; silah bilmez.</summary>
-        public bool CountsAsHeadshot => head;
+        public bool CountsAsHeadshot => part == ZombiePart.Head;
+
+        /// <summary>
+        /// Kutunun sahibi olan zombi. Delici mermi "ayni yaratiga iki kez vurma"
+        /// kuralini bununla uygular: kafa ve govde ayni yaratigin parcalari.
+        /// </summary>
+        public IDamageable DamageRoot => owner != null ? owner : (IDamageable)this;
 
         private void Awake()
         {
@@ -49,8 +73,10 @@ namespace Bunker.AI
 
             // Kafa bilgisi kutudan gelir, atistan degil: silah nereye isabet ettigini
             // bilmek zorunda kalmaz.
-            var routed = new DamageInfo(damage.Amount, damage.Kind, damage.Headshot || head);
-            return owner.ApplyDamage(routed);
+            var routed = new DamageInfo(damage.Amount, damage.Kind,
+                                        damage.Headshot || part == ZombiePart.Head);
+
+            return owner.ApplyDamageToPart(routed, part);
         }
     }
 }

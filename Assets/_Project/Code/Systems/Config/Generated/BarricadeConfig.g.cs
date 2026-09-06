@@ -50,10 +50,10 @@ namespace Bunker.Systems.Config
         /// </summary>
         public BarricadeConfig(
             int version = 1,
-            int boardsPerWindow = 6,
-            int boardsStartingCount = 6,
-            float boardsZombieSecondsPerBoard = 1.8f,
-            int boardsBeforeEntry = 1,
+            int boardsPerWindow = 4,
+            int boardsStartingCount = 4,
+            float boardsZombieSecondsPerBoard = 1.2f,
+            int boardsBeforeEntry = 0,
             float repairSecondsPerBoard = 0.9f,
             float repairRangeMeters = 2.5f)
         {

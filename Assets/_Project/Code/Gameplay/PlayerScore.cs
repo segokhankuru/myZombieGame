@@ -1,6 +1,8 @@
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Economy;
+using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
 
@@ -59,6 +61,10 @@ namespace Bunker.Gameplay
 
             if (weapon != null) weapon.KillConfirmed += OnKillConfirmed;
             if (melee != null) melee.KillConfirmed += OnKillConfirmed;
+
+            RunSignals.RunRestarted += OnRunRestarted;
+            CardSignals.LoadoutChanged += OnLoadoutChanged;
+            RoundSignals.BossKilled += OnBossKilled;
         }
 
         public override void OnStopServer()
@@ -67,8 +73,14 @@ namespace Bunker.Gameplay
             if (weapon != null) weapon.KillConfirmed -= OnKillConfirmed;
             if (melee != null) melee.KillConfirmed -= OnKillConfirmed;
 
+            RunSignals.RunRestarted -= OnRunRestarted;
+            CardSignals.LoadoutChanged -= OnLoadoutChanged;
+            RoundSignals.BossKilled -= OnBossKilled;
+
             base.OnStopServer();
         }
+
+        private PlayerHealth _health;
 
         private void OnKillConfirmed(DamageKind kind, bool headshot)
         {
@@ -78,7 +90,76 @@ namespace Bunker.Gameplay
                 _ => headshot ? PointEvent.HeadshotKill : PointEvent.BodyKill
             };
 
+            // Skor ekraninin sayaci (M1-11). Puani Award yaziyor; buradaki bildirim
+            // OLDURMENIN kendisi - kac zombi, kaci kafadan, kaci bicakla.
+            RunSignals.Current.NoteKill(kind, headshot);
+
             Award(pointEvent);
+
+            // KAN ve GANIMET kartlarinin oldurme odulleri (M-03, 2026-09-05).
+            // Burada, cunku "oldurme" olayinin tek sahibi bu metot: silaha ve bicaga
+            // ayri ayri eklemek, ikisinden birinin unutulmasi demekti.
+            ApplyKillRewards();
+        }
+
+        /// <summary>
+        /// Öldürmenin kart ödülleri: <b>can</b> ve <b>mermi</b>.
+        ///
+        /// <para><b>Neden bu iki ödül:</b> ikisi de sürünün içinde kalmayı bir <i>seçim</i>
+        /// hâline getirir. Kaçmak yerine öldürmeye devam etmek, öldürdükçe hayatta
+        /// kalmak — kartların vaat ettiği "kan" hissi budur (SYS-02 Kan etiketi).</para>
+        ///
+        /// <para><b>Yalnızca sunucuda</b> (ADR-0004): can ve mermi kalıcı sonucu olan
+        /// kaynaklar.</para>
+        /// </summary>
+        private void ApplyKillRewards()
+        {
+            if (!isServer) return;
+
+            float heal = RunModifiers.Total(CardStat.HealOnKill);
+
+            // Referans bir kez cozulur: oldurme basina GetComponent, yogun bir turda
+            // saniyede onlarca arama demek (csharp-code.md).
+            if (heal > 0f)
+            {
+                if (_health == null) _health = GetComponent<PlayerHealth>();
+                _health?.ServerHealFraction(heal);
+            }
+
+            int ammo = Mathf.RoundToInt(RunModifiers.Total(CardStat.AmmoOnKill));
+
+            if (ammo > 0 && weapon != null) weapon.ServerAddReserve(ammo);
+        }
+
+        /// <summary>
+        /// Boss olduruldu: normal oldurme puani ZATEN yazildi, buraya FARK gelir.
+        ///
+        /// <para>Bossu oldurmek bir SECIM olmali - kacmak da mesru. Odul, o secimi
+        /// cazip kilan sey: alti kat puan, tezgahta bir kademe demektir.</para>
+        /// </summary>
+        private void OnBossKilled(float pointsMultiplier)
+        {
+            if (!isServer) return;
+
+            int extra = Mathf.RoundToInt(pointsMultiplier) - 1;
+            if (extra <= 0) return;
+
+            Award(PointEvent.BodyKill, extra);
+        }
+
+        /// <summary>Kart yiginin puan carpanlarini cuzdana gecirir (M-03).</summary>
+        private void OnLoadoutChanged(CardLoadout loadout)
+        {
+            _wallet?.ApplyModifiers(RunModifiers.Total(CardStat.KillPoints),
+                                    RunModifiers.Total(CardStat.RepairPoints));
+        }
+
+        /// <summary>Yeni run: cüzdan sıfırlanır (AC-5).</summary>
+        private void OnRunRestarted()
+        {
+            _wallet = new PlayerWallet(economyConfig.ToRuntime());
+            _spendable = 0;
+            _earned = 0;
         }
 
         /// <summary>Puan yazar. <b>Yalnızca sunucuda çağrılmalı.</b></summary>
@@ -88,6 +169,10 @@ namespace Bunker.Gameplay
             _wallet.Award(pointEvent, times);
             _spendable = _wallet.SpendablePoints;
             _earned = _wallet.TotalEarned;
+
+            // Kazanilan TOPLAM bildirilir, artis degil: ikinci bir toplama yapmak
+            // iki sayinin er gec ayrismasi demektir (config-data.md, hesaplanmis deger).
+            RunSignals.Current.NoteScore(_earned);
         }
 
         /// <summary>Harcama denemesi. Kapı ve duvar silahı buradan geçer (M1-09, M1-10).</summary>

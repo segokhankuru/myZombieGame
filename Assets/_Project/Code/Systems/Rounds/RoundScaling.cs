@@ -33,6 +33,41 @@ namespace Bunker.Systems.Rounds
         public float BreatherSeconds => _config.PacingBreatherSeconds;
 
         /// <summary>
+        /// Tur temizlenince geri gelen yedek mermi oranı (yedek <b>tavanının</b> oranı).
+        /// </summary>
+        public float RoundEndReserveAmmoFraction01 => _config.RoundEndReserveAmmoFraction01;
+
+        /// <summary>Tur temizlenince geri gelen barikat tahtası oranı (tam barikatın oranı).</summary>
+        public float RoundEndBarricadeBoardsFraction01 => _config.RoundEndBarricadeBoardsFraction01;
+
+        /// <summary>
+        /// Bu turda sahada <b>aynı anda</b> durabilecek en fazla zombi.
+        ///
+        /// <para><b>Turun toplamı değil, anlık yükü</b> (2026-09-05). Önceki hâlde tek
+        /// sınır <see cref="MaxConcurrent"/> (performans tavanı) idi; turun bütün
+        /// zombileri kısa aralıklarla arka arkaya doğuyor, sahada yığılıyor ve
+        /// oyuncunun barikata dönüp tamir edecek boşluğu kalmıyordu. Tavan dolduğunda
+        /// doğum durur, biri ölünce yenisi gelir — yani baskı <b>sabit</b> kalır,
+        /// birikmez.</para>
+        ///
+        /// <para>Her zaman <see cref="MaxConcurrent"/> ile sınırlıdır: bu ikisinden
+        /// biri oynanabilirlik, diğeri PERF-BUDGET tavanıdır ve performans tavanı
+        /// tartışmaya açık değildir.</para>
+        /// </summary>
+        public int AliveCapForRound(int round)
+        {
+            round = ClampRound(round);
+
+            float cap = _config.CountAliveCapAtRoundOne +
+                        _config.CountAliveCapAddPerRound * (round - 1);
+
+            int result = (int)Math.Round(cap, MidpointRounding.AwayFromZero);
+
+            if (result > MaxConcurrent) result = MaxConcurrent;
+            return result < 1 ? 1 : result;
+        }
+
+        /// <summary>
         /// Turun toplam zombi sayısı. Hepsi aynı anda canlı olmaz —
         /// <see cref="MaxConcurrent"/> tavanı vardır, kalanı sırada bekler.
         /// </summary>
@@ -66,6 +101,43 @@ namespace Bunker.Systems.Rounds
                 _config.HealthGrowthMultiplierAfterLinear,
                 _config.HealthCap);
         }
+
+        // ---------------------------------------------------------------- boss
+
+        /// <summary>
+        /// Bu turda boss çıkar mı (2026-09-06).
+        ///
+        /// <para><b>Neden düzenli aralık, rastgele değil:</b> oyuncu <b>hazırlanabilmeli</b>.
+        /// Beşinci turun bir boss turu olduğunu bilmek, dördüncü turun molasında
+        /// tezgâha gitmeyi bir <i>plan</i> yapar. Rastgele bir boss, hazırlığı
+        /// imkânsız kılar ve ölümü şansa bağlar (ai-code.md: tahmin edilebilir,
+        /// optimal olandan iyidir).</para>
+        /// </summary>
+        public bool IsBossRound(int round)
+        {
+            int every = _config.BossEveryRounds;
+            if (every <= 0) return false;
+
+            round = ClampRound(round);
+            return round % every == 0;
+        }
+
+        /// <summary>Boss'un canı: turun zombi canının katı.</summary>
+        public float BossHealthForRound(int round) =>
+            HealthForRound(round) * _config.BossHealthMultiplier;
+
+        /// <summary>
+        /// Boss'un hızı. <b>Turun hızından yavaş</b> — çok canlı VE hızlı bir düşman,
+        /// oyuncuya kaçmaktan başka seçenek bırakmaz.
+        /// </summary>
+        public float BossSpeedForRound(int round) =>
+            SpeedForRound(round) * _config.BossSpeedMultiplier;
+
+        public float BossDamageMultiplier => _config.BossDamageMultiplier;
+
+        public float BossScaleMultiplier => _config.BossScaleMultiplier;
+
+        public float BossPointsMultiplier => _config.BossPointsMultiplier;
 
         /// <summary>Turun hız kademesi.</summary>
         public ZombieSpeedTier SpeedTierForRound(int round)

@@ -3,6 +3,7 @@
     "rootNamespace": "Bunker.AI",
     "references": [
         "Bunker.Systems",
+        "Bunker.Audio",
         "Bunker.Config",
         "Unity.InputSystem"
     ],

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Bunker.AI;
 using Bunker.Gameplay;
@@ -157,11 +158,17 @@ namespace Bunker.Editor
 
             try
             {
-                // --- govde carpismasi: isinlarin isabet ettigi yer
+                // --- govde carpismasi: GOVDE kutusu, artik butun zombi degil.
+                //
+                // Onceki surumde 1.8 m'lik tek bir kapsul butun zombiyi kapsiyordu ve
+                // ISININ ONUNDE DURUYORDU: icine yerlestirilen bacak ya da kafa
+                // kutulari hicbir zaman vurulamazdi, cunku isin once en distaki
+                // yuzeye carpar. Uye bazli isabet isteniyorsa govde kutusu govdeyle
+                // sinirli olmak zorunda (2026-09-05).
                 var body = root.AddComponent<CapsuleCollider>();
-                body.height = 1.8f;
-                body.radius = 0.35f;
-                body.center = new Vector3(0f, 0.9f, 0f);
+                body.height = 0.78f;
+                body.radius = 0.30f;
+                body.center = new Vector3(0f, 1.21f, 0f);
 
                 // --- navigasyon
                 var agent = root.AddComponent<NavMeshAgent>();
@@ -184,51 +191,84 @@ namespace Bunker.Editor
                 // (PILLAR-04, kaosta okunabilirlik).
                 agent.obstacleAvoidanceType = ObstacleAvoidanceType.MedQualityObstacleAvoidance;
 
-                // --- gorsel (gri kutu)
-                GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                visual.name = "Visual";
-                visual.transform.SetParent(root.transform, false);
-                visual.transform.localPosition = new Vector3(0f, 0.9f, 0f);
-                visual.transform.localScale = new Vector3(0.7f, 0.9f, 0.7f);
-                UnityEngine.Object.DestroyImmediate(visual.GetComponent<Collider>());
+                // --- gorsel: KALCADAN asagi ve yukari kurulan bir govde
+                //
+                // Onceki surum tek bir kapsuldu. Silindirin iki sorunu vardi: hangi
+                // yone baktigi okunmuyordu ve UYESI olmadigi icin bacak koparilamiyordu.
+                // Uyeler ayri nesneler oldugunda ikisi de cozuluyor - hala gri kutu,
+                // ama artik bir SILUET.
+                //
+                // Kok kalca hizasinda (0.85 m): surunmeye dusen zombi buradan one
+                // yatirilir. Ayak hizasindan dondurmek govdeyi bir metre one atardi
+                // (ZombieAgent.EnterCrawl).
+                var rig = new GameObject("Rig");
+                rig.transform.SetParent(root.transform, false);
+                rig.transform.localPosition = new Vector3(0f, 0.85f, 0f);
 
-                var visualRenderer = visual.GetComponent<Renderer>();
-                visualRenderer.sharedMaterial = material;
+                Transform rigT = rig.transform;
 
-                // --- kafa: hem gorsel yon ipucu hem kafa vurusu kutusu
-                GameObject head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                head.name = "Head";
-                head.transform.SetParent(root.transform, false);
-                head.transform.localPosition = new Vector3(0f, 1.72f, 0f);
-                head.transform.localScale = new Vector3(0.36f, 0.36f, 0.36f);
-                head.GetComponent<Renderer>().sharedMaterial = material;
+                GameObject torso = Limb(rigT, "Torso", PrimitiveType.Capsule,
+                                       new Vector3(0f, 0.35f, 0f), Quaternion.identity,
+                                       new Vector3(0.46f, 0.34f, 0.32f), material, false);
 
-                // --- burun: gri kapsul hangi yone baktigini soylemez. Zombinin
-                //     nereye dondugu telegrafin yarisidir.
-                GameObject nose = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                nose.name = "FacingMarker";
-                nose.transform.SetParent(root.transform, false);
-                nose.transform.localPosition = new Vector3(0f, 1.72f, 0.22f);
-                nose.transform.localScale = new Vector3(0.12f, 0.12f, 0.18f);
-                UnityEngine.Object.DestroyImmediate(nose.GetComponent<Collider>());
-                nose.GetComponent<Renderer>().sharedMaterial = material;
+                var visualRenderer = torso.GetComponent<Renderer>();
+
+                GameObject head = Limb(rigT, "Head", PrimitiveType.Sphere,
+                                       new Vector3(0f, 0.87f, 0.02f), Quaternion.identity,
+                                       new Vector3(0.36f, 0.36f, 0.36f), material, true);
+
+                // Burun: yuz hangi yone bakiyor. Zombinin nereye dondugu telegrafin
+                // yarisidir (ai-code.md).
+                Limb(rigT, "FacingMarker", PrimitiveType.Cube,
+                     new Vector3(0f, 0.86f, 0.22f), Quaternion.identity,
+                     new Vector3(0.12f, 0.10f, 0.16f), material, false);
+
+                // Kollar ONE uzanir: silueti tek bakista "zombi" yapan sey bu, ve
+                // kalabalikta hangi zombinin sana dondugunu uzaktan okutur.
+                Limb(rigT, "ArmL", PrimitiveType.Capsule,
+                     new Vector3(-0.30f, 0.50f, 0.16f), Quaternion.Euler(78f, 0f, 0f),
+                     new Vector3(0.15f, 0.30f, 0.15f), material, false);
+
+                Limb(rigT, "ArmR", PrimitiveType.Capsule,
+                     new Vector3(0.30f, 0.50f, 0.16f), Quaternion.Euler(78f, 0f, 0f),
+                     new Vector3(0.15f, 0.30f, 0.15f), material, false);
+
+                // Bacaklar CARPISTIRICILI: vurulabilir olmalari isin meselesi.
+                GameObject legLeft = Limb(rigT, "LegLeft", PrimitiveType.Capsule,
+                                          new Vector3(-0.13f, -0.43f, 0f), Quaternion.identity,
+                                          new Vector3(0.22f, 0.43f, 0.22f), material, true);
+
+                GameObject legRight = Limb(rigT, "LegRight", PrimitiveType.Capsule,
+                                           new Vector3(0.13f, -0.43f, 0f), Quaternion.identity,
+                                           new Vector3(0.22f, 0.43f, 0.22f), material, true);
 
                 // --- beyin
                 var zombie = root.AddComponent<ZombieAgent>();
                 SetPrivateField(zombie, "bodyRenderer", visualRenderer);
                 SetPrivateField(zombie, "debugVisuals", true);
+                SetPrivateField(zombie, "visualRig", rigT);
+                SetPrivateField(zombie, "legLeft", legLeft);
+                SetPrivateField(zombie, "legRight", legRight);
 
-                // --- vurus kutulari
+                // --- vurus kutulari: her biri kendi anatomisini bilir
                 var bodyHitbox = root.AddComponent<ZombieHitbox>();
-                SetPrivateField(bodyHitbox, "head", false);
+                SetPrivateField(bodyHitbox, "part", ZombiePart.Body);
                 SetPrivateField(bodyHitbox, "owner", zombie);
 
                 // Gelistirme araci: kafanin ustunde can bari (yayin oncesi kapatilir).
                 root.AddComponent<ZombieHealthBar>();
 
                 var headHitbox = head.AddComponent<ZombieHitbox>();
-                SetPrivateField(headHitbox, "head", true);
+                SetPrivateField(headHitbox, "part", ZombiePart.Head);
                 SetPrivateField(headHitbox, "owner", zombie);
+
+                var legLeftHitbox = legLeft.AddComponent<ZombieHitbox>();
+                SetPrivateField(legLeftHitbox, "part", ZombiePart.LegLeft);
+                SetPrivateField(legLeftHitbox, "owner", zombie);
+
+                var legRightHitbox = legRight.AddComponent<ZombieHitbox>();
+                SetPrivateField(legRightHitbox, "part", ZombiePart.LegRight);
+                SetPrivateField(legRightHitbox, "owner", zombie);
 
                 return PrefabUtility.SaveAsPrefabAsset(root, ZombiePrefabPath);
             }
@@ -236,6 +276,32 @@ namespace Bunker.Editor
             {
                 UnityEngine.Object.DestroyImmediate(root);
             }
+        }
+
+        /// <summary>
+        /// Zombinin bir uzvunu kurar.
+        ///
+        /// <para><b>Çarpıştırıcı isteğe bağlı ve bilerek:</b> yalnızca <i>vurulabilir</i>
+        /// olması gereken uzuvlar (kafa, bacaklar) çarpıştırıcı taşır. Kolun kutusu
+        /// olsaydı gövdeye nişan alan her atış kola girer ve gövde vuruşu diye bir şey
+        /// kalmazdı — fazladan çarpıştırıcı, ücretsiz bir ayrıntı değil bir davranış
+        /// değişikliğidir.</para>
+        /// </summary>
+        private static GameObject Limb(Transform parent, string name, PrimitiveType shape,
+                                       Vector3 localPosition, Quaternion localRotation,
+                                       Vector3 localScale, Material material, bool keepCollider)
+        {
+            GameObject go = GameObject.CreatePrimitive(shape);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPosition;
+            go.transform.localRotation = localRotation;
+            go.transform.localScale = localScale;
+
+            if (!keepCollider) UnityEngine.Object.DestroyImmediate(go.GetComponent<Collider>());
+
+            go.GetComponent<Renderer>().sharedMaterial = material;
+            return go;
         }
 
         private static Material LoadOrCreateMaterial()
@@ -304,18 +370,23 @@ namespace Bunker.Editor
                     changed = true;
                 }
 
-                if (contents.GetComponent<DebugPlayerHealth>() == null)
-                {
-                    contents.AddComponent<DebugPlayerHealth>();
-                    changed = true;
-                }
+                // M1-11: gecici DebugPlayerHealth'in yerini gercek can aldi. Eski
+                // bilesen prefab'da kalmis olabilir - betik silindigi icin Unity onu
+                // "Missing Script" olarak gosterir ve ReportRemainingMissing yakalar.
+                var health = contents.GetComponent<PlayerHealth>();
+                if (health == null) { health = contents.AddComponent<PlayerHealth>(); changed = true; }
+
+                // Alan yazimlari da DEGISIKLIK sayilir (2026-09-05): sayilmazsa,
+                // hicbir bilesen eklenmediginde prefab KAYDEDILMIYOR ve yeni
+                // baglanan ayarlar sessizce kayboluyordu.
+                changed |= SetPrivateField(health, "playerConfig", LoadConfigAsset("player"));
 
                 changed |= PatchWeapon(contents);
 
                 if (!changed) return;
 
                 PrefabUtility.SaveAsPrefabAsset(contents, PlayerPrefabPath);
-                Debug.Log("[Zombi] Oyuncu prefab'ina hedef isareti ve gecici can eklendi.");
+                Debug.Log("[Zombi] Oyuncu prefab'ina hedef isareti ve can eklendi.");
             }
             finally
             {
@@ -381,7 +452,25 @@ namespace Bunker.Editor
             }
 
             // --- duvar silahlari
-            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid" })
+            // --- tezgah istasyonu (M-03)
+            GameObject shopMarker = GameObject.Find("Shop_Station");
+
+            if (shopMarker != null)
+            {
+                if (shopMarker.GetComponent<ShopStation>() == null)
+                {
+                    shopMarker.AddComponent<ShopStation>();
+                }
+
+                EnsureInteractionTrigger(shopMarker, new Vector3(1.4f, 1.6f, 0.8f));
+            }
+            else
+            {
+                Debug.LogWarning("[Zombi] 'Shop_Station' isareti yok - tezgah acilamaz. " +
+                                 "Gri kutu yeniden uretilmeli.");
+            }
+
+            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid", "WallBuy_C_Rifle" })
             {
                 GameObject marker = GameObject.Find(name);
                 if (marker == null) continue;
@@ -392,8 +481,20 @@ namespace Bunker.Editor
                 EnsureInteractionTrigger(marker, new Vector3(1.4f, 1.4f, 0.8f));
 
                 SetPrivateField(wall, "economyConfig", economy);
-                SetPrivateField(wall, "midTier", name.EndsWith("Mid"));
-                SetPrivateField(wall, "displayName", "MERMI");
+
+                // Her duvar noktasi BIR silah satar (2026-09-06) ve modelini asar.
+                // Fiyat farki silahin YERINI de soyluyor: ucuz olan baslangic
+                // odasinda, digerleri kapinin arkasinda ve ust katta.
+                (string id, string label) sold = name switch
+                {
+                    "WallBuy_A_Cheap" => ("weapon.smg", "MP-KISA"),
+                    "WallBuy_B_Mid" => ("weapon.shotgun", "POMPALI"),
+                    _ => ("weapon.rifle", "TUFEK")
+                };
+
+                SetPrivateField(wall, "weaponId", sold.id);
+                SetPrivateField(wall, "displayName", sold.label);
+                SetPrivateField(wall, "catalog", LoadConfigAsset("weapons"));
 
                 weapons++;
             }
@@ -499,17 +600,45 @@ namespace Bunker.Editor
                 Debug.Log("[Zombi] Oyuncu kamerasi 'MainCamera' olarak etiketlendi.");
             }
 
-            SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
-            SetPrivateField(weapon, "tracer", line);
-            SetPrivateField(score, "economyConfig", LoadConfigAsset("economy"));
-            SetPrivateField(score, "weapon", weapon);
-            SetPrivateField(score, "melee", melee);
-            SetPrivateField(melee, "knifeConfig", LoadConfigAsset("knife"));
-            SetPrivateField(repair, "barricadeConfig", LoadConfigAsset("barricade"));
-            SetPrivateField(repair, "score", score);
-            SetPrivateField(repair, "interact", interact);
-            SetPrivateField(interact, "score", score);
-            SetPrivateField(interact, "weapon", weapon);
+            // --- ses dinleyicisi: 3B sesin YONU bunun bulundugu yerden hesaplanir.
+            //     Kamerada degil de kokte olsaydi zombinin sagdan mi soldan mi geldigi
+            //     oyuncu dondugunde degismezdi - yani ses hicbir sey soylemezdi.
+            if (playerCamera != null && playerCamera.GetComponent<AudioListener>() == null)
+            {
+                playerCamera.gameObject.AddComponent<AudioListener>();
+                changed = true;
+                Debug.Log("[Zombi] Oyuncu kamerasina AudioListener eklendi.");
+            }
+
+            // --- el modeli (2026-09-05): silah ve bicak artik GORUNUYOR.
+            var viewmodel = player.GetComponent<PlayerViewmodel>();
+            if (viewmodel == null) { viewmodel = player.AddComponent<PlayerViewmodel>(); changed = true; }
+
+            changed |= SetPrivateField(viewmodel, "playerCamera", playerCamera);
+            changed |= SetPrivateField(viewmodel, "weapon", weapon);
+            changed |= SetPrivateField(viewmodel, "melee", melee);
+
+            // Kosu ayari (2026-09-05): PlayerController artik player.json'i okuyor.
+            // Baglanmazsa kosu SESSIZCE calismaz - bu yuzden burada baglaniyor ve
+            // bilesenin kendisi eksikligi hata olarak logluyor.
+            var controller = player.GetComponent<PlayerController>();
+            if (controller != null)
+            {
+                changed |= SetPrivateField(controller, "playerConfig", LoadConfigAsset("player"));
+            }
+
+            changed |= SetPrivateField(weapon, "weaponConfig", LoadConfigAsset("weapon"));
+            changed |= SetPrivateField(weapon, "catalog", LoadConfigAsset("weapons"));
+            changed |= SetPrivateField(weapon, "tracer", line);
+            changed |= SetPrivateField(score, "economyConfig", LoadConfigAsset("economy"));
+            changed |= SetPrivateField(score, "weapon", weapon);
+            changed |= SetPrivateField(score, "melee", melee);
+            changed |= SetPrivateField(melee, "knifeConfig", LoadConfigAsset("knife"));
+            changed |= SetPrivateField(repair, "barricadeConfig", LoadConfigAsset("barricade"));
+            changed |= SetPrivateField(repair, "score", score);
+            changed |= SetPrivateField(repair, "interact", interact);
+            changed |= SetPrivateField(interact, "score", score);
+            changed |= SetPrivateField(interact, "weapon", weapon);
 
             return changed;
         }
@@ -563,6 +692,46 @@ namespace Bunker.Editor
             }
 
             if (host.GetComponent<CombatHud>() == null) host.AddComponent<CombatHud>();
+
+            // M1-11: skor ekrani ayni sahne nesnesinde yasar. Ayri bir nesne olsaydi
+            // kurulum araci ikisini ayri ayri bulmak zorunda kalirdi ve biri eksik
+            // kaldiginda hata sessiz olurdu - olen oyuncu bos ekrana bakar.
+            if (host.GetComponent<GameOverHud>() == null) host.AddComponent<GameOverHud>();
+
+            // M-03 kart draft'i: denetleyici ve ekran ayni HUD nesnesinde. Ayri bir
+            // nesne olsaydi biri unutuldugunda kart sistemi SESSIZCE hic acilmazdi.
+            var draft = host.GetComponent<CardDraftController>();
+            if (draft == null) draft = host.AddComponent<CardDraftController>();
+
+            SetPrivateField(draft, "catalog", LoadConfigAsset("cards"));
+
+            // Puanli yenilemenin fiyati ekonomiden gelir (economy.json v4).
+            SetPrivateField(draft, "economyConfig", LoadConfigAsset("economy"));
+
+            var draftHud = host.GetComponent<CardDraftHud>();
+            if (draftHud == null) draftHud = host.AddComponent<CardDraftHud>();
+
+            var shopController = host.GetComponent<ShopController>();
+            if (shopController == null) shopController = host.AddComponent<ShopController>();
+
+            SetPrivateField(shopController, "shopConfig", LoadConfigAsset("shop"));
+            SetPrivateField(draftHud, "controller", draft);
+
+            // Hasar sayilari ve hasar yonu gostergesi (2026-09-05).
+            if (host.GetComponent<DamageNumbersHud>() == null) host.AddComponent<DamageNumbersHud>();
+
+            // TAB durum paneli (2026-09-06): kesin sayilar.
+            if (host.GetComponent<StatsHud>() == null) host.AddComponent<StatsHud>();
+
+            // M-04: ESC duraklatma menusu. Ayni HUD nesnesinde, ayni gerekceyle -
+            // ayri bir nesne olsaydi biri unutuldugunda ESC SESSIZCE hicbir sey
+            // yapmazdi.
+            if (host.GetComponent<PauseMenu>() == null) host.AddComponent<PauseMenu>();
+
+            var shopHud = host.GetComponent<ShopHud>();
+            if (shopHud == null) shopHud = host.AddComponent<ShopHud>();
+
+            SetPrivateField(shopHud, "shop", shopController);
         }
 
         // ---------------------------------------------------------------- sahne
@@ -615,6 +784,14 @@ namespace Bunker.Editor
             if (sandbox == null) sandbox = sandboxHost.AddComponent<ZombieSandbox>();
 
             SetPrivateField(sandbox, "director", director);
+
+            // Otomatik kare suresi olcumu (CK-15). Yalnizca -perfRun argumaniyla
+            // uyanir; normal oyunda hicbir sey yapmaz. Sahnede DURMASI gerekiyor,
+            // cunku build'de calisacak ve build'e sonradan bilesen eklenemez.
+            var perf = sandboxHost.GetComponent<PerfRunner>();
+            if (perf == null) perf = sandboxHost.AddComponent<PerfRunner>();
+
+            SetPrivateField(perf, "director", director);
         }
 
         private static UnityEngine.Object LoadConfigAsset(string domain)
@@ -624,8 +801,13 @@ namespace Bunker.Editor
 
             if (asset == null)
             {
-                Debug.LogWarning($"[Zombi] Config varligi yok: {path}. " +
-                                 "'Bunker/Config/Ice Aktar' calistirilmali.");
+                // Uyari DEGIL, hata. Eksik config sessizce null olarak baglaniyordu ve
+                // yarim bagli bir prefab uretiyordu; sonuc, Play'e basildiginda
+                // sebebi cok uzakta olan bir NullReference. Kurulum zamaninda yuksek
+                // sesle patlamak, oyun zamaninda sasirmaktan ucuz.
+                Debug.LogError($"[Zombi] Config varligi yok: {path}. Once " +
+                               "'Bunker/Config/Ice Aktar' calistir - bu varlik " +
+                               "olmadan kurulum yarim kalir ve hata Play'de cikar.");
             }
 
             return asset;
@@ -703,8 +885,13 @@ namespace Bunker.Editor
                 return false;
             }
 
-            UnityEngine.Object[] surfaces =
-                UnityEngine.Object.FindObjectsByType(surfaceType, FindObjectsSortMode.None);
+            // FindObjectsInactive.Include ZORUNLU. Iki argumanli asiri yuk KAPALI
+            // nesneleri ATLAR; oyle olsaydi kapali bir NavMeshSurface bu listeye
+            // girmez, varligi CleanOrphanNavMeshAssets'in "kullanimda" kumesine
+            // yazilmaz ve HALA REFERANS EDILEN bir varlik silinirdi. Yikici bir
+            // sessiz hata: sahne acilir, NavMesh yoktur, sebebi hicbir yerde yazmaz.
+            UnityEngine.Object[] surfaces = UnityEngine.Object.FindObjectsByType(
+                surfaceType, FindObjectsInactive.Include, FindObjectsSortMode.None);
 
             if (surfaces.Length == 0)
             {
@@ -769,6 +956,10 @@ namespace Bunker.Editor
                     EditorUtility.SetDirty(surfaces[i]);
                 }
 
+                // Sebep duzeldikten SONRA birikmis borcu da kapat: temizlenmeyen bir
+                // yetim, bir dahaki sefere "acaba bu lazim mi" diye duraksatir.
+                CleanOrphanNavMeshAssets(dataProperty, surfaces);
+
                 // Baglanti olcumu TAM BURADA yapilir: bake yeni, kanatlar hala kapali,
                 // yani olculen sey haritanin topolojisi. Ayri bir oturumda olcmek
                 // kapali kapilarin oymasini geri almayi gerektiriyor ve o geri alma
@@ -811,10 +1002,93 @@ namespace Bunker.Editor
                 AssetDatabase.CreateFolder(folder, sceneName);
             }
 
-            string path = AssetDatabase.GenerateUniqueAssetPath(
-                $"{dataFolder}/NavMesh-{sceneName}-{index}.asset");
+            // SABIT yol. Onceki surum GenerateUniqueAssetPath kullaniyordu ve o
+            // metodun isi TANIMI GEREGI her cagrida yeni bir yol uretmek: her bake
+            // "NavMesh-M0-Sandbox-0 1", " 2", " 3" ... biriktiriyordu ve eskisi yetim
+            // kaliyordu. 25 tane birikmisti. editor-tools.md'nin ilk kurali:
+            // "araci iki kez calistirmak bir kez calistirmakla ayni sonucu verir".
+            string path = $"{dataFolder}/NavMesh-{sceneName}-{index}.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<NavMeshData>(path);
+
+            if (existing != null)
+            {
+                // Icerigi mevcut varliga KOPYALA, dosyayi silip yeniden yaratma.
+                // CreateAsset ayni yola yazsaydi eski varligi silip yenisini
+                // yaratirdi; GUID degisir ve sahnedeki referans her bake'te
+                // yenilenirdi - yani sahne dosyasi durup dururken kirlenirdi.
+                EditorUtility.CopySerialized(data, existing);
+                dataProperty.SetValue(surface, existing);
+                EditorUtility.SetDirty(existing);
+                return;
+            }
 
             AssetDatabase.CreateAsset(data, path);
+        }
+
+        /// <summary>
+        /// Sahne klasöründe hiçbir <c>NavMeshSurface</c>'in kullanmadığı NavMesh
+        /// varlıklarını siler.
+        ///
+        /// <para><b>Neden gerekli:</b> <see cref="PersistNavMeshData"/> düzelmeden önceki
+        /// her bake bir yetim bırakmıştı. Yalnızca sebebi düzeltmek birikmiş 25 dosyayı
+        /// temizlemez, ve temizlenmeyen bir borç bir dahaki sefere "acaba bu lazım mı"
+        /// diye duraksatır.</para>
+        ///
+        /// <para><b>Referans kontrolü sahneden yapılır</b>, ada bakarak değil: adına
+        /// bakıp silmek, ileride farklı adlandırılan geçerli bir varlığı silme riski
+        /// taşır.</para>
+        /// </summary>
+        private static int CleanOrphanNavMeshAssets(PropertyInfo dataProperty,
+                                                    UnityEngine.Object[] surfaces)
+        {
+            Scene scene = EditorSceneManager.GetActiveScene();
+            string folder = System.IO.Path.GetDirectoryName(scene.path)?.Replace('\\', '/');
+            string sceneName = System.IO.Path.GetFileNameWithoutExtension(scene.path);
+
+            if (string.IsNullOrEmpty(folder)) return 0;
+
+            string dataFolder = $"{folder}/{sceneName}";
+            if (!AssetDatabase.IsValidFolder(dataFolder)) return 0;
+
+            // Emniyet: hic yuzey bulunamadiysa HICBIR SEY SILME. Bos bir "kullanimda"
+            // kumesi, klasordeki her varligi yetim gosterir - yani bir arama hatasi
+            // butun NavMesh'leri silerdi. Silme geri alinamaz; supheliyken durur.
+            if (surfaces == null || surfaces.Length == 0)
+            {
+                Debug.LogWarning("[Zombi] NavMeshSurface bulunamadi; yetim temizligi " +
+                                 "ATLANDI. Silme yapmak yerine dokunmamak dogru olan.");
+                return 0;
+            }
+
+            // Halen kullanilan varliklarin yollari.
+            var inUse = new HashSet<string>();
+
+            for (int i = 0; i < surfaces.Length; i++)
+            {
+                if (dataProperty?.GetValue(surfaces[i]) is not NavMeshData used) continue;
+
+                string usedPath = AssetDatabase.GetAssetPath(used);
+                if (!string.IsNullOrEmpty(usedPath)) inUse.Add(usedPath);
+            }
+
+            int deleted = 0;
+
+            foreach (string guid in AssetDatabase.FindAssets("t:NavMeshData", new[] { dataFolder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+
+                if (inUse.Contains(path)) continue;
+
+                if (AssetDatabase.DeleteAsset(path)) deleted++;
+            }
+
+            if (deleted > 0)
+            {
+                Debug.Log($"[Zombi] {deleted} yetim NavMesh varligi silindi ({dataFolder}).");
+            }
+
+            return deleted;
         }
 
         // ---------------------------------------------------------------- yardimcilar
@@ -852,7 +1126,12 @@ namespace Bunker.Editor
         /// yapmak yerine bu yol seçildi: bir alanı yalnızca kurulum aracı doldurabiliyor
         /// diye herkese açmak, tasarlanmamış bir API üretir (csharp-code.md).
         /// </summary>
-        private static void SetPrivateField(UnityEngine.Object target, string fieldName, object value)
+        /// <returns>
+        /// Alan GERCEKTEN degistiyse <c>true</c>. Cagiran taraf bunu "prefab kaydedilmeli"
+        /// diye okur: bir alani yazip prefab'i kaydetmemek, aracin "tamam" deyip hicbir sey
+        /// baglamamasi demektir - bu projenin en pahali hata turu (2026-09-05).
+        /// </returns>
+        private static bool SetPrivateField(UnityEngine.Object target, string fieldName, object value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = serialized.FindProperty(fieldName);
@@ -861,7 +1140,7 @@ namespace Bunker.Editor
             {
                 Debug.LogError($"[Zombi] '{target.GetType().Name}' uzerinde '{fieldName}' " +
                                "alani yok. Alan adi degistiyse bu araci da guncelle.");
-                return;
+                return false;
             }
 
             // Her tip acikca ele alinir. Onceki surum yalnizca bool ve nesne
@@ -908,10 +1187,10 @@ namespace Bunker.Editor
                 default:
                     Debug.LogError($"[Zombi] '{fieldName}' icin desteklenmeyen tip: " +
                                    $"{value.GetType().Name}. SetPrivateField genisletilmeli.");
-                    return;
+                    return false;
             }
 
-            serialized.ApplyModifiedPropertiesWithoutUndo();
+            return serialized.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

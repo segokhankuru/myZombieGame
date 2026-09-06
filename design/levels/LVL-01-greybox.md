@@ -188,3 +188,60 @@ ya da bölme kaydırılmalı.
 **Doğrulama göz kararı değil:** `Bunker/Level/NavMesh Baglanti Kontrolu` zeminden üst kata,
 üst kattan zemine ve her pencerenin içinden oyuncuya yol hesaplar. Ölçüler her
 değiştiğinde çalıştırılmalı — bake sonrası tek geçerli kanıt budur.
+
+---
+
+## Dış alan revizyonu — 2026-09-04
+
+> **Karar (geliştirici):** *"Haritada bunkerın dışını genişlet ve dışarıya bakınca bir
+> ortam görelim; zombiler barikata gelirken bir yoldan geldiği gözüksün, çünkü direkt
+> barikatın dibinde doğmaları barikat dışını savunmayı anlamsız kılıyor. Barikat
+> noktasını azaltmak lazım, çok fazla odak noktası var — %30-40 azaltalım."*
+
+### Üç değişiklik
+
+| | Önce | Sonra | Neden |
+|---|---|---|---|
+| Dış şerit (`ApronWidth`) | 6 m | **18 m** | Yaklaşma için yer; 6 m'de yürüyecek mesafe yoktu |
+| Doğum mesafesi | ~3.4 m | **14 m** | Barikatın dibinde beliren zombi, dışarısını savunmayı anlamsız kılıyordu |
+| Pencere aralığı | 8 m | **12 m** | Odak noktası sayısını düşürmek |
+| Çevre duvarı | yok | **3.5 m, dört geçitli** | Dünyanın bir kenarı olsun; zombi belirli bir yerden gelsin |
+
+### Ölçülen sonuç
+
+| | Önce | Sonra |
+|---|---|---|
+| Toplam pencere | 20 | **12** |
+| **Barikat noktası** (zemin kat) | 10 | **6** — **%40 azalma** |
+| NavMesh bağlantısı | BAĞLI | **BAĞLI** (6/6 pencerede dışarıda ve içeride NavMesh var) |
+| Tur 20'de eşzamanlı zombi | 40 | **40** (değişmedi — 6 pencere 40 zombiyi hâlâ besliyor) |
+| Kare süresi p50 | 0.89 ms | **0.82 ms** (biraz daha ucuz: 6 barikat 10'dan az iş) |
+| Kare süresi p99 | 1.36 ms | **1.05–1.26 ms** |
+
+> **Bir ölçüm yanılttı:** ilk koşu p99 = 3.22 ms verdi (bütçenin %20'si) ve "6 pencereye
+> sıkışma pahalıya patladı" gibi okundu. Tekrar ölçümler 1.05 ve 1.26 ms verdi; ilk
+> koşunun `maxMs` değeri 36.5 ms'ti, yani tek bir sıçrama (büyük olasılıkla shader
+> derlemesi) p99'u tek başına belirlemişti. **Tek ölçümle regresyon ilan edilmez.**
+
+### Çevre duvarı ve geçitler
+
+Geçitler dört kenarın **ortasında**, 6 m genişliğinde. Köşeye koymak iki geçidi
+birbirine yakınlaştırır ve sürüyü tek noktaya yığar.
+
+Duvar şu an **manzara + sınır**: zombi doğumu hâlâ pencereye göre seçiliyor ve doğum
+noktası (14 m) duvarın **içinde** kalıyor. Yani zombi geçitten *girmiyor*, yardın içinde
+beliriyor — ama 14 m yürüyor ve bu mesafe onu görünür kılıyor.
+
+**Bir sonraki adım (M-02):** doğumu geçitlere taşımak, böylece zombi gerçekten dışarıdan
+gelir. Bu, doğum seçimini pencere yerine geçide bağlamayı gerektiriyor —
+`ZombieDirector`'ın doğum mantığında bir değişiklik, ve oyun testinden önce risk almaya
+değmez.
+
+### Oyun testinde bakılacak
+
+- 18 m yürüyüş **çok mu uzun**? Zombi barikata varana kadar geçen süre turun temposunu
+  yavaşlatıyorsa `SpawnStandoffMeters` düşürülür
+- 6 barikat noktası **çok mu az**? Savunma tek noktaya sıkışıp sıkıcı hâle geliyorsa
+  `WindowSpacingMeters` geri çekilir
+- 10 saniyelik mola 6 pencereyi tamir etmeye yetiyor mu (tur başı otomatik tamir
+  kaldırıldı — `docs/DECISIONS.md`, 2026-09-04)

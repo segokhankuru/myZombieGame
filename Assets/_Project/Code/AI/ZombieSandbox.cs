@@ -28,7 +28,6 @@ namespace Bunker.AI
         [Header("Ekran")]
         [SerializeField] private bool showHud = true;
 
-        private DebugPlayerHealth _playerHealth;
         private int _killsThisRun;
 
         private readonly StringBuilder _hud = new StringBuilder(256);
@@ -149,8 +148,6 @@ namespace Bunker.AI
 
             DrawBreatherCountdown();
 
-            if (_playerHealth == null) _playerHealth = FindFirstObjectByType<DebugPlayerHealth>();
-
             _hud.Clear();
             _hud.Append("ZOMBI TEZGAHI (M1-05)\n");
 
@@ -168,11 +165,8 @@ namespace Bunker.AI
 
             _hud.Append("oldurme (run) ").Append(_killsThisRun);
 
-            if (_playerHealth != null)
-            {
-                _hud.Append("   oyuncu cani ").Append(_playerHealth.Current.ToString("F0"))
-                    .Append('/').Append(_playerHealth.Max.ToString("F0"));
-            }
+            // Oyuncu cani M1-11'de CombatHud'un can barina tasindi. Buradan okunamaz:
+            // can Bunker.Gameplay'de yasiyor ve Bunker.AI onu gormez.
 
             _hud.Append('\n').Append("F7/F8 tur atla   F9 sahayi temizle");
 

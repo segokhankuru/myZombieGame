@@ -1,19 +1,18 @@
-﻿{
+{
   "project": "Bunker",
-  "phase": "preproduction",
+  "phase": "production",
   "reviewMode": "lean",
   "scale": "indie",
   "activeRoles": [],
   "milestone": "M-01",
-  "openGateConditions": 0,
+  "openGateConditions": 1,
   "stack": {
     "unity": "6000.3 LTS",
     "pipeline": "URP (Forward+)",
     "netcode": "Mirror (MIT)",
     "transport": "FizzySteamworks / FizzyFacepunch"
   },
-  "counters": { "epics": 0, "stories": 23, "done": 11, "bugs": 5, "generations": 0 },
-  "lastUpdated": "2026-09-02"
+  "counters": { "epics": 0, "stories": 23, "done": 13, "bugs": 5, "generations": 0 },
+  "openGates": ["PT-FUN (CK-17) - protokol hazir, seans kosulmadi"],
+  "lastUpdated": "2026-09-05"
 }
-
-

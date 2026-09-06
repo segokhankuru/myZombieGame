@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class RoundsConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 1;
+        [SerializeField] private int version = 3;
 
         [Header("count")]
         [Tooltip("Tur 1'de oyuncu basina zombi. Cok dusuk olursa ilk turlar bos ve sikici gecer, oyuncu daha kurallari ogrenmeden canı sikilir. Cok yuksek olursa oyuncu silah alacak puani biriktiremeden bogulur.")]
@@ -42,6 +42,14 @@ namespace Bunker.Config
         [Tooltip("Ayni anda canli olabilecek maksimum zombi. Turun geri kalani sirada bekler. Bu bir denge degeri degil, PERF-BUDGET.md'den gelen performans tavanidir - artirmadan once olcum gerekir.")]
         [Range(10, 60)]
         [SerializeField] private int countMaxConcurrent = 40;
+
+        [Tooltip("Tur 1'de sahada AYNI ANDA durabilecek zombi. Turun toplami degil, anlik yuku. Cok dusukse sure bos beklemekle gecer ve tur uzar; cok yuksekse oyuncu barikata donup tamir edecek bosluk bulamaz - oyun testinde tam olarak bu goruldu.")]
+        [Range(2, 30)]
+        [SerializeField] private int countAliveCapAtRoundOne = 5;
+
+        [Tooltip("Her tur anlik tavana eklenen zombi. Tavan her zaman maxConcurrent ile sinirlidir. Dusurursen gec turlar seyrek ve kolay kalir; buyutursen ayni tavan sorununa geri donulur.")]
+        [Range(0f, 4f)]
+        [SerializeField] private float countAliveCapAddPerRound = 1f;
 
         [Header("health")]
         [Tooltip("Tur 1 zombi cani. Baslangic silahinin kac isabetle oldurdugunu belirler. Cok dusukse silah guclu hissetmez cunku her sey tek vurusla olur; cok yuksekse baslangic silahi ise yaramaz gorunur.")]
@@ -67,23 +75,57 @@ namespace Bunker.Config
         [Header("speed")]
         [Tooltip("Erken tur hizi. Oyuncu yuruyus hizindan belirgin yavas olmali ki ilk turlar ogretici olsun.")]
         [Range(0.8f, 2.5f)]
-        [SerializeField] private float speedWalkMetersPerSecond = 1.4f;
+        [SerializeField] private float speedWalkMetersPerSecond = 1.3f;
 
         [Tooltip("Orta tur hizi. Oyuncu hizina yakin - artik kacmak yetmez, rota gerekir.")]
         [Range(2f, 4.5f)]
-        [SerializeField] private float speedJogMetersPerSecond = 2.9f;
+        [SerializeField] private float speedJogMetersPerSecond = 2.2f;
 
         [Tooltip("Gec tur hizi. Oyuncudan hizli olmali; bu andan sonra hayatta kalmanin tek yolu kosu dongusudur (LVL-01).")]
         [Range(3.5f, 7f)]
-        [SerializeField] private float speedRunMetersPerSecond = 4.6f;
+        [SerializeField] private float speedRunMetersPerSecond = 3.6f;
 
         [Tooltip("Bu tura kadar zombiler yurur.")]
         [Range(1, 10)]
-        [SerializeField] private int speedWalkUntilRound = 4;
+        [SerializeField] private int speedWalkUntilRound = 6;
 
         [Tooltip("Bu tura kadar tempolu, sonrasinda kosar. Erken gelirse oyuncu haritayi ogrenemeden panige girer.")]
         [Range(2, 20)]
-        [SerializeField] private int speedJogUntilRound = 8;
+        [SerializeField] private int speedJogUntilRound = 12;
+
+        [Header("boss")]
+        [Tooltip("Kac turda bir boss cikar. Sik olursa boss sıradanlasir ve bir olay olmaktan cikar; seyrek olursa oyuncu onu tanimadan tur 20'ye gelir.")]
+        [Range(2, 20)]
+        [SerializeField] private int bossEveryRounds = 5;
+
+        [Tooltip("Boss cani = turun zombi cani x bu. Dusuk olursa boss bir zombiden farksizlasir; yuksek olursa oyuncunun butun mermisini yer ve tur bir sunger dovmeye doner.")]
+        [Range(3f, 40f)]
+        [SerializeField] private float bossHealthMultiplier = 14f;
+
+        [Tooltip("Boss hizi = turun hizi x bu. BIRIN ALTINDA olmali: cok canli VE hizli bir dusman, oyuncuya kacmaktan baska secenek birakmaz ve o da isleyen bir plan degildir. Yavas olmasi, onu bir KOSU DONGUSU problemi yapar.")]
+        [Range(0.4f, 1.2f)]
+        [SerializeField] private float bossSpeedMultiplier = 0.75f;
+
+        [Tooltip("Boss vurusu = normal zombi hasari x bu. Iki vurusla oldurmemeli ama iki vurus da onemli olmali.")]
+        [Range(1f, 4f)]
+        [SerializeField] private float bossDamageMultiplier = 2f;
+
+        [Tooltip("Gorsel buyukluk. Boss'un kalabaligin icinde ILK BAKISTA taninmasi sart (PILLAR-04); renk tek basina yetmez cunku sahne loş.")]
+        [Range(1.1f, 3f)]
+        [SerializeField] private float bossScaleMultiplier = 1.7f;
+
+        [Tooltip("Oldurme puani carpani. Bossu oldurmek bir SECIM olmali: kacmak da mesru, ama oldurmek tezgaha gidecek puani vermeli.")]
+        [Range(1f, 20f)]
+        [SerializeField] private float bossPointsMultiplier = 6f;
+
+        [Header("roundEnd")]
+        [Tooltip("Tur temizlendiginde yedek mermi TAVANININ bu orani kadar mermi geri gelir. Sifir olursa mermi tamamen satin almaya baglanir ve tek harcama kalir; 1'e yaklasirsa mermi bir kaynak olmaktan cikar ve duvardaki mermi noktasi anlamsizlasir.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float roundEndReserveAmmoFraction01 = 0.4f;
+
+        [Tooltip("Tur temizlendiginde her pencerede tam barikatin bu orani kadar tahta geri gelir. Sifir olursa gec turlarda butun mola tamirle gecer ve tezgaha gitmek imkansizlasir; 1'e yaklasirsa tamir etmek bir karar olmaktan cikar.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float roundEndBarricadeBoardsFraction01 = 0.4f;
 
         [Header("pacing")]
         [Tooltip("Turlar arasi nefes molasi. Cok kisa olursa PILLAR-03'un ritmi bozulur ve oyun yorucu olur; cok uzun olursa gerilim soguр.")]
@@ -108,6 +150,8 @@ namespace Bunker.Config
                 countLinearPhaseUntilRound,
                 countGrowthMultiplierAfterLinear,
                 countMaxConcurrent,
+                countAliveCapAtRoundOne,
+                countAliveCapAddPerRound,
                 healthAtRoundOne,
                 healthLinearAddPerRound,
                 healthLinearPhaseUntilRound,
@@ -118,6 +162,14 @@ namespace Bunker.Config
                 speedRunMetersPerSecond,
                 speedWalkUntilRound,
                 speedJogUntilRound,
+                bossEveryRounds,
+                bossHealthMultiplier,
+                bossSpeedMultiplier,
+                bossDamageMultiplier,
+                bossScaleMultiplier,
+                bossPointsMultiplier,
+                roundEndReserveAmmoFraction01,
+                roundEndBarricadeBoardsFraction01,
                 pacingBreatherSeconds,
                 pacingSpawnIntervalSecondsAtRoundOne,
                 pacingSpawnIntervalFloorSeconds);

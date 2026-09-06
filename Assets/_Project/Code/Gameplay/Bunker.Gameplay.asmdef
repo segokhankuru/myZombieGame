@@ -3,6 +3,7 @@
     "rootNamespace": "Bunker.Gameplay",
     "references": [
         "Bunker.Systems",
+        "Bunker.Audio",
         "Bunker.Config",
         "Mirror",
         "Mirror.Components",

@@ -49,6 +49,82 @@ namespace Bunker.Editor
         [MenuItem("Bunker/Level/LVL-01 Gri Kutu Uret", false, 100)]
         public static void GenerateFromMenu() => Generate(LoadOrCreateSettings());
 
+        /// <summary>
+        /// Dış alan düzenini ayar varlığına uygular (2026-09-04).
+        ///
+        /// <para><b>Neden ayrı bir adım gerekiyor:</b> C# içindeki varsayılanı
+        /// değiştirmek <b>var olan bir <c>ScriptableObject</c> varlığını
+        /// değiştirmez</b> — Unity diskte yazılı değeri okur. <c>WindowSpacingMeters</c>
+        /// varlıkta <c>8</c> olarak duruyordu ve sınıftaki yeni varsayılan (<c>12</c>)
+        /// hiçbir şey yapmıyordu. Harita yeniden üretildi, pencere sayısı değişmedi,
+        /// araç da "üretildi" dedi — sessiz başarısızlığın bir başka kılığı.</para>
+        ///
+        /// <para><b>Yalnızca bu oturumda değişen alanı yazar.</b> Elle ayarlanmış başka
+        /// hiçbir ölçüye dokunmaz.</para>
+        /// </summary>
+        [MenuItem("Bunker/Level/Dis Alan Duzenini Uygula", false, 102)]
+        public static void ApplyOutdoorLayout()
+        {
+            BlockoutSettings settings = LoadOrCreateSettings();
+            var defaults = ScriptableObject.CreateInstance<BlockoutSettings>();
+
+            var so = new SerializedObject(settings);
+            int changed = 0;
+
+            // Yalnizca 2026-09-04'te degisen alan. Digerleri (ApronWidth,
+            // PerimeterWallHeight, GateWidth, SpawnStandoffMeters) varlikta hic
+            // yazili olmadigi icin sinif varsayilanini zaten aliyor.
+            changed += SyncFloat(so, "WindowSpacingMeters", defaults.WindowSpacingMeters);
+
+            if (changed > 0)
+            {
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssets();
+            }
+
+            Object.DestroyImmediate(defaults);
+
+            Debug.Log($"[Blockout] Dis alan duzeni uygulandi. {changed} alan guncellendi. " +
+                      "Simdi 'Bunker/Zombi/Test Alanini Kur' calistir - harita yeniden " +
+                      "uretilmeli ve NavMesh yeniden bake edilmeli.");
+        }
+
+        private static int SyncFloat(SerializedObject so, string field, float wanted)
+        {
+            SerializedProperty p = so.FindProperty(field);
+
+            if (p == null)
+            {
+                Debug.LogError($"[Blockout] '{field}' alani bulunamadi - alan adi degismis olabilir.");
+                return 0;
+            }
+
+            if (Mathf.Approximately(p.floatValue, wanted)) return 0;
+
+            Debug.Log($"[Blockout] {field}: {p.floatValue} -> {wanted}");
+            p.floatValue = wanted;
+            return 1;
+        }
+
+        /// <summary>Başsız giriş: ayar güncellemesi + harita üretimi.</summary>
+        public static void ApplyOutdoorLayoutBatch()
+        {
+            const string scenePath = "Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity";
+
+            try
+            {
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                ApplyOutdoorLayout();
+                EditorApplication.Exit(0);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Blockout] Dis alan duzeni uygulanamadi: {e}");
+                EditorApplication.Exit(1);
+            }
+        }
+
         [MenuItem("Bunker/Level/LVL-01 Gri Kutuyu Sil", false, 101)]
         public static void Clear()
         {
@@ -210,7 +286,73 @@ namespace Bunker.Editor
                 new[] { new Gap(midZ, s.DoorWidth, 0f, s.DoorHeight, false) });
 
             BuildRamp(zone, s);
+            BuildRampShaft(zone, s);
         }
+
+        /// <summary>
+        /// Rampayı iki yan duvarla <b>kapalı bir merdiven boşluğuna</b> çevirir.
+        ///
+        /// <para><b>Neden gerekliydi:</b> üst kat kapısı rampanın ağzında duran serbest
+        /// bir bloktu ve açık alanda duruyordu — oyuncu (ve zombi) yanından dolaşıp üst
+        /// kata çıkabiliyordu. Yani satın alınan kapı hiçbir şeyi kapatmıyordu; harita
+        /// açma ekonomisinin (SYS-ekonomi) tamamı o kapının bir <i>engel</i> olmasına
+        /// dayanıyor.</para>
+        ///
+        /// <para><b>Çözüm kapıyı büyütmek değil, boşluğu daraltmaktır.</b> Bir kapı
+        /// ancak tek geçit olduğunda kapıdır. Yan duvarlar zemin katından üst kat
+        /// döşemesine kadar çıkar; tavanı zaten üst katın kendi döşemesi
+        /// (<c>Floor_C_Band4_S</c>) kapatır — geliştiricinin önerdiği çözüm buydu ve
+        /// doğrusu da bu.</para>
+        ///
+        /// <para>Duvarlar rampa açıklığının kenarlarında durur, yani <b>rampanın kendisi
+        /// hiç dokunulmadan</b> koridorun içinde kalır. Rampa ölçüleri Inspector'dan
+        /// değişince koridor da onunla birlikte kayar.</para>
+        /// </summary>
+        private static void BuildRampShaft(Transform zone, BlockoutSettings s)
+        {
+            if (s.RampRun <= 0.1f) return;
+
+            float entranceZ = RampDoorZ(s);
+            float closedUntilZ = s.RampHoleStartZ;
+
+            // Ust kat dosemesi rampanin agzindan ONCE bitiyorsa kapatilacak bir tavan
+            // yok demektir; sessizce yarim bir koridor uretmek yerine soylenir.
+            if (closedUntilZ <= entranceZ)
+            {
+                Debug.LogWarning("[Blockout] RampHoleStartZ kapinin gerisinde: rampa " +
+                                 "koridoru kapanmiyor ve UST KAT KAPISI ATLANABILIR. " +
+                                 "RampHoleStartZ'yi buyut ya da RampStartZ'yi kucult.");
+                return;
+            }
+
+            float length = closedUntilZ - entranceZ;
+            float centerZ = (entranceZ + closedUntilZ) / 2f;
+            float height = s.UpperFloorY;
+
+            Box(zone, "Wall_RampShaft_West",
+                new Vector3(s.RampHoleMinX, height / 2f, centerZ),
+                new Vector3(s.WallThickness, height, length));
+
+            Box(zone, "Wall_RampShaft_East",
+                new Vector3(s.RampHoleMaxX, height / 2f, centerZ),
+                new Vector3(s.WallThickness, height, length));
+        }
+
+        /// <summary>
+        /// Üst kat kapısının durduğu Z: rampanın <b>başlangıcından bir metre ileride</b>.
+        ///
+        /// <para><b>Tek kaynak:</b> kapı, kanadı ve merdiven boşluğunun ağzı aynı
+        /// sayıdan türer — üçü ayrı hesaplansaydı biri kayınca kapı duvarın içinde ya da
+        /// bir karış önünde kalırdı.</para>
+        ///
+        /// <para><b>Neden rampanın önünde değil, bir metre içinde:</b> ilk deneme kapıyı
+        /// rampa ağzına, güney duvarının 35 cm önüne koydu. Sonuç bir bağlantı hatası
+        /// oldu — <c>NavMesh</c> ajanı 70 cm çapında ve 35 cm'lik bir şeride sığmıyor,
+        /// yani kapının önünde <i>durulacak yer</i> kalmıyordu. Bağlantı kontrolü bunu
+        /// "zemin -&gt; ust kat: KOPUK" olarak yakaladı. Bir metre içeri alınca kapının
+        /// önünde 1.85 m'lik gerçek bir yaklaşma alanı kalıyor.</para>
+        /// </summary>
+        private static float RampDoorZ(BlockoutSettings s) => s.RampStartZ + 1f;
 
         /// <summary>
         /// Binanın çevresindeki dış zemin. <b>Zombiler pencereden girer</b> (M1-04) ve
@@ -233,6 +375,67 @@ namespace Bunker.Editor
             Slab(apron, "Apron_North", s, s.West - w, s.East + w, s.North, s.North + w, y);
             Slab(apron, "Apron_West", s, s.West - w, s.West, s.South, s.North, y);
             Slab(apron, "Apron_East", s, s.East, s.East + w, s.South, s.North, y);
+
+            BuildPerimeter(zone, s);
+        }
+
+        /// <summary>
+        /// Yaklaşma bölgesini çevreleyen dış duvar ve geçitleri.
+        ///
+        /// <para><b>Neden var</b> (geliştirici, 2026-09-04): <i>"Dışarıya bakınca bir
+        /// ortam görelim ve zombiler barikata gelirken bir yoldan doğru geldiği
+        /// gözüksün."</i> Sonsuz düz bir zemin, dışarısı diye bir yer olmadığını söyler;
+        /// duvar dünyaya bir kenar verir ve geçitler zombinin nereden geleceğini
+        /// <b>önceden</b> okunur kılar.</para>
+        ///
+        /// <para><b>Duvar NavMesh'i keser, geçitler açar.</b> Yani zombi rastgele bir
+        /// yönden değil, dört geçidin birinden gelir — dışarısını savunmak artık bir
+        /// anlam taşır (PILLAR-04: neyin nereden geldiğini bilmek).</para>
+        ///
+        /// <para><b>Geçitler kenarların ORTASINDA.</b> Köşeye koymak iki geçidi
+        /// birbirine yakınlaştırır ve sürüyü tek noktaya yığar.</para>
+        /// </summary>
+        private static void BuildPerimeter(Transform zone, BlockoutSettings s)
+        {
+            if (s.PerimeterWallHeight <= 0.1f) return;
+
+            Transform group = Group("Perimeter_Outside", zone);
+
+            float w = s.ApronWidth;
+            float h = s.PerimeterWallHeight;
+            float t = s.WallThickness;
+            float y = h / 2f;
+
+            float minX = s.West - w;
+            float maxX = s.East + w;
+            float minZ = s.South - w;
+            float maxZ = s.North + w;
+
+            float midX = (minX + maxX) / 2f;
+            float midZ = (minZ + maxZ) / 2f;
+            float half = s.GateWidth / 2f;
+
+            // Guney ve kuzey: X boyunca, ortada gecit.
+            Box(group, "Perimeter_South_A", new Vector3((minX + midX - half) / 2f, y, minZ),
+                new Vector3(midX - half - minX, h, t));
+            Box(group, "Perimeter_South_B", new Vector3((midX + half + maxX) / 2f, y, minZ),
+                new Vector3(maxX - midX - half, h, t));
+
+            Box(group, "Perimeter_North_A", new Vector3((minX + midX - half) / 2f, y, maxZ),
+                new Vector3(midX - half - minX, h, t));
+            Box(group, "Perimeter_North_B", new Vector3((midX + half + maxX) / 2f, y, maxZ),
+                new Vector3(maxX - midX - half, h, t));
+
+            // Bati ve dogu: Z boyunca, ortada gecit.
+            Box(group, "Perimeter_West_A", new Vector3(minX, y, (minZ + midZ - half) / 2f),
+                new Vector3(t, h, midZ - half - minZ));
+            Box(group, "Perimeter_West_B", new Vector3(minX, y, (midZ + half + maxZ) / 2f),
+                new Vector3(t, h, maxZ - midZ - half));
+
+            Box(group, "Perimeter_East_A", new Vector3(maxX, y, (minZ + midZ - half) / 2f),
+                new Vector3(t, h, midZ - half - minZ));
+            Box(group, "Perimeter_East_B", new Vector3(maxX, y, (midZ + half + maxZ) / 2f),
+                new Vector3(t, h, maxZ - midZ - half));
         }
 
         private static void BuildRamp(Transform zone, BlockoutSettings s)
@@ -420,11 +623,13 @@ namespace Bunker.Editor
                 // yarisindan buyuk bir standoff sart, yoksa bekleme noktasi duvarin
                 // icinde kalir ve NavMesh orada yoktur.
                 var entry = marker.AddComponent<Bunker.AI.WindowEntry>();
-                entry.Configure(s.WindowSill, Mathf.Max(1f, s.WallThickness * 2f + 0.8f));
+                entry.Configure(s.WindowSill, Mathf.Max(1f, s.WallThickness * 2f + 0.8f),
+                                Mathf.Clamp(s.SpawnStandoffMeters, 2f, Mathf.Max(2f, s.ApronWidth - 2f)));
 
-                Vector3 outside = w.Position + w.Outward * 3f;
-                outside.y = 0.1f;
-                Marker(spawns, $"Spawn_{i:D2}", outside);
+                // Isaret GERCEK dogum noktasinda durur. Onceki surumde sabit 3 m
+                // ilerideydi ve yonetmen bambaska bir yer kullaniyordu - yani
+                // sahnedeki isaret yalan soyluyordu.
+                Marker(spawns, $"Spawn_{i:D2}", entry.SpawnPoint + Vector3.up * 0.1f);
             }
 
             Transform doors = Group("Doors", markers);
@@ -437,15 +642,52 @@ namespace Bunker.Editor
                 new Vector3(s.Divider, s.DoorHeight / 2f, midZ),
                 new Vector3(s.WallThickness * 1.5f, s.DoorHeight, s.DoorWidth));
 
+            // Ust kat kapisi: merdiven boslugunun agzini TAMAMEN kapatir. Kanat
+            // koridorun genisligi kadar genis ve ust kat dosemesine kadar yuksek -
+            // kapi yuksekliginde biraksaydik ustunden gorunen bosluk kalirdi ve
+            // "kapali" olan sey oyuncuya kapali gorunmezdi.
+            float shaftWidth = s.RampHoleMaxX - s.RampHoleMinX;
+            float shaftCenterX = (s.RampHoleMinX + s.RampHoleMaxX) / 2f;
+            float doorZ = RampDoorZ(s);
+
             GameObject rampDoor = Marker(doors, "Door_To_Ramp",
-                new Vector3(s.RampX, 1.25f, s.RampStartZ - 0.5f));
+                new Vector3(shaftCenterX, 1.25f, doorZ));
             BuildDoorLeaf(rampDoor, s,
-                new Vector3(s.RampX, s.DoorHeight / 2f, s.RampStartZ - 0.5f),
-                new Vector3(s.RampWidth + 0.8f, s.DoorHeight, s.WallThickness * 1.5f));
+                new Vector3(shaftCenterX, s.UpperFloorY / 2f, doorZ),
+                new Vector3(shaftWidth, s.UpperFloorY, s.WallThickness * 1.5f));
 
             Transform buys = Group("Purchases", markers);
-            Marker(buys, "WallBuy_A_Cheap", new Vector3(s.West + 0.5f, 1.4f, s.South + 2f));
-            Marker(buys, "WallBuy_B_Mid", new Vector3(s.East - 0.5f, 1.4f, s.North - 2f));
+
+            // Isaretler DUVARA DONUK duruyor (2026-09-05). Onceki halde donmemis
+            // bos nesnelerdi ve levhalari - ince yuzu +Z'ye bakan kutular - bati/dogu
+            // duvarinin ICINE giriyordu: oyun testinde "tezgah ve mermi panosu
+            // gorunmuyor" olarak okundu. Bir etkilesim noktasi gorunmuyorsa yoktur
+            // (BUG-004'un dersi).
+            var faceEast = Quaternion.Euler(0f, 90f, 0f);   // bati duvari -> odaya bakar
+            var faceWest = Quaternion.Euler(0f, -90f, 0f);  // dogu duvari -> odaya bakar
+
+            BuyMarker(buys, "WallBuy_A_Cheap",
+                      new Vector3(s.West + 0.5f, 1.4f, s.South + 2f), faceEast);
+            BuyMarker(buys, "WallBuy_B_Mid",
+                      new Vector3(s.East - 0.5f, 1.4f, s.North - 2f), faceWest);
+
+            // Tezgah (M-03): UST KATTA (2026-09-05, gelistirici karari).
+            //
+            // Baslangicta zemin kattaydi ve baslangic odasindan cikmadan ulasilabiliyordu -
+            // yani yukseltme almak icin haritayi acmak gerekmiyordu. Ust kata tasinmasi
+            // tezgahi kapinin ARKASINA koyar: once 1250 puanla ust kati ac, sonra
+            // yukselt. Bu, kapinin fiyatina bir sebep verir ve tezgahi bir hedef yapar.
+            //
+            // Dagiticidan (MysteryBox) uzak bir duvarda: yan yana olsalardi hangi tusun
+            // ne actigi karisirdi.
+            // Ucuncu satin alma noktasi: TUFEK, ust katta (2026-09-06). Uc silahin
+            // ucunun de bir yeri olmali - yeri olmayan silah, oyuncunun varligindan
+            // haberi olmayan silahtir.
+            BuyMarker(buys, "WallBuy_C_Rifle",
+                      new Vector3(s.East - 0.5f, s.UpperFloorY + 1.4f, midZ), faceWest);
+
+            BuyMarker(buys, "Shop_Station",
+                      new Vector3(s.West + 0.5f, s.UpperFloorY + 1.4f, s.North - 3f), faceEast);
             Marker(buys, "MysteryBox", new Vector3(s.Divider + 2f, s.UpperFloorY + 0.5f, midZ));
         }
 
@@ -621,6 +863,39 @@ namespace Bunker.Editor
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.transform.position = position;
+            return go;
+        }
+
+        /// <summary>
+        /// Satın alma işareti: dönük bir işaret <b>ve görünür bir levha</b>.
+        ///
+        /// <para><b>Levha burada üretiliyor, görünüm aracında değil</b> (2026-09-05).
+        /// Önceden yalnızca <c>GreyboxLook</c> üretiyordu ve harita yeniden
+        /// üretildiğinde levhalar kayboluyordu: sahnede tezgâh ve mermi noktası
+        /// <i>hiçbir görsele sahip olmayan boş nesnelerdi</i>. Oyuncunun mermiyi
+        /// nereden alacağını göremediği bir harita, o mekaniğin olmadığı bir haritadır.
+        /// Görünüm aracı hâlâ levhanın <b>rengini</b> verir; varlığı artık haritanın
+        /// kendi işi.</para>
+        ///
+        /// <para>Levha <b>çarpışmaz</b>: etkileşim tetikleyicisini <c>ZombieSetup</c>
+        /// işaretin kendisine koyuyor, ikinci bir katı yüzey oyuncuyu duvara
+        /// yapıştırırdı.</para>
+        /// </summary>
+        private static GameObject BuyMarker(Transform parent, string name,
+                                            Vector3 position, Quaternion rotation)
+        {
+            GameObject go = Marker(parent, name, position);
+            go.transform.rotation = rotation;
+
+            GameObject plate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            plate.name = "Plate";
+            plate.transform.SetParent(go.transform, false);
+            plate.transform.localPosition = Vector3.zero;
+            plate.transform.localRotation = Quaternion.identity;
+            plate.transform.localScale = new Vector3(1.1f, 0.7f, 0.12f);
+
+            Object.DestroyImmediate(plate.GetComponent<Collider>());
+
             return go;
         }
     }

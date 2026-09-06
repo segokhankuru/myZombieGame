@@ -82,7 +82,13 @@ Bunlar sütunların doğrudan sonucudur, ayrı karar değildir:
 | Kural | Kaynak |
 |---|---|
 | Kartların en az yarısı kural değiştirmeli, salt istatistik olmamalı | PILLAR-01 |
-| Kart draft'ı eşzamanlı, sayaçlı, süre dolunca otomatik seçim | PILLAR-03 |
+| Kart draft'ı eşzamanlı; **sayaç yok**, yalnızca AFK kaçış kapısı | PILLAR-03 ¹ |
 | Ödül metrikleri yalnızca "istismarı zaten istenen davranış olan" şeyleri ölçer | PILLAR-02 |
 | Kill sayısı bir manşet metriği değildir | PILLAR-02 |
 | Her zombi tipi bir rahat alışkanlığı iptal eder, HP varyantı değildir | PILLAR-04 |
+
+**¹ Düzeltme (2026-09-04).** Bu satır 2026-08-29'a kadar *"sayaçlı, süre dolunca otomatik
+seçim"* diyordu ve yukarıdaki PILLAR-03 düzeltmesiyle **çelişiyordu**: o düzeltme
+`design/ux/draft-ekrani.md`'nin sayaçsız tasarımını kabul etmişti, ama buradaki türetilmiş
+kural tablosu güncellenmemişti. Aynı dosyada iki farklı cevap duruyordu. Tablo, o gün
+verilmiş karara göre düzeltildi — yeni bir karar değil, geciken bir senkron.

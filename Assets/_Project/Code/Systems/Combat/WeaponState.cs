@@ -50,22 +50,53 @@ namespace Bunker.Systems.Combat
     /// </summary>
     public sealed class WeaponState
     {
-        private readonly WeaponConfig _config;
+        private readonly WeaponDefinition _config;
 
         private float _cycleRemaining;
         private float _reloadRemaining;
         private float _bufferedFireRemaining;
 
-        public WeaponState(WeaponConfig config)
-        {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+        private WeaponModifiers _mods = WeaponModifiers.None;
 
-            MagazineCapacity = Math.Max(1, _config.MagazineCapacity);
+        /// <summary>Uretilen ayardan (baslangic silahi) kurar. Testler bunu kullanir.</summary>
+        public WeaponState(WeaponConfig config) : this(WeaponDefinition.FromConfig(config)) { }
+
+        public WeaponState(WeaponDefinition config)
+        {
+            // Struct: null olamaz ama GECERSIZ olabilir (bos id). Gecersiz bir tanimla
+            // kurulan silah, hic ates etmeyen bir silahtir - sessiz kalmasin.
+            if (!config.IsValid)
+                throw new ArgumentException("Gecersiz silah tanimi (id bos).", nameof(config));
+
+            _config = config;
+
             RoundsInMagazine = MagazineCapacity;
-            Reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
+            Reserve = Math.Min(_config.StartingReserve, ReserveCapacity);
         }
 
-        public int MagazineCapacity { get; }
+        /// <summary>
+        /// Kart etkilerini uygular (M-03).
+        ///
+        /// <para><b>Sarjordeki mermi TASINIR.</b> Kapasite buyudugunde silahi
+        /// kendiliginden doldurmak bedava bir dolum olurdu; kucultmek gerekirse
+        /// fazlasi kirpilir.</para>
+        /// </summary>
+        public void ApplyModifiers(in WeaponModifiers modifiers)
+        {
+            _mods = modifiers;
+
+            if (RoundsInMagazine > MagazineCapacity) RoundsInMagazine = MagazineCapacity;
+            if (Reserve > ReserveCapacity) Reserve = ReserveCapacity;
+        }
+
+        /// <summary>Kart etkileriyle sarjor kapasitesi.</summary>
+        public int MagazineCapacity => Math.Max(1, _config.MagazineCapacity + _mods.Magazine);
+
+        /// <summary>Kart etkileriyle yedek tavani.</summary>
+        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
+
+        /// <summary>Kart etkileriyle dolum suresi.</summary>
+        public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
         public int RoundsInMagazine { get; private set; }
         public int Reserve { get; private set; }
 
@@ -73,9 +104,9 @@ namespace Bunker.Systems.Combat
 
         /// <summary>Dolumun tamamlanma oranı (0..1). İlerleme çubuğu için.</summary>
         public float ReloadProgress01 =>
-            !IsReloading || _config.MagazineReloadSeconds <= 0f
+            !IsReloading || ReloadSeconds <= 0f
                 ? 0f
-                : 1f - _reloadRemaining / _config.MagazineReloadSeconds;
+                : 1f - _reloadRemaining / ReloadSeconds;
 
         public WeaponPhase Phase
         {
@@ -89,7 +120,9 @@ namespace Bunker.Systems.Combat
 
         /// <summary>Atışlar arası süre. <c>roundsPerMinute</c>'dan türetilir.</summary>
         public float SecondsBetweenShots =>
-            _config.FireRoundsPerMinute <= 0f ? 0f : 60f / _config.FireRoundsPerMinute;
+            _config.RoundsPerMinute <= 0f
+                ? 0f
+                : 60f / (_config.RoundsPerMinute * _mods.FireRateMultiplier);
 
         /// <summary>
         /// Zamanı ilerletir. <b>Tamponlanmış bir atış isteği varsa ve silah hazırsa
@@ -119,7 +152,7 @@ namespace Bunker.Systems.Combat
         /// <param name="pressedThisFrame">Bu karede ateş isteği geldi mi.</param>
         public FireResult TryFire(bool pressedThisFrame)
         {
-            if (pressedThisFrame) _bufferedFireRemaining = _config.FeelInputBufferSeconds;
+            if (pressedThisFrame) _bufferedFireRemaining = _config.InputBufferSeconds;
 
             bool wants = pressedThisFrame || _bufferedFireRemaining > 0f;
             if (!wants) return FireResult.Cycling;
@@ -150,7 +183,7 @@ namespace Bunker.Systems.Combat
             if (Reserve <= 0) return false;
             if (RoundsInMagazine >= MagazineCapacity) return false;
 
-            _reloadRemaining = _config.MagazineReloadSeconds;
+            _reloadRemaining = ReloadSeconds;
             return true;
         }
 
@@ -170,7 +203,7 @@ namespace Bunker.Systems.Combat
             if (amount <= 0) return 0;
 
             int before = Reserve;
-            Reserve = Math.Min(Reserve + amount, _config.MagazineReserveCapacity);
+            Reserve = Math.Min(Reserve + amount, ReserveCapacity);
             return Reserve - before;
         }
 
@@ -178,15 +211,21 @@ namespace Bunker.Systems.Combat
         public void Reset()
         {
             RoundsInMagazine = MagazineCapacity;
-            Reserve = Math.Min(_config.MagazineStartingReserve, _config.MagazineReserveCapacity);
+            Reserve = Math.Min(_config.StartingReserve, _config.ReserveCapacity);
             _cycleRemaining = 0f;
             _reloadRemaining = 0f;
             _bufferedFireRemaining = 0f;
         }
 
         /// <summary>Bir isabetin hasarı. Kafa çarpanı burada uygulanır, atış anında değil.</summary>
-        public float DamageFor(bool headshot) =>
-            headshot ? _config.FireDamage * _config.FireHeadshotMultiplier : _config.FireDamage;
+        public float DamageFor(bool headshot)
+        {
+            float damage = _config.Damage * _mods.DamageMultiplier;
+
+            return headshot
+                ? damage * (_config.HeadshotMultiplier + _mods.HeadshotMultiplier)
+                : damage;
+        }
 
         private void CompleteReload()
         {

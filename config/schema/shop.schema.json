@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/shop",
+  "title": "Tezgah",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "health", "damage", "firerate", "magazine"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseCost", "costGrowth", "increment", "maxTier"],
+      "description": "DAYANIKLILIK hatti - maksimum can.",
+      "properties": {
+        "baseCost": {
+          "type": "integer", "minimum": 50, "maximum": 5000,
+          "description": "Ilk alimin fiyati. Tur 1-2'de ulasilabilir olmali, yoksa tezgah gec oyuna kadar hic acilmaz ve erken turlarda bir karar uretmez. Cok ucuzsa kapinin onune gecer ve harita hic buyumez."
+        },
+        "costGrowth": {
+          "type": "number", "minimum": 1.05, "maximum": 3,
+          "description": "Her alimda fiyatin carpani. 1'e yakin olursa oyuncu tek hatti sonuna kadar basar ve tek boyutlu bir guc egrisi cikar; cok buyuk olursa ikinci alim asla gelmez ve hat tek seferlik bir kart gibi davranir. Tezgahin BUTUN tasarim niyeti bu sayida: her alis bir karar kalmali, aliskanlik olmamali."
+        },
+        "increment": {
+          "type": "number", "minimum": 0.01, "maximum": 1,
+          "description": "Her alimda eklenen oran (0.10 = +%10 maks can). KUCUK olmali: tezgah TABAN kurar, kimlik vermez. Kimlik kartlardan gelir (SYS-02 §1). Buyutursen tezgah kartlarin yerine gecer ve build cesitliligi coker."
+        },
+        "maxTier": {
+          "type": "integer", "minimum": 1, "maximum": 30,
+          "description": "Hattin kac kez alinabilecegi. Artan fiyat yumusak bir tavan uretir ama gec turlarda puan da bilesik buyudugu icin 'pahali' goreli bir kavram; sert tavan hattin bir noktada KAPANMASINI saglar."
+        }
+      }
+    },
+
+    "damage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseCost", "costGrowth", "increment", "maxTier"],
+      "description": "GUC hatti - silah hasari. Zombi cani bilesik buyudugu icin taban hasarin da buyumesi gerek.",
+      "properties": {
+        "baseCost": { "type": "integer", "minimum": 50, "maximum": 5000, "description": "Ilk alimin fiyati. Dayaniklilik'tan pahali olmali: hasar dogrudan tur hizina cevriliyor." },
+        "costGrowth": { "type": "number", "minimum": 1.05, "maximum": 3, "description": "Her alimda fiyat carpani. Bkz. health.costGrowth." },
+        "increment": { "type": "number", "minimum": 0.01, "maximum": 1, "description": "Her alimda eklenen hasar orani. Kart hasar carpanlariyla TOPLANIR (SYS-02 §3.1), carpilmaz." },
+        "maxTier": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Hattin tavani." }
+      }
+    },
+
+    "firerate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseCost", "costGrowth", "increment", "maxTier"],
+      "description": "TETIK hatti - atis hizi.",
+      "properties": {
+        "baseCost": { "type": "integer", "minimum": 50, "maximum": 5000, "description": "Ilk alimin fiyati." },
+        "costGrowth": { "type": "number", "minimum": 1.05, "maximum": 3, "description": "Her alimda fiyat carpani." },
+        "increment": { "type": "number", "minimum": 0.01, "maximum": 1, "description": "Her alimda eklenen atis hizi orani. Cok buyutursen mermi tuketimi patlar ve mermi ekonomisi kilitlenir (design/economy/curves.md)." },
+        "maxTier": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Hattin tavani." }
+      }
+    },
+
+    "magazine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseCost", "costGrowth", "increment", "maxTier"],
+      "description": "SARJOR hatti - sarjor kapasitesi. Mermi seferleri sorununa dogrudan dokunur.",
+      "properties": {
+        "baseCost": { "type": "integer", "minimum": 50, "maximum": 5000, "description": "Ilk alimin fiyati." },
+        "costGrowth": { "type": "number", "minimum": 1.05, "maximum": 3, "description": "Her alimda fiyat carpani." },
+        "increment": { "type": "number", "minimum": 1, "maximum": 30, "description": "Her alimda eklenen MERMI (oran degil, adet). Sarjor kapasitesi tam sayidir." },
+        "maxTier": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Hattin tavani." }
+      }
+    }
+  }
+}

@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb53835df92369847abc7a074989166c, type: 3}
+  m_Name: weapons
+  m_EditorClassIdentifier: Bunker.Config::Bunker.Config.WeaponCatalogAsset
+  version: 1
+  weapons:
+  - id: weapon.pistol
+    displayName: TABANCA
+    text: Baslangic silahi. Dengeli, sabirli, kafa vurusunu odullendirir.
+    damage: 55
+    roundsPerMinute: 400
+    headshotMultiplier: 2
+    rangeMeters: 60
+    spreadDegrees: 0.6
+    pelletCount: 1
+    magazineCapacity: 12
+    reserveCapacity: 300
+    startingReserve: 120
+    reloadSeconds: 1.6
+    recoilPitchPerShot: 1.1
+    recoilYawPerShot: 0.35
+    recoilRecoveryPerSecond: 14
+    recoilMaxPitch: 6
+    price: 0
+    ammoPrice: 250
+  - id: weapon.smg
+    displayName: MP-KISA
+    text: Hizli ve affedici. Kalabaligi tarar, mermiyi hizla yer.
+    damage: 32
+    roundsPerMinute: 750
+    headshotMultiplier: 1.6
+    rangeMeters: 35
+    spreadDegrees: 2.2
+    pelletCount: 1
+    magazineCapacity: 30
+    reserveCapacity: 480
+    startingReserve: 180
+    reloadSeconds: 2
+    recoilPitchPerShot: 0.55
+    recoilYawPerShot: 0.45
+    recoilRecoveryPerSecond: 20
+    recoilMaxPitch: 9
+    price: 900
+    ammoPrice: 350
+  - id: weapon.shotgun
+    displayName: POMPALI
+    text: Yakin mesafenin cevabi. Sekiz sacma; uzakta hicbir sey yapmaz.
+    damage: 24
+    roundsPerMinute: 90
+    headshotMultiplier: 1.4
+    rangeMeters: 18
+    spreadDegrees: 7
+    pelletCount: 8
+    magazineCapacity: 6
+    reserveCapacity: 90
+    startingReserve: 36
+    reloadSeconds: 2.8
+    recoilPitchPerShot: 4
+    recoilYawPerShot: 0.8
+    recoilRecoveryPerSecond: 16
+    recoilMaxPitch: 12
+    price: 1200
+    ammoPrice: 400
+  - id: weapon.rifle
+    displayName: TUFEK
+    text: Yavas ve agir. Kafadan vurdugun surece gec turlarin cevabi.
+    damage: 130
+    roundsPerMinute: 150
+    headshotMultiplier: 2.5
+    rangeMeters: 90
+    spreadDegrees: 0.2
+    pelletCount: 1
+    magazineCapacity: 8
+    reserveCapacity: 160
+    startingReserve: 64
+    reloadSeconds: 2.4
+    recoilPitchPerShot: 3.2
+    recoilYawPerShot: 0.5
+    recoilRecoveryPerSecond: 12
+    recoilMaxPitch: 10
+    price: 1500
+    ammoPrice: 450

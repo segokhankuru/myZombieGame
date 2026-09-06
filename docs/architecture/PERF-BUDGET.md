@@ -37,6 +37,7 @@ Kare süresi düştüğünde önce Profiler'da bu üçüne bakılır, çözünü
 
 | Kalem | Maliyet | Bütçe oranı | Kaynak |
 |---|---|---|---|
+| **40 zombi, gerçek harita, BUILD** | **p50 0.89 ms / p99 1.36 ms** | **%8.5 (p99)** | `docs/qa/performance/M1-CK15-40-zombi-kare-suresi.md` |
 | 40 NavMesh agent (animatörsüz) | **~0.2 ms** | %1.2 | `docs/qa/performance/M0-04-navmesh-agent-yuku.md` |
 | 200 NavMesh agent (animatörsüz) | ~0.5 ms | %3 | aynı |
 | 40 kapsül çizimi | ~0.03 ms | gürültü sınırı | aynı |
@@ -52,11 +53,13 @@ Bunlar bütçenin bilinmeyen tarafı ve sırayla kapatılacak:
 
 | Kalem | Ne zaman ölçülecek | Neden önemli |
 |---|---|---|
-| **Animator (40 adet)** | M-01 | Kalabalık oyunlarında sık sık NavMesh'ten pahalıdır. Ölçümün asıl bulgusu riskin buraya kaydığıydı |
+| **Animator (40 adet)** | **M-03** (animasyonlu model gelince) | Kalabalık oyunlarında sık sık NavMesh'ten pahalıdır. **Hâlâ beklenen asıl risk** — gri kutuda animasyon olmadığı için ÇK-15 ölçümü bu riski *azaltmıyor* |
 | **Ağ serileştirmesi** | M-02 | Host, 3 istemciye 40 zombi gönderiyor |
-| Oyun mantığı (algı, hasar, isabet) | M-01 | — |
-| Gerçek harita NavMesh'i | M-01 | Düz zemin en ucuz durumdur |
-| Build (editör değil) | M-01 sonu | Editör muhafazakâr taraf, ama doğrulanmalı |
+| Oyun mantığı (algı, hasar, isabet) | M-01 | Kısmen kapandı: algı ve yol bulma ÇK-15 ölçümünün içinde. Ateş, hasar ve ölüm **dışında** — seyrek olaylar |
+| ~~Gerçek harita NavMesh'i~~ | ✅ 2026-09-04 | ÇK-15 ölçümü gerçek harita üzerinde yapıldı |
+| ~~Build (editör değil)~~ | ✅ 2026-09-04 | ÇK-15 ölçümü build'de yapıldı |
+| Orta seviye donanım | M-01 sonu / M-03 | **Bütün sayılar geliştirme makinesinden.** Bu dokümanın kendi kuralı: geliştirme makinesi ölçüt değildir |
+| 1080p tam ekran | M-03 | ÇK-15 ölçümü 1600×900 pencereli. GPU bu haritada gürültü sınırında ama doğrulanmadı |
 
 ---
 

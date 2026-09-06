@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Compiles the project and runs the EditMode (or PlayMode) test suite headlessly.
 
@@ -101,6 +101,14 @@ if (-not $proc.WaitForExit($TimeoutMinutes * 60 * 1000)) {
 
 if ($sceneSetupBackup) {
     Set-Content -LiteralPath $sceneSetup -Value $sceneSetupBackup -NoNewline
+}
+else {
+    # KENDINI ONARMA. Yedek bossa geri yazacak bir sey yok demektir - ve onceki
+    # surum tam burada duruyordu, yani dosya bir kez bosaldiginda kalici olarak
+    # bos kaliyordu. Bilinen oyun sahnesini yaziyoruz: en kotu ihtimalle
+    # gelistirici dogru sahneyle acilir.
+    $fallback = "sceneSetups:`n- path: Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity`n  isLoaded: 1`n  isActive: 1`n  isSubScene: 0`n"
+    try { Set-Content -LiteralPath $sceneSetup -Value $fallback -NoNewline -Encoding UTF8 } catch { }
 }
 
 # ------------------------------------------------------------- compile errors first

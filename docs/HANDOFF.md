@@ -1,18 +1,135 @@
-# Handoff — 2026-09-02
+# Handoff — 2026-09-05
 
-Bir sonraki oturumun ilk okuyacağı özet. Çalışma ağacı temiz, 177 EditMode testi yeşil.
+> **Bu oturum `/clear` ile kapandı; aşağısı bir sonraki oturumun ilk okuyacağı şey.**
+> Altındaki 09-04 ve 09-03 bölümleri hâlâ geçerli, bunlar üstüne eklendi.
+
+---
+
+## Bu oturumda ne oldu
+
+### 1. Kart sistemi ve tezgâh girdi (M-03'ün ilk dilimi, M-01 bitmeden)
+
+Geliştiricinin kararı: *"kart sistemini vs ekle çok yavaş ilerledik hızlanalım."*
+
+| Ne | Nerede |
+|---|---|
+| 21 kartlık havuz | `config/content/cards.json` → `CardCatalogImporter` → `cards.asset` |
+| Kart çekirdeği | `Code/Systems/Cards/` — `CardDefinition`, `CardLoadout`, `CardDraft`, `CardSignals`, `ShopState`, `RunModifiers` |
+| Draft ekranı | `Code/UI/CardDraftHud.cs` — **fareyle** seçilir, her tur sonu açılır, tur durur |
+| Tezgâh | `Code/Gameplay/ShopStation.cs` + `Code/UI/ShopHud.cs` — duvarda **mor levha**, E açar/kapatır |
+
+**Tezgâh bilerek kart ekranından ayrı:** kart seçimi turun zorunlu ödülü, tezgâh
+oyuncunun gitmeyi seçtiği bir harcama noktası. Aynı ekranda olmaları ikincisini
+birincisinin eklentisi gibi gösteriyordu. Tezgâh turu **durdurmaz** — molayı orada
+harcamak bir bedel olmalı.
+
+**Bütün kart etkileri bağlı ve ölçülüyor.** Tek okuma noktası `RunModifiers.Total(stat)`
+(kart + tezgâh toplanır). Silah tarafında `WeaponModifiers` struct'ı istemci ile sunucunun
+aynı sayıyı görmesini garanti ediyor (BUG-002'nin tekrarını engeller).
+
+### 2. İLK OLUMLU OYNANIŞ VERİSİ
+
+> *"7 dk kapıştım keyifliydi tezgah falan gayet iyi çalışıyor"*
+
+Tam analiz: **`docs/qa/playtests/PT-01-SONUC-01-ilk-keyifli-run.md`**. Özet:
+
+| | |
+|---|---|
+| Tur 9, 7:49, 103 öldürme, 12.057 puan | |
+| **Kafa vuruşu %76** | modelim %25 / %50 varsayıyordu |
+| **Bıçak %0** | 103 öldürmenin sıfırı |
+
+**Üç bulgu, hiçbiri koda dokunmadı (tek run, tek oyuncu — değer değiştirmek için yetersiz):**
+
+1. **Simülasyonum oyuncuyu yanlış modelledi.** `curves.md`'nin en önemli bulgusu olan
+   "mermi seferleri turu parçalıyor" (KIRILMA 1) gerçek isabetle koşulunca tur başına 4
+   sefere iniyor, 15 değil. Belgenin başına geçersizlik uyarısı kondu.
+2. **Turlar hedeften HIZLI.** ÇK-13 hedefi 12–18 dk; gerçek tempo tur 10'a ~8.8 dk.
+   Yavaşlatma adayları `curves.md`'de. **İki-üç run daha biriktikten sonra** bakılmalı.
+3. **Bıçak hiç kullanılmadı.** En yüksek puanı veren ve mermi harcamayan seçenek. Bir
+   sonraki oturumda geliştiriciye sorulacak tek soru: *"bıçağı neden hiç kullanmadın?"*
+
+---
+
+## Sıradaki iş — sırayla
+
+1. **Geliştiriciye bıçak sorusu** (yukarıda). Öğretme mi, denge mi, his mi ayrılmadan
+   çözülemez.
+2. **2-3 run daha biriktir**, sonra `telemetry.ps1` + `balance-sim.ps1` ile tur temposu
+   kararı ver. Tek run'la denge değiştirme.
+3. **Kart havuzu 21, hedef 70+.** GOAL-02 (iki run'ın kart yığını %40'tan az örtüşsün)
+   her tur draft ile ~20 kart çekilmesi demek; 21 kartlık havuz bunu karşılamaz.
+4. **Ücretli yenileme hâlâ bedava.** Fiyat eğrisi (`taban × tur`) `config/balance/cards.json`'a
+   yazılmalı; `CardDraftController.RerollSlot` içinde `TODO(systems-designer, SYS-02 §7c)`.
+5. **İki katmanlı can modeli (Darktide)** geliştirici tarafından onaylandı, M-02'ye
+   yazıldı. Açık soru kayıtlı: can katmanı nasıl geri gelir?
+6. **Tur sonu kısmi yenileme** (barikat/mermi %40-60) — M-02, onaylandı, yapılmadı.
+
+---
+
+## Bu oturumun dersleri
+
+| Ne | Ders |
+|---|---|
+| **IMGUI'de önce çizilen kontrol tıklamayı yutar** | Kartın TAMAMINI düğme yapmıştım, yenileme düğmesi onun içinde kalıyordu ve "yenile" kartı seçiyordu. Geliştirici oynayınca çıktı, hiçbir test yakalayamazdı. |
+| **Simülasyon oyuncu becerisinde kendinden emin şekilde yanılır** | %25 varsaydım, gerçek %76. Bütün ekonomi sonuçlarının girdisiydi. `balance-check`'in kendi uyarısı aynen gerçekleşti — **o yüzden hiçbir değeri değiştirmemiş olmak doğru karardı.** |
+| **Sahne koruması artık KENDİNİ ONARIYOR** | İki kez "hierarchy sıfırlanmış" geldi. İlk düzeltmem `exit 0`'dan sonraydı, hiç koşmadı. İkincisi yalnızca *koruyordu*, *onarmıyordu*. Üç araç da (`unity-exec`, `unity-test`, `build`) artık boş `.scenesetup` dosyasını yeniden yazıyor. **Doğrulamam da yanlıştı:** dolu dosyanın hayatta kaldığını test etmiştim, boş dosyanın iyileştiğini değil. |
+
+---
+
+## Oyun şu an ne yapıyor
+
+```
+sol tik  ates        R  dolum        V  bicak
+E        tamir (tut) / satin al (bas) / TEZGAH (mor levha)
+F7/F8    tur atla    F9  sahayi temizle    F10  atmosferi kapat   <- DEBUG
+```
+
+Tur biter → **kart ekranı** gelir, fareyle bir kart seçilir (yuva başına bir ücretsiz
+yenileme, her tur sıfırlanır). Tezgâh duvarda ayrı bir nokta: can, hasar, atış hızı,
+şarjör — her alışta fiyatı artan minör yükseltmeler.
+
+**263 EditMode testi yeşil.** Build alınıyor (`VERDICT: BUILD OK`).
+
+---
+
+# Handoff — 2026-09-04
+
+> **2026-09-04 eki (geliştirici AFK'yken yapılanlar).** Aşağıdaki 09-03 özeti hâlâ
+> geçerli; bunlar üstüne eklendi:
+>
+> | Ne | Sonuç |
+> |---|---|
+> | **Gri kutu görünümü** | Okunabilirlik paleti + atmosfer. F10 atmosferi kapatır (ÇK-17'yi temiz ölçmek için). `docs/art/GREYBOX-PALETTE.md` |
+> | **İlk build** | `Bunker.exe` çıkıyor, açılıyor, `Player.log` temiz. `build.ps1`'de iki hata düzeltildi |
+> | **NavMesh borcu** | Kapandı: 25 yetim dosya → 1, sebep düzeltildi |
+> | **ÇK-15 ölçüldü** | 40 zombi, build'de, gerçek haritada: p99 bütçenin **%8.5**'i. `PerfRunner` otomatik |
+> | **ÇK-13 / ÇK-14 modellendi** | `balance-sim.ps1`. İkisi de modelde karşılanıyor — ama **iki kırılma** çıktı |
+>
+> **Oyun testinde özellikle bunlara bak** (`design/economy/curves.md`):
+> 1. **Mermi seferleri.** Model tur 14'te duvara **15 ayrı sefer** öngörüyor. "Tur 10
+>    civarında sıkıldım" dersen sebebi büyük olasılıkla budur.
+> 2. **Geç oyunda harcanacak şey yok.** İyi oyuncu tur 15'te 15.620 puanla oturuyor.
+>
+> **Hiçbir denge değeri değiştirilmedi** — simülasyon oyuncunun modeli, oyuncu değil.
+
+---
+
+# Handoff — 2026-09-03
+
+Bir sonraki oturumun ilk okuyacağı özet. Çalışma ağacı temiz, 234 EditMode testi yeşil.
 
 ---
 
 ## Nerede kaldık
 
-**M-01'de 13 işten 2'si kapandı, 9'u kod olarak bitti ve oyun testi bekliyor.**
+**M-01'in 13 işinin 13'ü de kod olarak bitti. Kalan iş kod değil — oynamak.**
 
 | İş | Durum |
 |---|---|
 | M1-01 Tur ölçekleme | ✅ 12 test |
 | M1-02 Ekonomi | ✅ 18 test |
-| M1-03 Gri kutu harita | 🔧 üretildi, ölçü ayarı sürüyor |
+| M1-03 Gri kutu harita | 🔧 üretildi |
 | M1-04 Zombi | 🔧 kod + kurulum bitti |
 | M1-05 Doğum, havuzlama, ağ seam'i | 🔧 kod bitti |
 | M1-06 Silah | 🔧 kod bitti — `/feel-check` notu **DoD zorunlu** |
@@ -20,66 +137,123 @@ Bir sonraki oturumun ilk okuyacağı özet. Çalışma ağacı temiz, 177 EditMo
 | M1-08 Barikat | 🔧 kod bitti |
 | M1-09 Kapı | 🔧 kod bitti |
 | M1-10 Duvar silahı (M-01'de yalnızca mermi) | 🔧 kod bitti |
+| **M1-11 Ölüm / skor ekranı** | 🔧 kod bitti, 35 test |
+| **M1-12 Telemetri** | 🔧 kod bitti, 22 test |
 | M1-13 Vuruş hissi | 🔧 kod bitti |
-| **M1-11 Ölüm / skor ekranı** | ⬅ **sıradaki** |
-| **M1-12 Telemetri** | ⬅ sıradaki |
 
-Sonra milestone'un asıl sorusu: **ÇK-17 — 20 dakika oynadıktan sonra tekrar oynamak
-istiyor musun?**
+**On bir iş "kod bitti, hiç oynanmadı" durumunda.**
+
+---
+
+## Sıradaki tek şey: PT-01
+
+`docs/qa/playtests/PT-01-ck17-tekrar-oynatiyor-mu.md` — protokol hazır, **koşulmadı**.
+
+Milestone'un asıl sorusu: **ÇK-17 — 20 dakika oynadıktan sonra tekrar oynamak istiyor
+musun?** Üç seans, bu sırayla:
+
+1. **SEANS A** — geliştirici solo, editörde, ~20-25 dk. **Fun kararı değil**, engel
+   temizliği. 11 iş için tek bakışlık kontrol listesi, her birinde "sessiz arıza işareti"
+   sütunu.
+2. **SEANS A-Doğrulama** — kapalı zarf: Play'e basmadan ÜÇ tahmin yazılır, sonra kayıt ve
+   telemetriyle karşılaştırılır. Yazarın kendi oyununa körlüğünün ölçüsü.
+3. **SEANS B** — en az 2 arkadaş. **Standalone build gerektirir ve bu projede hiç build
+   alınmadı** → önce `/build`.
+
+**Protokolün en önemli kısmı:** M-01 bilerek bir kontrol grubu. Kart (PILLAR-01) ve dört
+oyuncu bağımlılığı (PILLAR-02) **yok**. "Hayır" cevabının iki sebebi olabilir — *(a)
+temel bozuk* ya da *(b) temel doğru ama kart katmanı henüz yok*. İkisini ayırmak testin
+asıl işi; ayıramazsan milestone kararı verilemez.
+
+---
 
 ## Oyun şu an ne yapıyor
 
-Play'e bas, kurulum gerekmiyor. 10 saniyelik mola (ekranın ortasında geri sayım), sonra
-tur 1. Zombiler pencerelerin dışında doğuyor, barikatı söküyor, içeri tırmanıyor,
-kovalıyor, telegraflı vuruş yapıyor.
+Play'e bas, kurulum gerekmiyor. 10 saniyelik mola, sonra tur 1. Zombiler pencerelerin
+dışında doğuyor, barikatı söküyor, içeri tırmanıyor, kovalıyor, telegraflı vuruş yapıyor.
+**Vuruyorlar ve artık ölebiliyorsun.**
 
 ```
 sol tik  ates        R  dolum        V  bicak
 E        tamir (tut) / satin al (bas)
-F7/F8    tur atla    F9  sahayi temizle
+F7/F8    tur atla    F9  sahayi temizle     <- DEBUG, olcumu bozar
 ```
 
-## Bu oturumda çözülen beş hata
+Ölünce skor ekranı gelir (tur, süre, öldürme, kafa %, bıçak, puan), **R** yeni run
+başlatır: saha boş, can tam, puan sıfır, kapılar tekrar kilitli.
 
-Hepsinin kaydı `docs/qa/bugs/` altında. **Ortak ders: sessiz başarısızlık en pahalı
-hata türü.** Beşinin dördü hiçbir hata mesajı vermiyordu ve teşhis oyun testine kaldı.
+---
 
-| # | Neydi | Kök sebep |
-|---|---|---|
-| BUG-001 | 3 zombiden sonra hasar gitmiyor | Sunucunun gölge şarjörü hiç dolmuyordu (dolum bildirilmiyordu) |
-| BUG-002 | Arada bir tık yeniyor | Sunucu doğrulaması **eşitlik** bekliyordu; ağ payı yoktu. Şimdi makuliyet testi |
-| BUG-003 | Barikat gelince hiç zombi doğmuyor | `IsOpen` iki farklı soruya cevap veriyordu; yapısal/anlık ayrıldı |
-| BUG-004 | Kapı alındı, hiçbir şey olmadı | Kapı diye bir **nesne yoktu**; ayrıca `SetPrivateField` enum/metin/dizi yazmıyordu |
-| BUG-005 | Zombiler içeride beliriyor, mavi yanıp sönüyor | `NavMeshAgent` açıkken `transform.position` yazmak işe yaramaz — havuzdan çıkan zombi eski ölüm yerine dönüyordu |
+## Bu oturumda eklenen iki iş
 
-## Reddedilen yaklaşım (kayda değer)
+### M1-11 — ölüm, run sonu, skor ekranı (`13e9c89`)
 
-"Sıkışan zombiyi 15 saniye sonra sahadan çek" diye bir emniyet ağı yazıldı; geliştirici
-**haklı olarak reddetti**: hatayı başka bir hatayla kapatmak, turun neden kilitlendiğini
-gizler. Kök sebep düzeltildi, yama geri alındı. *Bu tavrı koru.*
+`DebugPlayerHealth` canı sessizce dolduruyordu; run'ın sonu yoktu. Yeni:
+
+- **Yenilenen can** (`RegeneratingHealth`, saf C#): 4 sn vurulmazsan 25/sn dolar. Yeni
+  hasar gecikmeyi baştan başlatır. Karar geliştiriciye ait, gerekçe ÇK-17.
+- **`RunSignals`** — `RoundSignals`'ın kardeşi. Run sonu **bir kez** olur.
+- **`RunRecorder`** (saf C#) — donduktan sonra sağır: havadaki mermi skoru gözün önünde
+  değiştirmesin.
+- Yeni config alanı `player.json`.
+
+### M1-12 — telemetri (`3a56ca2`)
+
+Her run `telemetry/runs.jsonl`'a bir JSONL satırı: tur, süre, öldürmeler, puan, **ölüm
+yeri**, **her turun kaçıncı saniyede başladığı**.
+
+```
+powershell -NoProfile -File .claude/tools/telemetry.ps1
+```
+
+ÇK-13'ü doğrudan cevaplar ve tur başına süreyi çizer. `-Runs` ve `-Deaths` bayrakları var.
+
+---
+
+## Bu oturumun dersleri
+
+| Ne | Ders |
+|---|---|
+| **Girdi kesme yarımdı** | M1-11'de girdiyi yalnızca `PlayerController`'da kestim; ateş, bıçak, tamir ve satın alma skor ekranının arkasında çalışmaya devam ediyordu. Kod incelemesi BLOCKER olarak yakaladı. **Bir kuralı bir yerde uygulamak, uygulamak değildir.** |
+| **`.gitignore` kaynağı yuttu** | `telemetry/` satırı köke sabitlenmemişti ve `Assets/_Project/Code/Systems/Telemetry/` kaynak klasörünü de eşleştiriyordu — `RunLogWriter.cs` hiç commit edilmeyecekti, **sessizce**. `/telemetry/` ile düzeltildi. Geçen oturumun dersi bu oturumda yeni bir kılıkta geri geldi. |
+| **Türkçe Windows JSON'u bozar** | `12.5f.ToString()` bu makinede `"12,5"` üretir; kültürsüz yazılan telemetri geçerli JSON olmaktan çıkar ve hata aylar sonra, veriyi okuyan araçta görünür. Her sayı `InvariantCulture` ile yazılıyor, gerçek `tr-TR` kültürüyle test ediliyor. |
+| **Debug kısayolu ölçümü kirletiyordu** | F7/F8 ile atlanan turların zaman damgası uydurma. Tek bir hata ayıklama run'ı ÇK-13 ortalamasını sessizce bozacaktı. Artık `usedRoundSkip` satıra yazılıyor, özet aracı o run'ları hesaba katmıyor. |
+| **Telemetri oyunu durduramaz** | Yazıcı `RunEnded`'ın **ilk** abonesi; kaçan bir istisna yayın zincirini keser ve skor ekranı hiç gelmez. `catch` bilerek geniş, gerekçesi kodda yazılı. |
+
+---
 
 ## Bilinmesi gereken tuzaklar
 
-1. **Config kodu tüketicisinden ÖNCE üretilir.** Üretilmemiş bir config sınıfına
-   bağlanan kod projeyi derlenemez yapar ve importer da Unity içinde koştuğu için o
-   noktadan sonra çalışamaz. Sıra: şema → içe aktar → tüketici.
-2. **Bir betiği taşırken `.cs` ve `.cs.meta` birlikte taşınır.** Yalnızca `.cs` taşımak
-   Unity'ye yeni GUID ürettirir ve o betiğe bakan her prefab/sahne referansı kopar.
+1. **Config kodu tüketicisinden ÖNCE üretilir.** Sıra: şema → içe aktar → tüketici.
+2. **Bir betiği taşırken `.cs` ve `.cs.meta` birlikte taşınır.**
 3. **NavMesh bake'i tetikleyicileri geometri sayabiliyor.** Kurulum aracı bake sırasında
-   bütün trigger'ları ve kapı kanatlarını kapatıyor; bunu bozma.
-4. **Bağlantı ölçümü kurulumun içinde**, bake'in hemen ardında yapılıyor. Ayrı bir
-   oturumda ölçmek kapalı kapıların NavMesh oymasını geri almayı gerektiriyor ve o geri
-   alma toplu çalıştırmada hiç olmuyor — araç haksız yere "KOPUK" der.
+   trigger'ları ve kapı kanatlarını kapatıyor; bunu bozma.
+4. **Bağlantı ölçümü kurulumun içinde**, bake'in hemen ardında yapılıyor.
+5. **`Bunker.Systems` motoru göremez** (`noEngineReferences`). `Application.*`,
+   `Debug.Log`, `Vector3` orada kullanılamaz — yol ve zaman dışarıdan verilir.
+6. **`CharacterController` / `NavMeshAgent` açıkken `transform.position` yazmak işe
+   yaramaz.** Önce kapat, yaz, aç. BUG-005 buydu; M1-11'in yeniden başlatması aynı
+   tuzağa düşebilirdi.
+
+---
+
+## Açık borç
+
+**Kurulum aracı idempotent değil.** `Assets/_Project/Scenes/Sandbox/M0-Sandbox/` altında
+**25 orphan NavMesh varlığı** birikmiş; her `SetupTestbedBatch` bir tane daha bırakıyor.
+`editor-tools.md`'nin "aynı aracı iki kez çalıştırmak bir kez çalıştırmakla aynı sonucu
+verir" kuralının ihlali. Ayrı bir iş olarak önerildi.
+
+---
 
 ## Araçlar (hepsi Unity kapalıyken koşar)
 
 | Komut | Ne yapar |
 |---|---|
 | `.claude/tools/unity-test.ps1` | Derler + EditMode testlerini koşar |
-| `.claude/tools/unity-exec.ps1 -Method <sinif.metot>` | Herhangi bir editör metodunu başsız çalıştırır |
+| `.claude/tools/unity-exec.ps1 -Method <sinif.metot>` | Editör metodunu başsız çalıştırır |
 | `.claude/tools/config-validate.ps1` | JSON'ları şemaya karşı doğrular |
-
-Sık kullanılan üç metot:
+| **`.claude/tools/telemetry.ps1`** | **Biriken run'ları özetler, ÇK-13'ü cevaplar** |
 
 ```
 Bunker.Editor.ZombieSetup.SetupTestbedBatch                 # her sey: uret, bagla, bake, olc
@@ -87,36 +261,45 @@ Bunker.Editor.ConfigTools.ConfigImporter.GenerateCodeBatch  # config -> C#
 Bunker.Editor.ConfigTools.ConfigImporter.FillAssetsBatch    # config -> .asset
 ```
 
-Unity açıksa kilit yüzünden koşmaz. **Sahipsiz kilidi araçlar kendileri temizliyor**
-(derleme hatasıyla ölen çalıştırmadan kalan).
+Unity açıksa kilit yüzünden koşmaz. Sahipsiz kilidi araçlar kendileri temizliyor.
+
+---
 
 ## Denge ayarı
 
-Bütün sayılar `config/balance/*.json` içinde; her birinin şema açıklaması "aralığın
-dışına çıkarsan oyuncu ne hisseder" cümlesini taşıyor. Değiştirme adımları:
+Bütün sayılar `config/balance/*.json` içinde. Değiştirme adımları:
 `docs/guides/config-nasil-degistirilir.md`.
 
-Şu an oynanarak ayarlanmayı bekleyen en kritik üçü:
+Oynanarak ayarlanmayı bekleyen dördü:
 
 - `weapon.json` → silah sünger mi hissettiriyor?
 - `barricade.json` → 4 tahta × 1.2 sn sökme / 0.9 sn tamir bir yarış gibi mi?
 - `zombie.json` → telegraf (0.55 sn) okunup kaçılabiliyor mu?
+- **`player.json`** → 4 sn kaçınca canın dolması bir ödül mü, yoksa hasarı anlamsız mı
+  kılıyor? %35 uyarı eşiği ölmeden **önce** görülüyor mu? (Hiç oynanmadı.)
+
+---
 
 ## Geliştiriciyle çalışma biçimi
 
 - **Unity'yi ilk kez kullanıyor, Türkçe.** "Şunu tıkla" deme — **araç yaz ve kendin
   çalıştır.** Geliştiricinin tek yapacağı Play'e basmak olsun.
-- Oyun testi bulgularını ciddiye al: bu oturumdaki beş hatanın hepsi oradan çıktı,
+- Oyun testi bulgularını ciddiye al: bu projedeki beş hatanın hepsi oradan çıktı,
   hiçbiri testlerden çıkmadı.
-- Hatayı hatayla kapatma. Kök sebebi bul.
+- Hatayı hatayla kapatma. Kök sebebi bul. (Geçmişte bir emniyet ağı yazıldı ve
+  geliştirici haklı olarak reddetti — *bu tavrı koru.*)
+
+---
 
 ## Nereye bakılır
 
 | Ne | Nerede |
 |---|---|
 | Proje özeti | `docs/CONTEXT.md` ← **önce burası** |
+| **Oyun testi protokolü** | **`docs/qa/playtests/PT-01-ck17-tekrar-oynatiyor-mu.md`** |
 | Kararlar | `docs/DECISIONS.md` |
 | Hata kayıtları | `docs/qa/bugs/` |
+| Story paketleri | `design/stories/` |
 | Milestone | `design/milestones/M-01.md` |
 | Mimari / ADR | `docs/architecture/ARCHITECTURE.md`, `adr/` |
 | Config nasıl değiştirilir | `docs/guides/config-nasil-degistirilir.md` |

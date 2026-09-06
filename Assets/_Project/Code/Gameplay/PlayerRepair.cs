@@ -1,6 +1,8 @@
 using System;
 using Bunker.Config;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
+using Bunker.Systems.Rounds;
 using Bunker.Systems.Config;
 using Mirror;
 using UnityEngine;
@@ -63,6 +65,14 @@ namespace Bunker.Gameplay
         {
             if (!isLocalPlayer || _config == null) return;
 
+            // Run bitti: girdi kesilir (M1-11, AC-3). Hedef de temizlenir, yoksa
+            // skor ekrani kapandiginda ekranda eski bir tamir ipucu asili kalir.
+            if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen)
+            {
+                HasRepairTarget = false;
+                return;
+            }
+
             // Satin alinabilir bir seye bakarken tamir calismaz: ayni tus iki is
             // yapiyor ve cakisma TANIMLI olmali (basmak satin alir, tutmak tamir eder).
             bool blockedByPurchase = interact != null && interact.HasTarget;
@@ -117,7 +127,11 @@ namespace Bunker.Gameplay
             var repairable = hit.collider.GetComponentInParent<IRepairable>();
             if (repairable == null || !repairable.NeedsRepair) return;
 
-            if (!repairable.Repair(deltaTime)) return;
+            // Kart etkisi: "Usta Elleri" tamiri hizlandirir. Gecen sureyi carpmak,
+            // tamir mantigina dokunmadan hizi degistirmenin en ucuz yolu.
+            float scaled = deltaTime * RunModifiers.Multiplier(CardStat.RepairSpeed);
+
+            if (!repairable.Repair(scaled)) return;
 
             // Puan tahtanin takildigi ANDA yazilir, tusa basili tutmaya degil.
             if (score != null) score.Award(Systems.Economy.PointEvent.BarricadeBoardRepair);

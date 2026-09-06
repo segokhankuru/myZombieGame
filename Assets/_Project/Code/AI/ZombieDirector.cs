@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Bunker.Audio;
 using Bunker.Config;
 using Bunker.Systems.Ai;
+using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
 using Bunker.Systems.Rounds;
@@ -74,6 +76,9 @@ namespace Bunker.AI
         private bool[] _windowReachable;
         private NavMeshPath _reachabilityPath;
 
+        // Bir turda TEK boss: iki boss bir savas degil bir kusatma olurdu.
+        private bool _bossSpawnedThisRound;
+
         private bool _warnedNoWindow;
         private bool _warnedInsideSpawn;
 
@@ -137,6 +142,37 @@ namespace Bunker.AI
             _ready = true;
         }
 
+        private void OnEnable()
+        {
+            // Statik yayin noktasina abone olan herkes OnDisable'da birakir
+            // (RunSignals'in iki kuralindan biri).
+            RunSignals.RunRestarted += OnRunRestarted;
+        }
+
+        private void OnDisable()
+        {
+            RunSignals.RunRestarted -= OnRunRestarted;
+        }
+
+        /// <summary>
+        /// Yeni run: saha temizlenir, tur sayacı başa döner (AC-5).
+        ///
+        /// <para><see cref="JumpToRound"/> değil <see cref="RoundRunner.Reset"/>:
+        /// yeni run <b>molayla</b> başlamalı. Doğrudan tur 1'e atlamak, oyuncuyu
+        /// yeni run'ın ilk saniyesinde zombiyle karşılaştırır ve toparlanma anını
+        /// hiç vermez.</para>
+        /// </summary>
+        private void OnRunRestarted()
+        {
+            // Otorite kontrolu Update'teki ile ayni olmali: yetkisiz bir yonetmen
+            // (M-02'de uzak istemci) sahayi kendi basina temizlemez ve tur sayacini
+            // kendi basina sifirlamaz.
+            if (!_ready || !_authoritative) return;
+
+            KillAll();
+            _runner.Reset();
+        }
+
         private void OnDestroy()
         {
             // Awake'in kurdugunu geri al: her zombinin olay aboneligi burada kopar,
@@ -172,6 +208,19 @@ namespace Bunker.AI
         {
             if (!_ready || !_authoritative || !autoRun) return;
 
+            // Draft acikken tur ilerlemez: oyuncu kart secerken bir sonraki turun
+            // baslamasi, secim ekraninin arkasindan surunun gelmesi demek olurdu.
+            if (CardSignals.IsDraftOpen) return;
+
+            // Run bitti: tur ilerlemez, zombi dogmaz (AC-3). Skor ekrani acikken
+            // arkada bir sonraki turun baslamasi, ekrani kapatan oyuncuyu surunun
+            // ortasinda birakirdi.
+            if (RunSignals.IsRunOver) return;
+
+            // Sureyi turu yuruten taraf ilerletir: run'in suresi, oynanan surenin
+            // kendisidir - menude gecen zaman degil.
+            RunSignals.Current.Tick(Time.deltaTime);
+
             TickRound(Time.deltaTime);
         }
 
@@ -190,12 +239,25 @@ namespace Bunker.AI
                 // Assembly sinirini asan yayin: silah ve barikat Bunker.Gameplay ile
                 // Bunker.AI'da yasiyor ve birbirlerini goremiyor (RoundSignals).
                 RoundSignals.RaiseRoundStarted(_runner.Round);
+
+                // Skor ekraninin "ulasilan tur" sayisi (M1-11).
+                RunSignals.Current.NoteRound(_runner.Round);
+
+                // Yeni tur, yeni boss hakki.
+                _bossSpawnedThisRound = false;
             }
 
             if (_runner.RoundClearedThisTick)
             {
                 RoundCleared?.Invoke(_runner.Round);
                 RoundSignals.RaiseRoundCleared(_runner.Round);
+
+                // Kismi yenilenme (2026-09-05): mermi ve barikat kendiliginden bir
+                // miktar geri gelir. Oranlarin tek sahibi rounds.json; silah ve
+                // barikat onu okumaz, burasi okuyup yayinlar.
+                RoundSignals.RaiseRoundEndRestock(
+                    _scaling.RoundEndReserveAmmoFraction01,
+                    _scaling.RoundEndBarricadeBoardsFraction01);
             }
 
             if (budget <= 0) return;
@@ -260,9 +322,15 @@ namespace Bunker.AI
                 return false;
             }
 
-            // Dogum noktasi pencerenin DISINDA: zombinin gorunur sekilde hiclikten
-            // belirmesi PILLAR-04'u cigner (LVL-01 spec'i).
-            Vector3 wanted = window.OutsidePoint + window.transform.forward * 2f;
+            // Dogum noktasi pencerenin COK DISINDA: zombinin gorunur sekilde hiclikten
+            // belirmesi PILLAR-04'u cigner (LVL-01 spec'i), ve barikatin DIBINDE
+            // belirmesi disarisini savunmayi anlamsiz kilar (gelistirici, 2026-09-04).
+            //
+            // Mesafe artik pencerenin kendisinden geliyor (BlockoutSettings ->
+            // WindowEntry.SpawnPoint). Onceki surumde burada hesaplaniyordu ve
+            // uretecin sahneye koydugu Spawn_XX isaretleri baska bir yeri
+            // gosteriyordu - iki ayri dogru, biri yalan.
+            Vector3 wanted = window.SpawnPoint;
 
             // Yaricap KUCUK tutuluyor. SamplePosition duvarlari umursamaz: genis bir
             // yaricapla, disarida NavMesh bulunamayan bir noktadan ICERIDEKI zemine
@@ -303,11 +371,36 @@ namespace Bunker.AI
             // Konumu ZombieAgent.Spawn yazar - acik bir NavMeshAgent transform
             // yazmasini yok sayar (havuzdan cikan zombi eski olum yerine geri
             // cekiliyordu).
-            zombie.Spawn(_zombieRuntimeConfig,
-                         _scaling.HealthForRound(_runner.Round),
-                         _scaling.SpeedForRound(_runner.Round),
-                         window,
-                         hit.position);
+            // BOSS: tur boss turuysa, o turun ILK zombisi boss olur (2026-09-06).
+            //
+            // <b>İlk olması bilinçli:</b> boss turun sonunda gelseydi oyuncu turun
+            // tamamını "acaba şimdi mi" diye oynardı; başta gelmesi turun geri kalanını
+            // <i>onunla birlikte</i> hayatta kalma problemine çevirir. Ve tek: iki boss
+            // bir savaş değil bir kuşatma olurdu.
+            bool boss = !_bossSpawnedThisRound && _scaling.IsBossRound(_runner.Round);
+
+            if (boss)
+            {
+                _bossSpawnedThisRound = true;
+
+                zombie.Spawn(_zombieRuntimeConfig,
+                             _scaling.BossHealthForRound(_runner.Round),
+                             _scaling.BossSpeedForRound(_runner.Round),
+                             window,
+                             hit.position,
+                             _scaling.BossScaleMultiplier,
+                             _scaling.BossDamageMultiplier);
+
+                GameAudio.PlayAt(SfxId.RoundStart, hit.position, 1.2f);
+            }
+            else
+            {
+                zombie.Spawn(_zombieRuntimeConfig,
+                             _scaling.HealthForRound(_runner.Round),
+                             _scaling.SpeedForRound(_runner.Round),
+                             window,
+                             hit.position);
+            }
 
             zombie.SetSimulated(_authoritative);
 
@@ -392,6 +485,15 @@ namespace Bunker.AI
 
         private void OnZombieKilled(ZombieAgent zombie, DamageKind kind, bool headshot)
         {
+            // BOSS ODULU (2026-09-06): puani ekonomi yazar, ama "bu bir bossdu"
+            // bilgisi yalnizca burada var - silah hangi zombiyi vurdugunu bilmez.
+            // TODO(netcode-programmer, M-02): co-op'ta odul OLDURENE gitmeli;
+            // su an solo host oldugu icin tek oyuncuya gidiyor.
+            if (zombie != null && zombie.IsBoss)
+            {
+                RoundSignals.RaiseBossKilled(_scaling.BossPointsMultiplier);
+            }
+
             ZombieKilled?.Invoke(zombie, kind, headshot);
 
             // Olen zombi HEMEN sahadan sayilmaz olur: tur "hepsi oldu mu" sorusunu

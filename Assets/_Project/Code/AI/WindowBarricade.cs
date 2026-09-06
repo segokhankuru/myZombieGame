@@ -1,4 +1,5 @@
 using System;
+using Bunker.Audio;
 using Bunker.Config;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Rounds;
@@ -68,19 +69,61 @@ namespace Bunker.AI
             RefreshVisuals();
         }
 
-        private void OnEnable() => RoundSignals.RoundStarted += OnRoundStarted;
+        private void OnEnable()
+        {
+            RunSignals.RunRestarted += OnRunRestarted;
+            RoundSignals.RoundEndRestock += OnRoundEndRestock;
+        }
 
-        private void OnDisable() => RoundSignals.RoundStarted -= OnRoundStarted;
+        private void OnDisable()
+        {
+            RunSignals.RunRestarted -= OnRunRestarted;
+            RoundSignals.RoundEndRestock -= OnRoundEndRestock;
+        }
 
         /// <summary>
-        /// Her turun başında barikat tam hâline döner.
+        /// Tur bitti: tahtaların bir kısmı kendiliğinden geri gelir (2026-09-05,
+        /// geliştirici kararı).
         ///
-        /// <para><b>Neden otomatik:</b> mola, oyuncunun toparlandığı andır. Bir önceki
-        /// turdan kalan sökük pencereleri tek tek tamir etmek zorunda kalmak, molayı
-        /// bir dinlenme değil ev ödevi yapar — ve tur temposunu (PILLAR-03) bozar.
-        /// Tamir mekaniği <b>tur içinde</b> anlamlıdır, turlar arasında değil.</para>
+        /// <para><b>Kısmi, tam değil.</b> Tam yenilenme oyunu kolaylaştırıyordu ve o
+        /// yüzden kaldırılmıştı; hiç yenilenmemesi ise geç turlarda molanın tamamını
+        /// tamire bağlıyor ve tezgâha gitmeyi imkânsız kılıyordu. Oran
+        /// <c>rounds.json → roundEnd.barricadeBoardsFraction01</c>'de; buraya bir sayı
+        /// yazılmaz.</para>
         /// </summary>
-        private void OnRoundStarted(int round)
+        private void OnRoundEndRestock(float reserveAmmoFraction01, float boardsFraction01)
+        {
+            if (_barricade == null) return;
+
+            if (_barricade.RestoreFraction(boardsFraction01) <= 0) return;
+
+            RefreshVisuals();
+        }
+
+        /// <summary>
+        /// Yeni run: barikat tam hâline döner.
+        ///
+        /// <para><b>Tur başında DEĞİL, RUN başında</b> (geliştirici kararı, 2026-09-04).
+        /// Önceki sürüm her tur başında tam hâline dönüyordu ve gerekçesi şuydu: <i>"mola
+        /// oyuncunun toparlandığı andır; sökük pencereleri tek tek tamir etmek molayı ev
+        /// ödevi yapar (PILLAR-03)."</i> Geliştirici tersini seçti: <b>"tur başladığında
+        /// tamamen yenilenen barikat oyunu çok kolay kılıyor."</b></para>
+        ///
+        /// <para><b>Bu bir farklılaştırıcı değil, bir sadakat düzeltmesi.</b> Klon taban
+        /// barikatı otomatik onarmaz; oyuncu puan karşılığı tamir eder ve etmezse barikat
+        /// sökük kalır. Otomatik dönüş bizim kazara eklediğimiz bir sapmaydı — bu yüzden
+        /// M-02'ye ertelenmiyor, M-01'in içinde düzeltiliyor.</para>
+        ///
+        /// <para><b>Run sıfırlaması ŞART:</b> tur sıfırlaması kalkınca barikatı düzelten
+        /// başka hiçbir yol kalmıyordu. O hâliyle <c>R</c> ile başlayan ikinci run,
+        /// birincinin sökük pencereleriyle başlardı — M1-11'in AC-6'sının (sayılar
+        /// sızmaz) barikat karşılığı.</para>
+        ///
+        /// <para><b>Oyun testinde izlenecek:</b> eski yorumun uyarısı hâlâ geçerli
+        /// olabilir. 10 saniyelik mola dört pencereyi tamir etmeye yetmiyorsa mola bir
+        /// dinlenme değil ev ödevi olur. Bu gerilim çözülmedi, ölçülecek.</para>
+        /// </summary>
+        private void OnRunRestarted()
         {
             ResetBarricade();
         }
@@ -117,6 +160,11 @@ namespace Bunker.AI
             if (!fell) return false;
 
             RefreshVisuals();
+
+            // Tahtanin dusmesi 3B duyulur: oyuncu hangi pencerenin acildigini
+            // gormeden bilmeli, yoksa savunma yalnizca BAKTIGIN pencerede olur.
+            GameAudio.PlayAt(SfxId.BarricadeTear, transform.position);
+
             BoardTorn?.Invoke(this);
             return true;
         }
@@ -129,6 +177,7 @@ namespace Bunker.AI
             if (!added) return false;
 
             RefreshVisuals();
+            GameAudio.PlayAt(SfxId.BarricadeRepair, transform.position);
             BoardRepaired?.Invoke(this);
             return true;
         }

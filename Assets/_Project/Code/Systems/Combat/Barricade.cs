@@ -109,6 +109,40 @@ namespace Bunker.Systems.Combat
         {
         }
 
+        /// <summary>
+        /// Tur sonu <b>kısmi</b> yenilenme: tam barikatın <paramref name="fraction01"/>
+        /// kadarı geri gelir (2026-09-05).
+        ///
+        /// <para><b>Neden kısmi, tam değil:</b> tam yenilenme tamir etmeyi bir karar
+        /// olmaktan çıkarır — tahtalar zaten dönecekse mola boyunca tamir etmenin
+        /// anlamı kalmaz. Hiç yenilenmemesi ise geç turlarda molanın tamamını tamire
+        /// bağlar ve tezgâha gitmeyi imkânsız kılar. Oran <c>rounds.json</c>'da
+        /// (<c>roundEnd.barricadeBoardsFraction01</c>), koda gömülü değil.</para>
+        ///
+        /// <para>Yarım kalan söküm ilerlemesi <b>silinir</b>: tur bitti, o pencerede
+        /// çalışan zombi artık yok.</para>
+        /// </summary>
+        /// <returns>Gerçekten eklenen tahta sayısı.</returns>
+        public int RestoreFraction(float fraction01)
+        {
+            if (fraction01 <= 0f) return 0;
+            if (IsFull) return 0;
+
+            int add = (int)Math.Round(Capacity * fraction01, MidpointRounding.AwayFromZero);
+
+            // Oran sifirdan buyukse en az bir tahta gelir: "yenilendi" denip hicbir
+            // seyin degismemesi, oyuncuya kuralı YANLIS ogretir.
+            if (add < 1) add = 1;
+
+            int before = Boards;
+            Boards = Math.Min(Capacity, Boards + add);
+
+            _tearProgress = 0f;
+            _repairProgress = 0f;
+
+            return Boards - before;
+        }
+
         /// <summary>Yeni run: barikat başlangıç hâline döner.</summary>
         public void Reset()
         {

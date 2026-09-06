@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-silah",
+    "lastTuned": "2026-09-06"
+  },
+
+  "_note": "2026-09-06, gelistirici: 'farkli silahlar ekle cunku atis hizini test edemiyorum.' Dort silah, dort AYRI RITIM - ayni silahin daha guclusu degil. Tabanca referanstir (weapon.json'daki denge silahi); digerleri ona GORE tanimlandi. Saniyedeki hasar (DPS) bilerek birbirine yakin: silahi secen sey guc degil, RITIM ve MENZIL olmali. Hicbiri kanit degil, hepsi hipotez - oynanarak ayarlanacak.",
+
+  "_ids": "Id'ler KALICIDIR: duvar satin alma noktalari, kaydedilen silah ve telemetri bunlara baglanir.",
+
+  "_dps": "Tur 1 zombisi 150 can. Tabanca 55x6.7/sn = 367 DPS, MP 32x12.5/sn = 400 DPS, pompali 8x24 = 192/atis x1.5/sn = 288 DPS (yakin), tufek 130x2.5/sn = 325 DPS. Pompali yakinda en yuksek TEK ATIS hasarini verir ama uzakta ise yaramaz.",
+
+  "weapons": [
+    {
+      "id": "weapon.pistol",
+      "name": "TABANCA",
+      "damage": 55, "roundsPerMinute": 400, "headshotMultiplier": 2.0,
+      "rangeMeters": 60, "spreadDegrees": 0.6, "pelletCount": 1,
+      "magazineCapacity": 12, "reserveCapacity": 300, "startingReserve": 120,
+      "reloadSeconds": 1.6,
+      "recoilPitchPerShot": 1.1, "recoilYawPerShot": 0.35,
+      "recoilRecoveryPerSecond": 14, "recoilMaxPitch": 6,
+      "price": 0, "ammoPrice": 250,
+      "text": "Baslangic silahi. Dengeli, sabirli, kafa vurusunu odullendirir."
+    },
+    {
+      "id": "weapon.smg",
+      "name": "MP-KISA",
+      "damage": 32, "roundsPerMinute": 750, "headshotMultiplier": 1.6,
+      "rangeMeters": 35, "spreadDegrees": 2.2, "pelletCount": 1,
+      "magazineCapacity": 30, "reserveCapacity": 480, "startingReserve": 180,
+      "reloadSeconds": 2.0,
+      "recoilPitchPerShot": 0.55, "recoilYawPerShot": 0.45,
+      "recoilRecoveryPerSecond": 20, "recoilMaxPitch": 9,
+      "price": 900, "ammoPrice": 350,
+      "text": "Hizli ve affedici. Kalabaligi tarar, mermiyi hizla yer."
+    },
+    {
+      "id": "weapon.shotgun",
+      "name": "POMPALI",
+      "damage": 24, "roundsPerMinute": 90, "headshotMultiplier": 1.4,
+      "rangeMeters": 18, "spreadDegrees": 7.0, "pelletCount": 8,
+      "magazineCapacity": 6, "reserveCapacity": 90, "startingReserve": 36,
+      "reloadSeconds": 2.8,
+      "recoilPitchPerShot": 4.0, "recoilYawPerShot": 0.8,
+      "recoilRecoveryPerSecond": 16, "recoilMaxPitch": 12,
+      "price": 1200, "ammoPrice": 400,
+      "text": "Yakin mesafenin cevabi. Sekiz sacma; uzakta hicbir sey yapmaz."
+    },
+    {
+      "id": "weapon.rifle",
+      "name": "TUFEK",
+      "damage": 130, "roundsPerMinute": 150, "headshotMultiplier": 2.5,
+      "rangeMeters": 90, "spreadDegrees": 0.2, "pelletCount": 1,
+      "magazineCapacity": 8, "reserveCapacity": 160, "startingReserve": 64,
+      "reloadSeconds": 2.4,
+      "recoilPitchPerShot": 3.2, "recoilYawPerShot": 0.5,
+      "recoilRecoveryPerSecond": 12, "recoilMaxPitch": 10,
+      "price": 1500, "ammoPrice": 450,
+      "text": "Yavas ve agir. Kafadan vurdugun surece gec turlarin cevabi."
+    }
+  ]
+}

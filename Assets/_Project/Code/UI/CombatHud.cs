@@ -1,5 +1,7 @@
 using System.Text;
 using Bunker.Gameplay;
+using Bunker.Systems.Rounds;
+using Bunker.Systems.Settings;
 using UnityEngine;
 
 namespace Bunker.UI
@@ -28,10 +30,17 @@ namespace Bunker.UI
         [SerializeField] private float crosshairGapPixels = 4f;
         [SerializeField] private float crosshairThicknessPixels = 2f;
 
+        [Header("Can (M1-11)")]
+        [Tooltip("Dusuk canda ekran kenarinda yanan uyarinin kalinligi, piksel. " +
+                 "Denge degeri degil - okunabilirlik ayari.")]
+        [SerializeField] private float lowHealthVignettePixels = 90f;
+
         private PlayerWeapon _weapon;
         private PlayerScore _score;
+        private PlayerHealth _health;
         private PlayerRepair _repair;
         private PlayerInteract _interact;
+        private PlayerController _controller;
         private float _searchTimer;
 
         private readonly StringBuilder _text = new StringBuilder(128);
@@ -78,8 +87,10 @@ namespace Bunker.UI
 
                 _weapon = weapons[i];
                 _score = weapons[i].GetComponent<PlayerScore>();
+                _health = weapons[i].GetComponent<PlayerHealth>();
                 _repair = weapons[i].GetComponent<PlayerRepair>();
                 _interact = weapons[i].GetComponent<PlayerInteract>();
+                _controller = weapons[i].GetComponent<PlayerController>();
                 return;
             }
         }
@@ -87,6 +98,10 @@ namespace Bunker.UI
         private void OnGUI()
         {
             if (_weapon == null) return;
+
+            // Run bitti: sahne HUD'u susar, ekran skor ekranina birakilir. Ust uste
+            // iki arayuz, hangisinin canli oldugunu okunamaz yapar.
+            if (RunSignals.IsRunOver) return;
 
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, richText = false };
             _promptStyle ??= new GUIStyle(GUI.skin.label)
@@ -96,16 +111,106 @@ namespace Bunker.UI
                 richText = false
             };
 
+            // Can uyarisi EN ALTTA cizilir: nisangahin ve yazinin ustune binmemeli.
+            // Bilgiyi kapatan bir uyari, uyardigi seyi kotu gosterir.
+            DrawHealth();
+            DrawSprint();
             DrawCrosshair();
             DrawReadout();
         }
 
+        /// <summary>
+        /// Can barı ve düşük can uyarısı (AC-7).
+        ///
+        /// <para><b>Ölüm sürpriz olmamalı.</b> Oyuncu canının azaldığını hasar aldığı
+        /// anda görmüş olmalı; yoksa ölüm haksızlık gibi okunur ve ÇK-17'nin cevabı
+        /// "hayır" olur. Bilgi renkle <b>tek başına</b> taşınmıyor: barın uzunluğu da
+        /// aynı şeyi söylüyor (ui-code.md).</para>
+        /// </summary>
+        private void DrawHealth()
+        {
+            if (_health == null) return;
+
+            float fraction = _health.Fraction01;
+
+            if (_health.IsLow)
+            {
+                // Ekran kenari uyarisi: dort kenarda ince bir kirmizi bant. Tam ekran
+                // bir kaplama, nisan almayi zorlastirir - uyari oyunu oynanamaz
+                // yapmamali.
+                GUI.color = new Color(0.8f, 0.05f, 0.05f, 0.35f);
+
+                float t = lowHealthVignettePixels;
+                Rect(0f, 0f, Screen.width, t);
+                Rect(0f, Screen.height - t, Screen.width, t);
+                Rect(0f, 0f, t, Screen.height);
+                Rect(Screen.width - t, 0f, t, Screen.height);
+
+                GUI.color = Color.white;
+            }
+
+            // Can bari: sol altta, puanin hemen ustunde.
+            const float barWidth = 220f;
+            const float barHeight = 14f;
+            float x = 24f;
+            float y = Screen.height - 90f;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.5f);
+            Rect(x, y, barWidth, barHeight);
+
+            GUI.color = _health.IsLow ? new Color(0.9f, 0.2f, 0.15f) : new Color(0.85f, 0.85f, 0.85f);
+            Rect(x, y, barWidth * fraction, barHeight);
+
+            GUI.color = Color.white;
+        }
+
+        /// <summary>
+        /// Koşu göstergesi: can barının hemen altında ince bir çubuk (2026-09-05).
+        ///
+        /// <para><b>Neden bir gösterge şart:</b> koşu 4,5 saniyelik <i>sınırlı</i> bir
+        /// kaynak. Göstergesi olmadan oyuncu ne zaman koşabileceğini tahmin etmek
+        /// zorunda kalır ve tam kaçması gereken anda Shift'in çalışmadığını görür —
+        /// oyuncunun "oyun beni yüzüstü bıraktı" diye okuduğu şey tam olarak budur.</para>
+        ///
+        /// <para><b>Dolu ve koşulmuyorken çizilmez</b>: hiçbir şey söylemeyen bir
+        /// gösterge, ekranda yer kaplamaktan başka bir şey yapmaz.</para>
+        /// </summary>
+        private void DrawSprint()
+        {
+            if (_controller == null) return;
+
+            float fraction = _controller.SprintFraction01;
+            if (fraction >= 1f && !_controller.IsSprinting) return;
+
+            const float barWidth = 220f;
+            const float barHeight = 6f;
+            float x = 24f;
+            float y = Screen.height - 70f;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.5f);
+            Rect(x, y, barWidth, barHeight);
+
+            // Bilgi renkle TEK BASINA tasinmiyor (ui-code.md): cubugun uzunlugu da
+            // ayni seyi soyluyor. Renk yalnizca "su an kosuyorsun"u ekliyor.
+            GUI.color = _controller.IsSprinting
+                ? new Color(0.45f, 0.80f, 0.95f)
+                : new Color(0.45f, 0.55f, 0.60f);
+
+            Rect(x, y, barWidth * fraction, barHeight);
+
+            GUI.color = Color.white;
+        }
+
         private void DrawCrosshair()
         {
+            // Nisangah kapatilabilir (M-04): bazi oyuncular temiz ekran ister ve
+            // silahin dogal dogrulugu zaten merkezden gecer.
+            if (!GameSettings.ShowCrosshair && _weapon.HitMarkerRemaining <= 0f) return;
+
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
 
-            bool hit = _weapon.HitMarkerRemaining > 0f;
+            bool hit = GameSettings.ShowHitMarker && _weapon.HitMarkerRemaining > 0f;
 
             // Isabet isareti nisangahin KENDISINI degistirir: ayri bir sekil ciziip
             // ustune bindirmek, kaosun icinde iki ayri sey okumaya zorlar (PILLAR-04).

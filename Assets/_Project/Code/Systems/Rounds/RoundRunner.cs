@@ -106,7 +106,11 @@ namespace Bunker.Systems.Rounds
                 return 0;
             }
 
-            int capacity = _scaling.MaxConcurrent - aliveCount;
+            // Tavan TURA GORE (2026-09-05): performans tavani (MaxConcurrent) ile
+            // birlikte, o turun anlik yuk tavani da uygulanir. Sahadaki zombi sayisi
+            // tavana dayandiginda dogum DURUR; biri olunce yenisi gelir. Yigilma
+            // olmadan baskinin sabit kalmasi, barikat tamirini mumkun kilan tek sey.
+            int capacity = _scaling.AliveCapForRound(Round) - aliveCount;
             if (capacity <= 0) return 0;
 
             float interval = _scaling.SpawnIntervalForRound(Round);
