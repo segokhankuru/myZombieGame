@@ -37,14 +37,34 @@ namespace Bunker.Systems.Combat
         /// <summary>Yön bilgisi var mı. Sıfır noktasından gelen hasar yok sayılır.</summary>
         public bool HasSource => SourceX != 0f || SourceZ != 0f;
 
+        /// <summary>
+        /// Vuruşu <b>kimin, neyle</b> yaptığı — tek kelimeyle, günlük için.
+        /// 2026-09-08.
+        ///
+        /// <para><b>Neden hasarla birlikte taşınıyor</b> (geliştirici: <i>"kimden kime
+        /// hangi araçla gitmiş satır satır logla"</i>): hasarı <i>uygulayan</i> taraf
+        /// (silah, pençe, şarapnel) ile hasarı <i>yazan</i> taraf (can havuzu) farklı
+        /// yerler. Günlüğü uygulayan tarafta tutmak, beş ayrı çağrı noktasına beş ayrı
+        /// satır koymak demekti — biri unutulduğunda ölüm dökümü sessizce eksik
+        /// kalırdı. Etiket hasarla birlikte gelince günlük tek bir yerde, hedefin
+        /// kendisinde tutulur ve <b>eksik kalamaz</b>.</para>
+        ///
+        /// <para><b>Neden <c>string</c> tahsis etmiyor:</b> geçilen değerler sabit ya
+        /// da bir kez üretilip saklanmış adlardır (silahın adı, "pence", "sarapnel").
+        /// Buraya <c>$"..."</c> yazmak vuruş başına bir tahsis olurdu
+        /// (csharp-code.md).</para>
+        /// </summary>
+        public readonly string Source;
+
         public DamageInfo(float amount, DamageKind kind = DamageKind.Bullet, bool headshot = false,
-                          float sourceX = 0f, float sourceZ = 0f)
+                          float sourceX = 0f, float sourceZ = 0f, string source = null)
         {
             Amount = amount < 0f ? 0f : amount;
             Kind = kind;
             Headshot = headshot;
             SourceX = sourceX;
             SourceZ = sourceZ;
+            Source = source;
         }
     }
 

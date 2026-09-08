@@ -33,10 +33,11 @@ MonoBehaviour:
     recoilMaxPitch: 6
     price: 0
     ammoPrice: 250
+    reloadPerShell: 0
   - id: weapon.smg
     displayName: MP-KISA
     text: Hizli ve affedici. Kalabaligi tarar, mermiyi hizla yer.
-    damage: 32
+    damage: 55
     roundsPerMinute: 750
     headshotMultiplier: 1.6
     rangeMeters: 35
@@ -51,26 +52,28 @@ MonoBehaviour:
     recoilRecoveryPerSecond: 20
     recoilMaxPitch: 9
     price: 900
-    ammoPrice: 350
+    ammoPrice: 250
+    reloadPerShell: 0
   - id: weapon.shotgun
     displayName: POMPALI
-    text: Yakin mesafenin cevabi. Sekiz sacma; uzakta hicbir sey yapmaz.
+    text: Yakin mesafenin cevabi. Sekiz sacma; uzakta dagilir, bir ikisi tutar.
     damage: 24
     roundsPerMinute: 90
     headshotMultiplier: 1.4
-    rangeMeters: 18
-    spreadDegrees: 7
+    rangeMeters: 45
+    spreadDegrees: 3
     pelletCount: 8
     magazineCapacity: 6
     reserveCapacity: 90
     startingReserve: 36
-    reloadSeconds: 2.8
+    reloadSeconds: 0.45
     recoilPitchPerShot: 4
     recoilYawPerShot: 0.8
     recoilRecoveryPerSecond: 16
     recoilMaxPitch: 12
     price: 1200
-    ammoPrice: 400
+    ammoPrice: 250
+    reloadPerShell: 1
   - id: weapon.rifle
     displayName: TUFEK
     text: Yavas ve agir. Kafadan vurdugun surece gec turlarin cevabi.
@@ -89,4 +92,5 @@ MonoBehaviour:
     recoilRecoveryPerSecond: 12
     recoilMaxPitch: 10
     price: 1500
-    ammoPrice: 450
+    ammoPrice: 250
+    reloadPerShell: 0

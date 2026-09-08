@@ -31,6 +31,62 @@ namespace Bunker.Systems.Tests
                 feelInputBufferSeconds: inputBuffer));
         }
 
+        // ---------------------------------------------------------------- sarjor karti
+
+        /// <summary>
+        /// Şarjör kartı <b>oransal</b> (2026-09-07): aynı kart her silahta aynı vaadi
+        /// tutar. Mutlak mermiyken +6, tabancada +%50 pompalıda +%100 ediyordu ve
+        /// kartın metni her silahta başka bir şey söylüyordu.
+        /// </summary>
+        [Test]
+        public void SarjorKarti_ORANSAL_HerSilahtaAyniVaat()
+        {
+            WeaponState pistol = Weapon(capacity: 12);
+            WeaponState shotgun = Shotgun(capacity: 6);
+
+            var plusForty = new WeaponModifiers(
+                fireRate: 0f, reloadSpeed: 0f, damage: 0f,
+                magazine: 0.40f, headshotMultiplier: 0f);
+
+            pistol.ApplyModifiers(plusForty);
+            shotgun.ApplyModifiers(plusForty);
+
+            Assert.AreEqual(17, pistol.MagazineCapacity, "12 * 1.40 = 16.8 -> 17");
+            Assert.AreEqual(9, shotgun.MagazineCapacity, "6 * 1.40 = 8.4 -> 9");
+        }
+
+        /// <summary>
+        /// Yukarı yuvarlama bilinçli: küçük şarjörlü bir silahta aşağı yuvarlamak,
+        /// kartı sessizce etkisiz bırakırdı — oyuncunun seçtiği ve hiçbir şey
+        /// hissetmediği kart, kart sisteminin en pahalı hatası.
+        /// </summary>
+        [Test]
+        public void SarjorKarti_KucukSilahta_EnAzBirMermi()
+        {
+            WeaponState shotgun = Shotgun(capacity: 6);
+
+            shotgun.ApplyModifiers(new WeaponModifiers(
+                fireRate: 0f, reloadSpeed: 0f, damage: 0f,
+                magazine: 0.10f, headshotMultiplier: 0f));
+
+            Assert.AreEqual(7, shotgun.MagazineCapacity, "6 * 1.10 = 6.6 -> 7");
+        }
+
+        [Test]
+        public void SarjorKarti_SarjordekiMermiyi_KENDILIGINDEN_Doldurmaz()
+        {
+            WeaponState w = Weapon(capacity: 12);
+            w.TryFire(true);
+            w.Tick(1f);
+
+            w.ApplyModifiers(new WeaponModifiers(
+                fireRate: 0f, reloadSpeed: 0f, damage: 0f,
+                magazine: 0.50f, headshotMultiplier: 0f));
+
+            Assert.AreEqual(18, w.MagazineCapacity);
+            Assert.AreEqual(11, w.RoundsInMagazine, "kapasite buyudu diye bedava dolum olmaz");
+        }
+
         // ---------------------------------------------------------------- ates
 
         [Test]
@@ -215,23 +271,30 @@ namespace Bunker.Systems.Tests
 
         // ---------------------------------------------------------------- yedek mermi
 
+        /// <summary>
+        /// 2026-09-07: yedek merminin TAVANI KALDIRILDI. Eski iki test tavanın
+        /// çalıştığını doğruluyordu; artık kuralın kendisi yok, o yüzden yerlerine
+        /// tavansızlığı doğrulayan bu test geçti. Kaldırılan bir kuralın testini
+        /// bırakmak, bir sonraki okuyanın hangisinin geçerli olduğunu bilememesi
+        /// demektir.
+        /// </summary>
         [Test]
-        public void AC4_YedekTavani_Asilmaz()
+        public void AC4_YedekTavani_YOK_EklenenHerMermiGirer()
         {
             WeaponState w = Weapon(startingReserve: 120, reserveCapacity: 300);
 
             int added = w.AddReserve(500);
 
-            Assert.AreEqual(300, w.Reserve);
-            Assert.AreEqual(180, added, "eklenen miktar gercekten sigan kadardir");
+            Assert.AreEqual(620, w.Reserve, "tavan yok: eklenen her mermi yedege girer");
+            Assert.AreEqual(500, added, "eklenen miktar, istenen miktardir");
         }
 
         [Test]
-        public void AC4_BaslangicYedegi_TavaniAsamaz()
+        public void AC4_BaslangicYedegi_KirpilmAZ()
         {
             WeaponState w = Weapon(startingReserve: 999, reserveCapacity: 100);
 
-            Assert.AreEqual(100, w.Reserve);
+            Assert.AreEqual(999, w.Reserve, "baslangic yedegi bir tavana kirpilmaz");
         }
 
         [Test]
@@ -304,6 +367,130 @@ namespace Bunker.Systems.Tests
             w.Tick(-5f);
 
             Assert.AreEqual(FireResult.Cycling, w.TryFire(true));
+        }
+
+        // ------------------------------------------------- pompali: mermi mermi dolum
+
+        /// <summary>
+        /// Pompalı: <c>reloadPerShell</c> açıkken <c>reloadSeconds</c> TEK BIR
+        /// merminin süresidir. Tanım katalogdan geldiği için burada elle kuruluyor —
+        /// <see cref="WeaponConfig"/> başlangıç silahını (tabanca) tarif ediyor ve
+        /// onun dolumu bölünmez.
+        /// </summary>
+        private static WeaponState Shotgun(int capacity = 6, int startingReserve = 36,
+                                           float shellSeconds = 0.45f)
+        {
+            return new WeaponState(new WeaponDefinition(
+                "weapon.shotgun", "POMPALI",
+                damage: 24f, roundsPerMinute: 90f, headshotMultiplier: 1.4f,
+                rangeMeters: 18f, spreadDegrees: 3f, pelletCount: 8,
+                magazineCapacity: capacity, reserveCapacity: 90,
+                startingReserve: startingReserve, reloadSeconds: shellSeconds,
+                recoilPitchPerShot: 4f, recoilYawPerShot: 0.8f,
+                recoilRecoveryPerSecond: 16f, recoilMaxPitch: 12f,
+                tracerSeconds: 0.05f, hitMarkerSeconds: 0.12f, inputBufferSeconds: 0.15f,
+                price: 1200, ammoPrice: 400, reloadPerShell: true));
+        }
+
+        /// <summary>Şarjörü boşaltır. Dolum testlerinin ortak başlangıcı.</summary>
+        private static void Empty(WeaponState w)
+        {
+            while (w.RoundsInMagazine > 0)
+            {
+                w.TryFire(true);
+                w.Tick(1f);
+            }
+        }
+
+        [Test]
+        public void Pompali_BirAdimda_TEK_MermiGirer()
+        {
+            WeaponState w = Shotgun();
+            Empty(w);
+
+            Assert.IsTrue(w.TryStartReload());
+            w.Tick(0.45f);
+
+            Assert.AreEqual(1, w.RoundsInMagazine, "bir adim = bir fisek");
+            Assert.AreEqual(35, w.Reserve);
+        }
+
+        [Test]
+        public void Pompali_KesilmezseSarjorDolanaKadarDevamEder()
+        {
+            WeaponState w = Shotgun(capacity: 6);
+            Empty(w);
+
+            w.TryStartReload();
+
+            // Alti adim: 6 x 0.45 = 2.7 sn. Tick'ler ayri ayri, cunku her adim
+            // tamamlandiginda bir sonraki BASLATILIYOR.
+            for (int i = 0; i < 6; i++) w.Tick(0.45f);
+
+            Assert.AreEqual(6, w.RoundsInMagazine);
+            Assert.IsFalse(w.IsReloading, "sarjor dolunca dolum durur");
+        }
+
+        [Test]
+        public void Pompali_YedekBitince_DolumDurur()
+        {
+            WeaponState w = Shotgun(capacity: 6, startingReserve: 2);
+            Empty(w);
+
+            w.TryStartReload();
+            for (int i = 0; i < 6; i++) w.Tick(0.45f);
+
+            Assert.AreEqual(2, w.RoundsInMagazine, "yedekte iki fisek vardi");
+            Assert.AreEqual(0, w.Reserve);
+            Assert.IsFalse(w.IsReloading);
+        }
+
+        /// <summary>
+        /// Pompalıyı pompalı yapan kural: <b>iki fişek koyup ateş edebilmek</b>. Bunu
+        /// engellemek, dolumu bölünebilir yapmanın bütün anlamını götürür.
+        /// </summary>
+        [Test]
+        public void Pompali_IkiFisektenSonra_AtesEdilebilir()
+        {
+            WeaponState w = Shotgun();
+            Empty(w);
+
+            w.TryStartReload();
+            w.Tick(0.45f);
+            w.Tick(0.45f);
+
+            Assert.AreEqual(2, w.RoundsInMagazine);
+            Assert.IsTrue(w.IsReloading, "ucuncu fisek yolda");
+
+            Assert.AreEqual(FireResult.Fired, w.TryFire(true));
+            Assert.AreEqual(1, w.RoundsInMagazine);
+            Assert.IsFalse(w.IsReloading, "ates dolumu KESER");
+        }
+
+        [Test]
+        public void Pompali_SarjorBOSKEN_AtesEtmekDolumuKesmez()
+        {
+            WeaponState w = Shotgun();
+            Empty(w);
+
+            w.TryStartReload();
+
+            // Ilk fisek daha girmedi: kesecek bir sey yok, silah dolumda kalmali.
+            Assert.AreEqual(FireResult.Reloading, w.TryFire(true));
+            Assert.IsTrue(w.IsReloading);
+        }
+
+        [Test]
+        public void TekParcaDolum_DEGISMEDI_TabancaSarjoruBirKeredeDolar()
+        {
+            WeaponState w = Weapon(capacity: 12, reloadSeconds: 1.6f);
+            Empty(w);
+
+            w.TryStartReload();
+            w.Tick(1.6f);
+
+            Assert.AreEqual(12, w.RoundsInMagazine, "tabancanin dolumu bolunmez");
+            Assert.IsFalse(w.IsReloading);
         }
     }
 }

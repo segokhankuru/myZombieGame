@@ -2,6 +2,7 @@ using System.Text;
 using Bunker.Gameplay;
 using Bunker.Systems.Cards;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Bunker.UI
 {
@@ -27,6 +28,11 @@ namespace Bunker.UI
     {
         [SerializeField] private CardDraftController controller;
 
+        [Tooltip("Ekran acildiktan sonra secimin KILITLI kaldigi sure. Turun son " +
+                 "zombisini oldururken basili tutulan fare, ekran acilir acilmaz kart " +
+                 "seciyordu - oyuncunun hic gormedigi bir secim.")]
+        [SerializeField] private float pickLockSeconds = 0.8f;
+
         private readonly StringBuilder _text = new StringBuilder(256);
 
         private GUIStyle _titleStyle;
@@ -40,6 +46,12 @@ namespace Bunker.UI
         private PlayerScore _score;
         private float _searchTimer;
         private bool _cursorWasLocked;
+
+        // Secim kilidi (2026-09-07). Iki kosul birden aranir: sure dolmali VE fare
+        // tusu bir kez BIRAKILMIS olmali - suresi dolan bir kilit, hala basili duran
+        // parmagin altinda kendiliginden acilirdi.
+        private float _openedAt;
+        private bool _mouseReleasedSinceOpen;
 
         private void Awake()
         {
@@ -75,6 +87,11 @@ namespace Bunker.UI
         {
             _draft = draft;
 
+            // Kilit her acilista bastan kurulur: ekran, oyuncunun ATES ETTIGI anda
+            // aciliyor (turun son zombisi) ve o an fare basili.
+            _openedAt = Time.unscaledTime;
+            _mouseReleasedSinceOpen = false;
+
             _cursorWasLocked = Cursor.lockState == CursorLockMode.Locked;
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
@@ -95,8 +112,33 @@ namespace Bunker.UI
             Cursor.visible = false;
         }
 
+        /// <summary>
+        /// Seçim açıldı mı. <b>Süre VE fare bırakılmış olmalı</b> (2026-09-07).
+        ///
+        /// <para><b>Bulgu:</b> <i>"turu tamamladığın son zombiyi öldürünce anında kart
+        /// seçimi geliyor, farkında olmadan seçim yapma riski oluyor."</i> Ekran, tam
+        /// oyuncunun ateş ettiği karede açılıyor; imleç ekranın ortasında beliriyor ve
+        /// hâlâ basılı duran tuş, ortadaki kartı seçiyordu — oyuncunun hiç görmediği,
+        /// geri alınamayan bir karar.</para>
+        ///
+        /// <para><b>Neden yalnızca süre yetmez:</b> otomatik ateşte tuş saniyelerce
+        /// basılı kalır; süreli bir kilit, parmağın altında kendiliğinden açılır ve
+        /// aynı kaza bir saniye gecikmeyle olurdu.</para>
+        /// </summary>
+        private bool PickUnlocked =>
+            _mouseReleasedSinceOpen && Time.unscaledTime - _openedAt >= pickLockSeconds;
+
         private void Update()
         {
+            if (_draft != null && !_mouseReleasedSinceOpen)
+            {
+                Mouse mouse = Mouse.current;
+
+                // Fare yoksa (pad, dokunmatik) kilit yalnizca sureye kalir - aksi
+                // halde ekran hic acilmaz.
+                if (mouse == null || !mouse.leftButton.isPressed) _mouseReleasedSinceOpen = true;
+            }
+
             if (_draft == null || _score != null) return;
 
             // Yerel oyuncu ag tarafindan gec gelir; her kare aramak yerine saniyede
@@ -126,6 +168,16 @@ namespace Bunker.UI
 
             GUI.Label(new Rect(cx - 300f, top, 600f, 44f), "KART SEC", _titleStyle);
 
+            // Kilitliyken sebebi GORUNUR: tiklamayi yutup sessiz kalmak, oyuncuya
+            // arayuzun bozuk oldugunu soyler (ui-code.md).
+            if (!PickUnlocked)
+            {
+                GUI.color = new Color(1f, 1f, 1f, 0.55f);
+                GUI.Label(new Rect(cx - 300f, top + 34f, 600f, 20f),
+                          "kartlari oku - secim birazdan acilacak", _hintStyle);
+                GUI.color = Color.white;
+            }
+
             const float cardWidth = 250f;
             const float cardHeight = 190f;
             const float gap = 22f;
@@ -137,6 +189,16 @@ namespace Bunker.UI
             for (int i = 0; i < _draft.SlotCount; i++)
             {
                 DrawSlot(i, new Rect(x + i * (cardWidth + gap), y, cardWidth, cardHeight));
+
+                // KART SECILDIYSE EKRAN KAPANDI (2026-09-06, ikinci deneme).
+                //
+                // Ilk duzeltme DrawSlot'un icinde donuyordu ama YETMEDI: donus bu
+                // donguye geliyor ve dongunun kosulu _draft'i tekrar okuyor. Ayni
+                // NullReferenceException, bir satir yukarida.
+                //
+                // Ders: senkron kapanan bir ekranda, kapanmadan SONRAKI her okuma
+                // kontrol edilmeli - tek bir erken donus yetmez.
+                if (_draft == null) return;
             }
 
             DrawLoadout(cx, y + cardHeight + 16f);
@@ -165,9 +227,48 @@ namespace Bunker.UI
             const float rerollStrip = 40f;
             var body = new Rect(rect.x, rect.y, rect.width, rect.height - rerollStrip);
 
-            GUI.color = new Color(1f, 1f, 1f, 0.12f);
-            if (GUI.Button(body, GUIContent.none, _buttonStyle)) controller.Pick(index);
+            // KILITLIYKEN DUGME KAPALI: karti gormeden secmeyi imkansiz kilar. Sonmus
+            // govde, kilidin gorunur karsiligi - ustteki yazi da sebebini soyluyor.
+            bool unlocked = PickUnlocked;
+
+            // KART ARTIK SAYDAM DEGIL (2026-09-08, gelistirici: "kartlarin
+            // arkaplanindaki opakligi kaldir, daha belirgin hale gelsin").
+            //
+            // Onceki hali %12 beyazdi: arkasindaki dunya kartin icinden goruyordu ve
+            // kart bir YUZEY degil, ekranin uzerinde bir leke gibi okunuyordu. Kartin
+            // isi bir SECIM sunmak; secilecek sey once bir nesne gibi durmali.
+            //
+            // Renk KOYU, beyaz degil: yazi acik renk ve arka plan da acik olsaydi
+            // kontrast ikinci bir sorun olurdu. Kilitliyken bir tik daha koyu -
+            // "henuz degil" bilgisi rengin YOKLUGUYLA degil, kararmasiyla tasiniyor
+            // (ui-code.md: bilgi tek basina renkle tasinmaz; ustteki yazi da soyluyor).
+            GUI.color = unlocked
+                ? new Color(0.13f, 0.13f, 0.15f, 1f)
+                : new Color(0.09f, 0.09f, 0.10f, 1f);
+
+            GUI.DrawTexture(body, _pixel);
+
             GUI.color = Color.white;
+            GUI.enabled = unlocked;
+            bool picked = GUI.Button(body, GUIContent.none, _buttonStyle);
+            GUI.enabled = true;
+            GUI.color = Color.white;
+
+            if (picked)
+            {
+                controller.Pick(index);
+
+                // HEMEN DON (2026-09-06). Pick, draft'i AYNI CAGRI ICINDE kapatiyor
+                // (CardSignals.DraftClosed -> OnDraftClosed -> _draft = null) ve bu
+                // fonksiyonun devami _draft'i okumaya devam ediyordu: her turda bir
+                // NullReferenceException, tam kart secildigi anda. Log'da gorunen
+                // hata buydu.
+                //
+                // Istisna, o karenin OnGUI'sinin geri kalanini da iptal ediyordu -
+                // yani gorunmeyen bir maliyeti vardi. Kapanmis bir ekranin cizecek
+                // bir seyi yok; dogru olan devam etmemek.
+                return;
+            }
 
             GUI.color = TagColor(card.Tag);
             GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 4f), _pixel);
@@ -199,7 +300,9 @@ namespace Bunker.UI
             // olmamasi, oyuncuya arayuzun bozuk oldugunu soyler.
             bool affordable = cost <= 0 || (_score != null && _score.Spendable >= cost);
 
-            GUI.enabled = affordable;
+            // Yenileme de kilide TABI: puan harcayan bir dugmenin, oyuncunun gormedigi
+            // bir karede basilmasi secimden de kotu - hem karti degistirir hem puan alir.
+            GUI.enabled = affordable && unlocked;
             if (GUI.Button(button, label)) controller.RerollSlot(index, _score);
             GUI.enabled = true;
         }
@@ -212,6 +315,10 @@ namespace Bunker.UI
             _text.Append("ELINDE ").Append(loadout.Count).Append(" kart");
 
             AppendTag(loadout, CardTag.Ballistics, "Balistik");
+
+            // YIKIM SAYACI EKSIKTI (2026-09-07): etiket vardi, karti vardi, sayacta
+            // yoktu - oyuncu kac patlama karti aldigini hicbir yerde goremiyordu.
+            AppendTag(loadout, CardTag.Demolition, "Yikim");
             AppendTag(loadout, CardTag.Blood, "Kan");
             AppendTag(loadout, CardTag.Tempo, "Tempo");
             AppendTag(loadout, CardTag.Loot, "Ganimet");

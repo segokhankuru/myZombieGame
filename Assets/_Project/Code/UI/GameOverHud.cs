@@ -87,10 +87,45 @@ namespace Bunker.UI
         private void Update()
         {
             if (!_visible) return;
+
+            // IMLECI BU EKRAN KENDI ACAR (2026-09-06, oyun testi: "olunce gelen menude
+            // cikis yapamiyor").
+            //
+            // Onceki halde imleci PlayerController serbest birakiyordu - ama yalnizca
+            // 'isLocalPlayer' ise, yalnizca RunEnded olayi ona ulastiysa ve yalnizca o
+            // an etkinse. Uc kosuldan biri tutmadiginda ekran aciliyor, dugmeler
+            // ciziliyor ve imlec KILITLI kaldigi icin hicbirine tiklanamiyor. Bir
+            // ekranin tiklanabilir olmasi, baska bir nesnenin durumuna emanet
+            // edilemez.
+            //
+            // Her karede yazilmasinin sebebi: baska bir sistem (duraklatma, yeniden
+            // dogus) imleci geri kilitlerse ekran yine tiklanabilir kalmali.
+            if (Cursor.lockState != CursorLockMode.None)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+
             if (Time.unscaledTime - _shownAt < restartLockoutSeconds) return;
 
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
+
+            // KLAVYE YEDEGI. Fare yolu herhangi bir sebeple bozuksa (imlec kilidi,
+            // ustte cizen baska bir IMGUI, denetleyiciyle oynama) oyuncu yine de
+            // oturumdan cikabilmeli. Cikisi olmayan bir ekran, oyuncuya Alt+F4'u
+            // ogretir.
+            if (keyboard.mKey.wasPressedThisFrame)
+            {
+                SessionSignals.RequestLeave();
+                return;
+            }
+
+            if (keyboard.qKey.wasPressedThisFrame)
+            {
+                AppExit.Quit();
+                return;
+            }
 
             // TODO(netcode-programmer, M-02): yeniden baslatma burada DOGRUDAN
             // cagriliyor. Solo host'ta dogru; uzak istemci geldiginde bu bir Command
@@ -117,6 +152,13 @@ namespace Bunker.UI
         private void OnGUI()
         {
             if (!_visible) return;
+
+            // EN USTTE CIZILIR VE GIRDIYI ONCE BU ALIR. IMGUI'de kucuk depth ustte
+            // demektir. Ayni nesne uzerinde alti ayri OnGUI kosuyor (CombatHud,
+            // StatsHud, PerfHud, DamageNumbersHud, ShopHud, PauseMenu) ve varsayilan
+            // depth'te siralama tanimsiz - olum ekraninin dugmelerinin bir digerinin
+            // altinda kalmasi buna birakilamaz.
+            GUI.depth = -1000;
 
             _titleStyle ??= new GUIStyle(GUI.skin.label)
             {
@@ -189,20 +231,19 @@ namespace Bunker.UI
 
             y += h + 8f;
 
-            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "ANA MENU"))
+            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "ANA MENU   (M)"))
             {
                 SessionSignals.RequestLeave();
             }
 
             y += h + 8f;
 
-            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "CIKIS"))
+            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "CIKIS   (Q)"))
             {
-                SessionSignals.RequestQuit();
+                AppExit.Quit();
             }
 
-            // Imlec ekran acilinca zaten serbest birakiliyor (PlayerController,
-            // OnRunEnded) - dugmeler tiklanabilir.
+            // Imleci Update her karede serbest tutuyor - dugmeler tiklanabilir.
         }
 
         /// <summary>Ekranın metnini bir kez kurar. Yalnızca run bitiminde çağrılır.</summary>

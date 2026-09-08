@@ -42,6 +42,9 @@ namespace Bunker.Config
 
             public int price;
             public int ammoPrice = 250;
+
+            /// <summary>Dolum mermi mermi mi ilerliyor (pompali).</summary>
+            public bool reloadPerShell;
         }
 
         [SerializeField] private int version = 1;
@@ -79,7 +82,7 @@ namespace Bunker.Config
                     e.recoilPitchPerShot, e.recoilYawPerShot,
                     e.recoilRecoveryPerSecond, e.recoilMaxPitch,
                     feelTracerSeconds, feelHitMarkerSeconds, feelInputBufferSeconds,
-                    e.price, e.ammoPrice));
+                    e.price, e.ammoPrice, e.reloadPerShell));
             }
 
             return result;

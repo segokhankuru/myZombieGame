@@ -65,6 +65,7 @@ namespace Bunker.Gameplay
             RunSignals.RunRestarted += OnRunRestarted;
             CardSignals.LoadoutChanged += OnLoadoutChanged;
             RoundSignals.BossKilled += OnBossKilled;
+            RoundSignals.FieldKills += OnFieldKills;
         }
 
         public override void OnStopServer()
@@ -76,6 +77,7 @@ namespace Bunker.Gameplay
             RunSignals.RunRestarted -= OnRunRestarted;
             CardSignals.LoadoutChanged -= OnLoadoutChanged;
             RoundSignals.BossKilled -= OnBossKilled;
+            RoundSignals.FieldKills -= OnFieldKills;
 
             base.OnStopServer();
         }
@@ -145,6 +147,32 @@ namespace Bunker.Gameplay
             if (extra <= 0) return;
 
             Award(PointEvent.BodyKill, extra);
+        }
+
+        /// <summary>
+        /// Silahın vurmadığı öldürmeler: nuke eşyası, Yıkım kartının patlaması.
+        /// 2026-09-08.
+        ///
+        /// <para><b>Gövde puanı verilir, kafa puanı değil:</b> kafa vuruşunun ödülü
+        /// nişan almanın ödülüdür; bir alan silme eşyası onu hak etmez. Öldürme sayacı
+        /// da (<see cref="RunRecorder"/>) burada işlenir — nuke'un sildiği otuz zombi
+        /// skor ekranında görünmeliydi ve görünmüyordu.</para>
+        ///
+        /// <para><b>Kart ödülleri (can, mermi) BURADA UYGULANMAZ:</b> "öldürdükçe
+        /// iyileş" kartının otuz zombilik bir nuke ile tam can vermesi, kartı bir
+        /// eşyanın eklentisine çevirirdi. Kan etiketi <i>senin</i> öldürmelerini
+        /// ödüllendirir.</para>
+        /// </summary>
+        private void OnFieldKills(int count)
+        {
+            if (!isServer || count <= 0) return;
+
+            for (int i = 0; i < count; i++)
+            {
+                RunSignals.Current.NoteKill(DamageKind.Environment, false);
+            }
+
+            Award(PointEvent.BodyKill, count);
         }
 
         /// <summary>Kart yiginin puan carpanlarini cuzdana gecirir (M-03).</summary>

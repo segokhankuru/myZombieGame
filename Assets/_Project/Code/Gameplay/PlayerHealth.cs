@@ -3,7 +3,9 @@ using Bunker.Config;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
+using Bunker.Systems.Pickups;
 using Bunker.Systems.Rounds;
+using Bunker.Systems.Telemetry;
 using Mirror;
 using UnityEngine;
 
@@ -101,6 +103,33 @@ namespace Bunker.Gameplay
 
             RunSignals.RunRestarted += OnRunRestarted;
             CardSignals.LoadoutChanged += OnLoadoutChanged;
+            PowerupSignals.Picked += OnPowerupPicked;
+        }
+
+        /// <summary>
+        /// Kaldırılan ya da yeni turda dirilen oyuncunun canı. 2026-09-07.
+        ///
+        /// <para><b>Tam canla dönmez</b> (<c>fraction01</c> ile çağrılır): tam canla
+        /// kalkmak yere düşmeyi bedelsiz yapardı. Yarı canla kalkmak, kalkar kalkmaz
+        /// geri çekilmeyi bir <i>karar</i> hâline getirir.</para>
+        ///
+        /// <para><b>Yalnızca sunucu.</b> Can otoritenin bilgisi (ADR-0004).</para>
+        /// </summary>
+        [Server]
+        public void ServerReviveTo(float fraction01)
+        {
+            if (_health == null) return;
+
+            _health.ResetFull();
+
+            float target = Mathf.Clamp01(fraction01);
+            if (target < 1f)
+            {
+                _health.ApplyDamage(new DamageInfo(_health.Max * (1f - target),
+                                                   DamageKind.Environment));
+            }
+
+            PublishState();
         }
 
         public override void OnStopServer()
@@ -108,6 +137,7 @@ namespace Bunker.Gameplay
             // OnStartServer'in kurdugunu OnStopServer bozar (csharp-code.md).
             RunSignals.RunRestarted -= OnRunRestarted;
             CardSignals.LoadoutChanged -= OnLoadoutChanged;
+            PowerupSignals.Picked -= OnPowerupPicked;
 
             base.OnStopServer();
         }
@@ -131,6 +161,17 @@ namespace Bunker.Gameplay
             DamageResult result = _health.ApplyDamage(damage);
             PublishState();
 
+            // SAVAS GUNLUGU - oyuncuya gelen her hasarin TEK cikis noktasi
+            // (2026-09-08, gelistirici: "olum aninda halen tek yiyorum, bunu en
+            // saglikli boyle bakarak anlayacagim"). Kalan can vurustan SONRAKI deger;
+            // yani satirlar yan yana okununca "dort vurus, 0.1 saniye" gorunur.
+            if (result.Absorbed > 0f)
+            {
+                CombatLog.PlayerDamage(damage.Source ?? damage.Kind.ToString(), null,
+                                       result.Absorbed, _health.Current, _health.Max,
+                                       result.Killed);
+            }
+
             // Geri bildirim VURULAN OYUNCUYA gider, sunucuda kalmaz: co-op'ta hasarı
             // uygulayan makine ile onu hisseden oyuncu farklı olabilir.
             if (result.Absorbed > 0f && connectionToClient != null)
@@ -146,6 +187,10 @@ namespace Bunker.Gameplay
                 // cikaran tek sey. Skor ekrani bunu yazar.
                 CombatFeedback.NoteLethalHit(damage.Amount, damage.Kind);
 
+                // Olum dokumu: son 16 vurus, aralarindaki sureyle. "Tek mi yedim"
+                // sorusunun cevabi bu blok (2026-09-08).
+                CombatLog.PlayerDied(damage.Source ?? damage.Kind.ToString());
+
                 // Olum yeri, run sonu YAYILMADAN once bildirilir: RaisePlayerDied
                 // sayaclari DONDURUR ve ondan sonra gelen hicbir bildirim kabul
                 // edilmez (M1-12). Sira ters olsaydi telemetri her run'da olum yerini
@@ -153,11 +198,20 @@ namespace Bunker.Gameplay
                 Vector3 position = transform.position;
                 RunSignals.Current.NoteDeathPosition(position.x, position.y, position.z);
 
+                // OLUM ARTIK ONCE "YERE DUSME" (2026-09-07, co-op). Run yalnizca
+                // AYAKTA KIMSE KALMAYINCA biter - solo'da bu ikisi ayni an, yani eski
+                // davranis aynen korunuyor ve ayri bir "solo mu" kuralina gerek yok.
+                // Iki ayri kural, iki ayri hata demek olurdu.
+                var down = GetComponent<PlayerDownState>();
+                if (down != null) down.ServerGoDown();
 
-                // Run sonu bir kez olur. Ayni karede ikinci bir zombi vurursa
-                // RunSignals kapiyi kapatir - HealthPool'un "olum bir kez olur"
-                // kuralinin run seviyesindeki karsiligi.
-                RunSignals.RaisePlayerDied();
+                if (down == null || PlayerDownState.EveryoneOut())
+                {
+                    // Run sonu bir kez olur. Ayni karede ikinci bir zombi vurursa
+                    // RunSignals kapiyi kapatir - HealthPool'un "olum bir kez olur"
+                    // kuralinin run seviyesindeki karsiligi.
+                    RunSignals.RaisePlayerDied();
+                }
             }
 
             return result;
@@ -203,6 +257,22 @@ namespace Bunker.Gameplay
 
             _health.Heal(_health.Max * fraction01);
             PublishState();
+        }
+
+        /// <summary>
+        /// Yerden can eşyası toplandı (2026-09-07).
+        ///
+        /// <para><b>Miktarı eşya taşır</b>, bu sınıf bilmez: oran
+        /// <c>zombie.json → drops.healthFraction01</c>'de ve tek bir yerde durur
+        /// (config-data.md). Burada bir sayı olsaydı, dengeyi ayarlayan kişi ikisinden
+        /// hangisinin geçerli olduğunu bilemezdi.</para>
+        /// </summary>
+        private void OnPowerupPicked(Systems.Pickups.PowerupKind kind, float amount, float seconds)
+        {
+            if (kind != Systems.Pickups.PowerupKind.Health) return;
+            if (!isServer) return;
+
+            ServerHealFraction(amount);
         }
 
         private void PublishState()

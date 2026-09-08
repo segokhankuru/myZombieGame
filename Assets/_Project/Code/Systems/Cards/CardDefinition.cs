@@ -41,11 +41,15 @@ namespace Bunker.Systems.Cards
         /// <summary>Dolum süresi, oransal AZALMA (0.40 = %40 daha hızlı).</summary>
         ReloadSpeed,
 
-        /// <summary>Şarjör kapasitesi, mutlak mermi.</summary>
+        /// <summary>
+        /// Şarjör kapasitesi, <b>oransal</b> (0.20 = silahın kendi şarjörünün +%20'si).
+        ///
+        /// <para><b>2026-09-07'ye kadar mutlak mermiydi</b> ve aynı kart silaha göre
+        /// bambaşka bir ödüldü: +6 mermi tabancada (12) +%50, pompalıda (6) +%100,
+        /// SMG'de (30) +%20. Oyuncunun kartı okuyup ne alacağını bilmesi imkânsızdı.
+        /// Oran, kartı bütün silahlarda aynı vaade bağlar.</para>
+        /// </summary>
         MagazineCapacity,
-
-        /// <summary>Yedek mermi tavanı, mutlak.</summary>
-        ReserveCapacity,
 
         /// <summary>Kafa vuruşu çarpanına eklenir (1.0 = 2x'ten 3x'e).</summary>
         HeadshotMultiplier,
@@ -97,7 +101,30 @@ namespace Bunker.Systems.Cards
         HealOnKill,
 
         /// <summary>Öldürme başına yedeğe eklenen mermi (mutlak sayı).</summary>
-        AmmoOnKill
+        AmmoOnKill,
+
+        /// <summary>
+        /// Ölen zombinin yere eşya bırakma şansı, <b>oransal</b> (0.60 = şans x1.6).
+        ///
+        /// <para>Taban şans <c>zombie.json → drops.chance01</c>; kart yalnızca onu
+        /// çarpar. İki ayrı yerde iki taban şans olsaydı, oyuncunun eşya sıklığını
+        /// öğrenmesi imkânsız olurdu.</para>
+        /// </summary>
+        DropRate,
+
+        /// <summary>
+        /// Koşabilme süresi, <b>oransal</b> (0.50 = +%50 daha uzun koşu). 2026-09-07.
+        ///
+        /// <para><b>Neden süre, neden hız değil:</b> koşu hızını artırmak zombi hız
+        /// kademelerini (<c>rounds.json → speed</c>) anlamsız kılar — geç turda
+        /// yakalanabilir olmak turların zorlaşmasının yarısı. Süreyi uzatmak ise
+        /// <i>menzili</i> büyütür: aynı hızla daha uzağa gidebilirsin. Kaçışın
+        /// karakteri değişmez, mesafesi değişir.</para>
+        ///
+        /// <para>Taban süre <c>player.json → sprint.maxSeconds</c>; kart yalnızca onu
+        /// çarpar (config-data.md: iki ayrı taban, öğrenilemeyen bir kural olurdu).</para>
+        /// </summary>
+        SprintDuration
     }
 
     /// <summary>

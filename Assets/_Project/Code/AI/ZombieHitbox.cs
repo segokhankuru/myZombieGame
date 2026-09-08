@@ -73,8 +73,14 @@ namespace Bunker.AI
 
             // Kafa bilgisi kutudan gelir, atistan degil: silah nereye isabet ettigini
             // bilmek zorunda kalmaz.
+            //
+            // KAYNAK KONUMU DA TASINIR (2026-09-06). Bu satirlarin yoklugu, merminin
+            // GELDIGI YONU tam burada dusuruyordu - mermiler zombinin kendisine degil
+            // vurus kutularina isabet ediyor, yani gecen her atis buradan geciyor.
+            // Itme yonu de o yuzden hep zombinin baktigi yone gore hesaplaniyordu.
             var routed = new DamageInfo(damage.Amount, damage.Kind,
-                                        damage.Headshot || part == ZombiePart.Head);
+                                        damage.Headshot || part == ZombiePart.Head,
+                                        damage.SourceX, damage.SourceZ, damage.Source);
 
             return owner.ApplyDamageToPart(routed, part);
         }

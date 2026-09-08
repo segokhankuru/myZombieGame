@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Bunker.AI
@@ -44,6 +45,37 @@ namespace Bunker.AI
         private static Material _barMaterial;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
+        // --- yazi katmani icin kayit defteri (2026-09-07) ---
+
+        /// <summary>
+        /// Şu an sahnede olan barlar. <see cref="ZombieHealthLabels"/> sayıları
+        /// buradan okur.
+        ///
+        /// <para><b>Neden kayıt defteri, neden her zombide bir <c>OnGUI</c> değil:</b>
+        /// <c>OnGUI</c> bileşen başına kare başına <i>iki</i> çağrıdır (Layout + Repaint)
+        /// ve 40 zombide ölçmeye çalıştığımız kare süresini bozar. Tek bir çizici,
+        /// listeyi dolaşıp bitirir.</para>
+        /// </summary>
+        internal static readonly List<ZombieHealthBar> Registry = new List<ZombieHealthBar>(64);
+
+        /// <summary>Barın dünyadaki konumu (yazılar buna göre yerleşir).</summary>
+        internal Vector3 BarWorldPosition => _root != null ? _root.position : transform.position;
+
+        /// <summary>Barın yarım genişliği — sol kenarı bulmak için.</summary>
+        internal float BarHalfWidthMeters => widthMeters * 0.5f;
+
+        /// <summary>
+        /// Bar bu karede çizildi mi (uzaksa, ölüyse ya da havuza döndüyse hayır).
+        ///
+        /// <para><b><c>activeInHierarchy</c>, <c>activeSelf</c> değil:</b> havuza dönen
+        /// zombi kökünden kapatılır ama barın kendi nesnesi açık kalır. <c>activeSelf</c>
+        /// sorulsaydı sahada olmayan zombilerin canı ekranda yazmaya devam ederdi.</para>
+        /// </summary>
+        internal bool IsShowing => _root != null && _root.gameObject.activeInHierarchy;
+
+        /// <summary>Barın sahibi. Sayıları yazan taraf canı buradan okur.</summary>
+        internal ZombieAgent Agent => _agent;
+
         private void Awake()
         {
             _agent = GetComponent<ZombieAgent>();
@@ -57,6 +89,9 @@ namespace Bunker.AI
 
             Build();
             _propertyBlock = new MaterialPropertyBlock();
+
+            Registry.Add(this);
+            ZombieHealthLabels.EnsureInstalled();
         }
 
         private void OnEnable()
@@ -69,6 +104,7 @@ namespace Bunker.AI
         private void OnDestroy()
         {
             // Awake'in yarattigini OnDestroy yok eder.
+            Registry.Remove(this);
             if (_root != null) Destroy(_root.gameObject);
         }
 

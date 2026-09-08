@@ -33,8 +33,14 @@ namespace Bunker.Editor
         private const string ProductName = "Bunker";
 
         /// <summary>
-        /// Build'e girmesi gereken sahne. <b>Tek sahne</b>: M-01'de menü yok, oyun
-        /// doğrudan bununla açılır.
+        /// Oyunun açılış sahnesi. <b>İlk sırada olmak zorunda</b> — Unity build'in ilk
+        /// sahnesini açar.
+        /// </summary>
+        private const string MenuScene = "Assets/_Project/Scenes/Menu/Menu.unity";
+
+        /// <summary>
+        /// Oyun sahnesi. Menüdeki "OYNA" ve Mirror'ın sahne geçişi buraya gider —
+        /// build listesinde olmazsa geçiş çalışma anında başarısız olur.
         /// </summary>
         private const string PlayScene = "Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity";
 
@@ -72,22 +78,27 @@ namespace Bunker.Editor
                 return false;
             }
 
-            if (!File.Exists(PlayScene))
+            // Sessizce basarili olmasin: eksik bir sahne, calisma aninda "sahne
+            // build'de degil" hatasi olarak ortaya cikar - yani arkadaslar oynarken.
+            string[] scenes = { MenuScene, PlayScene };
+
+            foreach (string scene in scenes)
             {
-                Debug.LogError($"[Build] Oyun sahnesi yok: {PlayScene}");
-                return false;
+                if (!File.Exists(scene))
+                {
+                    Debug.LogError($"[Build] Sahne yok: {scene}");
+                    return false;
+                }
             }
 
             bool development = config.Equals("Development", StringComparison.OrdinalIgnoreCase);
 
             ApplyProductSettings(development);
 
-            // Sahne listesi BUILD SIRASINDA belirlenir, EditorBuildSettings'ten
+            // Sahne listesi BUILD SIRASINDA belirlenir (yukarida), EditorBuildSettings'ten
             // okunmaz. Sebep: o liste elle degistirilebilen bir editor ayari ve
             // icinde SampleScene gibi artiklar birikir. Build'in neyi icerdigi
-            // tahmine degil, bu satira bagli olmali.
-            string[] scenes = { PlayScene };
-
+            // tahmine degil, bu satirlara bagli olmali.
             string exePath = Path.Combine(output, ProductName + ".exe");
             Directory.CreateDirectory(output);
 
@@ -112,10 +123,44 @@ namespace Bunker.Editor
                 return false;
             }
 
+            CopySteamAppId(output);
+
             Debug.Log($"[Build] TAMAM: {summary.totalSize / (1024 * 1024)} MB, " +
                       $"{summary.totalTime.TotalMinutes:F1} dk.");
 
             return true;
+        }
+
+        /// <summary>
+        /// <c>steam_appid.txt</c>'yi exe'nin yanına kopyalar. 2026-09-07.
+        ///
+        /// <para><b>Neden gerekli:</b> Steam istemcisi, oyunu <i>kendi başlatmadığında</i>
+        /// hangi uygulama olduğumuzu bilemez ve <c>SteamClient.Init</c> hata verir. Bu
+        /// dosya cevabı exe'nin yanında taşır. Projede zaten var (editörde Play tuşu
+        /// için) ama <b>build çıktısına kopyalanmıyordu</b> — yani editörde çalışan
+        /// davet, arkadaşa gönderilen zip'te sessizce ölüyordu. Tam olarak bu projede
+        /// tekrar eden hata sınıfı: bir adımın insan hafızasına bırakılması.</para>
+        ///
+        /// <para><b>Yoksa build durmaz</b>, uyarır: Steam olmadan da oynanabiliyor
+        /// (KCP ile adresle katılma). Eksik bir davet, oynanamayan bir oyundan
+        /// iyidir — ama sessiz kalmamalı.</para>
+        /// </summary>
+        private static void CopySteamAppId(string output)
+        {
+            const string fileName = "steam_appid.txt";
+
+            string source = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+
+            if (!File.Exists(source))
+            {
+                Debug.LogWarning($"[Build] {fileName} proje kokunde yok - build'de STEAM " +
+                                 "DAVETI CALISMAZ. 'Bunker/Steam/Kurulumu Kontrol Et' " +
+                                 "dosyayi olusturur.");
+                return;
+            }
+
+            File.Copy(source, Path.Combine(output, fileName), overwrite: true);
+            Debug.Log($"[Build] {fileName} exe'nin yanina kopyalandi.");
         }
 
         /// <summary>

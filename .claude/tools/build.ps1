@@ -21,7 +21,10 @@ param(
     [ValidateSet('Development','Release')]
     [string]$Config = 'Development',
     [string]$Out,
-    [string]$Method = 'Game.Editor.BuildPipelineEntry.BuildFromArgs',
+    # Bu projedeki gercek namespace Bunker.Editor. Varsayilan uzun sure
+    # 'Game.Editor...' yaziyordu ve -Method verilmeyen her cagri, Unity metodu
+    # bulamadigi icin bos bir klasorle donuyordu.
+    [string]$Method = 'Bunker.Editor.BuildPipelineEntry.BuildFromArgs',
     [string]$ProjectRoot = ".",
     [int]$TimeoutMinutes = 60,
     [switch]$WhatIf

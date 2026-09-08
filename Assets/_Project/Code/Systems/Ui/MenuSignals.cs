@@ -31,11 +31,34 @@ namespace Bunker.Systems.Ui
             PauseVisibilityChanged?.Invoke(open);
         }
 
+        /// <summary>
+        /// Silah tezgâhı açık mı (2026-09-06).
+        ///
+        /// <para><b>Neden burada, <c>CardSignals</c>'ta değil:</b> silah seçmek kart
+        /// sisteminin bir parçası değil. Aynı gerekçeyle duraklatma da burada — bu
+        /// sınıf, "kart olmayan menüler"in evi.</para>
+        /// </summary>
+        public static bool IsWeaponShopOpen { get; private set; }
+
+        /// <summary>Silah tezgâhı açıldı ya da kapandı.</summary>
+        public static event Action<bool> WeaponShopVisibilityChanged;
+
+        public static void SetWeaponShopOpen(bool open)
+        {
+            if (IsWeaponShopOpen == open) return;
+
+            IsWeaponShopOpen = open;
+            WeaponShopVisibilityChanged?.Invoke(open);
+        }
+
         /// <summary>Yalnızca açılışta.</summary>
         public static void Clear()
         {
             PauseVisibilityChanged = null;
             IsPauseOpen = false;
+
+            WeaponShopVisibilityChanged = null;
+            IsWeaponShopOpen = false;
         }
     }
 }

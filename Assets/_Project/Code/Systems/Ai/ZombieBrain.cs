@@ -42,7 +42,25 @@ namespace Bunker.Systems.Ai
     public readonly struct ZombieSenses
     {
         public readonly bool HasTarget;
-        public readonly float DistanceToTargetMeters;
+
+        /// <summary>
+        /// Zombinin gövdesiyle hedefin gövdesi arasındaki <b>boşluk</b>, yatayda.
+        ///
+        /// <para><b>Merkez mesafesi DEĞİL</b> (2026-09-06, oyun testi). Önceki sürüm
+        /// iki transform'un arasını ölçüyordu; zombinin yarıçapı 0,30 ve oyuncununki
+        /// 0,40 olduğu için 1,6 metrelik menzil, gövdeler arasında <b>0,9 metre boşluk
+        /// varken</b> vuruyordu. Geliştirici bunu <i>"en öndekiyle mesafem varken
+        /// vurmuş oluyor"</i> diye okudu — doğru okumuş, kol o kadar uzun değil.</para>
+        ///
+        /// <para><b>Neden bu ölçü yığın hatasını da çözüyor:</b> merkez mesafesiyle
+        /// öndeki zombinin <i>arkasındaki</i> zombi de menzil içinde kalıyordu (0,7 m
+        /// aralıklarla dizilen üç zombinin üçü de 2,2 m'nin içinde). Gövde boşluğu, bir
+        /// zombinin ancak gerçekten değecek kadar yakınken vurmasını sağlar.</para>
+        ///
+        /// <para>Değer <b>negatif olabilir</b> — gövdeler iç içe geçmiştir. Karşılaştırma
+        /// yine doğru çalışır.</para>
+        /// </summary>
+        public readonly float GapToTargetMeters;
 
         /// <summary>Zombi hâlâ binanın dışında mı — yani pencereden girmesi gerekiyor mu.</summary>
         public readonly bool NeedsWindowEntry;
@@ -68,7 +86,7 @@ namespace Bunker.Systems.Ai
 
         public ZombieSenses(
             bool hasTarget,
-            float distanceToTargetMeters,
+            float gapToTargetMeters,
             bool needsWindowEntry = false,
             float distanceToWindowMeters = 0f,
             float actualSpeedMetersPerSecond = 0f,
@@ -76,7 +94,7 @@ namespace Bunker.Systems.Ai
             float reachMultiplier = 1f)
         {
             HasTarget = hasTarget;
-            DistanceToTargetMeters = distanceToTargetMeters;
+            GapToTargetMeters = gapToTargetMeters;
             NeedsWindowEntry = needsWindowEntry;
             DistanceToWindowMeters = distanceToWindowMeters;
             ActualSpeedMetersPerSecond = actualSpeedMetersPerSecond;
@@ -281,7 +299,7 @@ namespace Bunker.Systems.Ai
                         Enter(ZombieState.ApproachingWindow);
                     }
                     else if (senses.HasTarget &&
-                             senses.DistanceToTargetMeters <=
+                             senses.GapToTargetMeters <=
                              _config.AttackRangeMeters * senses.ReachMultiplier)
                     {
                         Enter(ZombieState.WindingUp);
@@ -297,7 +315,7 @@ namespace Bunker.Systems.Ai
 
                     // Telegrafin bedeli: oyuncu geri cekildiyse vurus iskalar.
                     bool inReach = senses.HasTarget &&
-                                   senses.DistanceToTargetMeters <=
+                                   senses.GapToTargetMeters <=
                                    (_config.AttackRangeMeters + _config.AttackRangeToleranceMeters) *
                                    senses.ReachMultiplier;
 

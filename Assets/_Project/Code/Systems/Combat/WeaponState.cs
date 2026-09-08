@@ -71,7 +71,7 @@ namespace Bunker.Systems.Combat
             _config = config;
 
             RoundsInMagazine = MagazineCapacity;
-            Reserve = Math.Min(_config.StartingReserve, ReserveCapacity);
+            Reserve = _config.StartingReserve;
         }
 
         /// <summary>
@@ -86,14 +86,24 @@ namespace Bunker.Systems.Combat
             _mods = modifiers;
 
             if (RoundsInMagazine > MagazineCapacity) RoundsInMagazine = MagazineCapacity;
-            if (Reserve > ReserveCapacity) Reserve = ReserveCapacity;
         }
 
-        /// <summary>Kart etkileriyle sarjor kapasitesi.</summary>
-        public int MagazineCapacity => Math.Max(1, _config.MagazineCapacity + _mods.Magazine);
+        /// <summary>
+        /// Kart etkileriyle şarjör kapasitesi: <b>silahın kendi kapasitesinin katı</b>
+        /// (2026-09-07). Yukarı yuvarlanır — 6 mermilik pompalıda +%20, "hiçbir şey"
+        /// değil bir mermidir; aşağı yuvarlamak kartı bazı silahlarda sessizce
+        /// etkisiz bırakırdı.
+        /// </summary>
+        public int MagazineCapacity =>
+            Math.Max(1, (int)Math.Ceiling(_config.MagazineCapacity * _mods.MagazineMultiplier));
 
-        /// <summary>Kart etkileriyle yedek tavani.</summary>
-        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
+        /// <summary>
+        /// Tur sonu ikmalinin ölçü birimi. <b>Bir tavan değildir</b> (2026-09-07):
+        /// yedek mermi sınırı kaldırıldı, çünkü sınırın tek görünür sonucu, toplanan
+        /// merminin sessizce buharlaşmasıydı. Silahın <c>reserveCapacity</c> değeri
+        /// artık yalnızca "bir tur sonu ikmali ne kadardır" sorusunun referansı.
+        /// </summary>
+        public int ReserveRestockReference => Math.Max(0, _config.ReserveCapacity);
 
         /// <summary>Kart etkileriyle dolum suresi.</summary>
         public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
@@ -157,7 +167,16 @@ namespace Bunker.Systems.Combat
             bool wants = pressedThisFrame || _bufferedFireRemaining > 0f;
             if (!wants) return FireResult.Cycling;
 
-            if (IsReloading) return FireResult.Reloading;
+            // POMPALI DOLUMU KESILEBILIR (2026-09-06). Mermi mermi dolan bir silahta
+            // "dolum bitene kadar ates edemezsin" kurali, dolumu bolunebilir yapmanin
+            // butun anlamini goturur - iki fisek koyup surunun ustune donmek bir
+            // KARAR olmali. Sarjorde mermi varsa dolum kesilir ve ates edilir.
+            if (IsReloading)
+            {
+                if (!_config.ReloadPerShell || RoundsInMagazine <= 0) return FireResult.Reloading;
+
+                _reloadRemaining = 0f;
+            }
 
             if (RoundsInMagazine <= 0)
             {
@@ -197,21 +216,27 @@ namespace Bunker.Systems.Combat
             _reloadRemaining = 0f;
         }
 
-        /// <summary>Yedeğe mermi ekler. Tavanı aşan kısım kaybolur, döner değer eklenen miktardır.</summary>
+        /// <summary>
+        /// Yedeğe mermi ekler. <b>Tavan yok</b> (2026-09-07): eklenen ne varsa girer,
+        /// dönen değer eklenen miktardır.
+        ///
+        /// <para><b>Neden tavan kaldırıldı:</b> tavanın oyuncuya görünen tek sonucu,
+        /// duvardan satın aldığı ya da yerden topladığı merminin sessizce yok
+        /// olmasıydı. Görünmeyen bir kural, öğrenilemeyen bir kuraldır.</para>
+        /// </summary>
         public int AddReserve(int amount)
         {
             if (amount <= 0) return 0;
 
-            int before = Reserve;
-            Reserve = Math.Min(Reserve + amount, ReserveCapacity);
-            return Reserve - before;
+            Reserve += amount;
+            return amount;
         }
 
         /// <summary>Silahı ilk hâline döndürür — yeni run, ya da havuzdan çıkan oyuncu.</summary>
         public void Reset()
         {
             RoundsInMagazine = MagazineCapacity;
-            Reserve = Math.Min(_config.StartingReserve, _config.ReserveCapacity);
+            Reserve = _config.StartingReserve;
             _cycleRemaining = 0f;
             _reloadRemaining = 0f;
             _bufferedFireRemaining = 0f;
@@ -227,8 +252,32 @@ namespace Bunker.Systems.Combat
                 : damage;
         }
 
+        /// <summary>
+        /// Dolum adımı tamamlandı.
+        ///
+        /// <para><b>Pompalıda tek fişek</b> (2026-09-06): şarjör dolana ya da yedek
+        /// bitene kadar adım tekrarlanır. Aradaki her an ateş etmeye açıktır —
+        /// <see cref="TryFire"/> dolumu keser. Pompalıyı pompalı yapan karar budur:
+        /// iki fişek koyup dönmek mi, altıyı da doldurmak mı.</para>
+        /// </summary>
         private void CompleteReload()
         {
+            if (_config.ReloadPerShell)
+            {
+                if (Reserve <= 0 || RoundsInMagazine >= MagazineCapacity) return;
+
+                RoundsInMagazine++;
+                Reserve--;
+
+                // Daha dolacak yer ve mermi varsa bir adim daha.
+                if (Reserve > 0 && RoundsInMagazine < MagazineCapacity)
+                {
+                    _reloadRemaining = ReloadSeconds;
+                }
+
+                return;
+            }
+
             int needed = MagazineCapacity - RoundsInMagazine;
             int moved = Math.Min(needed, Reserve);
 

@@ -55,6 +55,7 @@ namespace Bunker.UI
         private Vector3 _damageFrom;
         private float _damageFromRemaining;
         private float _damageTakenAmount;
+        private int _damageTakenHits;
 
         private GUIStyle _numberStyle;
         private GUIStyle _takenStyle;
@@ -106,11 +107,34 @@ namespace Bunker.UI
             _next = (_next + 1) % PoolSize;
         }
 
+        /// <summary>
+        /// Alınan hasar. <b>Gösterge açıkken gelen vuruşlar TOPLANIR ve sayılır</b>
+        /// (2026-09-07).
+        ///
+        /// <para><b>Neden gerekti:</b> önceki sürüm her vuruşta sayının üstüne yazıyordu
+        /// — yani sürünün içinde art arda dört vuruş yiyen oyuncu ekranda yalnızca son
+        /// vuruşu görüyordu. "Bir zombi bana 30 vuruyor ama canım 120 gitti" diye
+        /// okunuyor ve zombinin hasarı yanlış sanılıyordu (geliştirici,
+        /// 2026-09-07: <i>"-30 vurur bilgisi varken 250 küsür vurdu"</i>).</para>
+        ///
+        /// <para>Artık gösterge <b>bir pencere</b>: içinde ne kadar can gittiğini ve
+        /// <i>kaç vuruştan</i> geldiğini yazıyor. "Birden öldüm" cümlesini tahmin
+        /// olmaktan çıkaran şey, tek sayı değil bu ikisi.</para>
+        /// </summary>
         private void OnDamageTaken(float amount, Vector3 sourcePosition)
         {
             _damageFrom = sourcePosition;
+
+            // Gosterge sonmusse yeni bir pencere baslar; hala aciksa uzerine eklenir.
+            if (_damageFromRemaining <= 0f)
+            {
+                _damageTakenAmount = 0f;
+                _damageTakenHits = 0;
+            }
+
             _damageFromRemaining = DirectionLifeSeconds;
-            _damageTakenAmount = amount;
+            _damageTakenAmount += amount;
+            _damageTakenHits++;
         }
 
         // ---------------------------------------------------------------- dongu
@@ -209,8 +233,13 @@ namespace Bunker.UI
             // Miktar nisangahin biraz ustunde, kirmizi: kendi canindan giden sayi.
             GUI.color = new Color(1f, 0.35f, 0.3f, fade);
             _takenStyle.fontSize = 22;
-            GUI.Label(new Rect(cx - 100f, cy - 90f, 200f, 30f),
-                      $"-{Mathf.RoundToInt(_damageTakenAmount)}", _takenStyle);
+            // Vurus sayisi yalnizca BIRDEN FAZLAYSA yazilir: tek vuruslarda "x1"
+            // her seferinde ekranda duran ve hicbir sey soylemeyen bir isaret olurdu.
+            string taken = _damageTakenHits > 1
+                ? $"-{Mathf.RoundToInt(_damageTakenAmount)}   {_damageTakenHits} vurus"
+                : $"-{Mathf.RoundToInt(_damageTakenAmount)}";
+
+            GUI.Label(new Rect(cx - 140f, cy - 90f, 280f, 30f), taken, _takenStyle);
 
             Vector3 toSource = _damageFrom - _camera.transform.position;
             toSource.y = 0f;

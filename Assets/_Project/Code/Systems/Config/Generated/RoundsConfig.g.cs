@@ -120,9 +120,17 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0 .. 1 | JSON: roundEnd.barricadeBoardsFraction01</remarks>
         public readonly float RoundEndBarricadeBoardsFraction01;
 
-        /// <summary>Turlar arasi nefes molasi. Cok kisa olursa PILLAR-03'un ritmi bozulur ve oyun yorucu olur; cok uzun olursa gerilim soguр.</summary>
-        /// <remarks>Aralik: 3 .. 20 | JSON: pacing.breatherSeconds</remarks>
-        public readonly float PacingBreatherSeconds;
+        /// <summary>ILK turlarin arasindaki nefes molasi (breatherEarlyUntilRound dahil). Erken turlarda molada yapilacak is azdir - barikat saglamdir, tezgahta alacak puan yoktur - ve uzun mola bos bekleme olur. Cok kisaltirsan kart secimi biter bitmez tur baslar ve oyuncu barikata donemez.</summary>
+        /// <remarks>Aralik: 3 .. 30 | JSON: pacing.breatherSecondsEarly</remarks>
+        public readonly float PacingBreatherSecondsEarly;
+
+        /// <summary>breatherEarlyUntilRound'dan SONRAKI turlarin arasindaki mola. Gec turda molada yapilacak is coktur: tamir, tezgah, silah, kart okuma. Erken molayla ayni olursa oyuncu bunlardan yalnizca birini secebilir ve turu, sebebini goremedigi bir hazirlik eksigi yuzunden kaybeder.</summary>
+        /// <remarks>Aralik: 3 .. 45 | JSON: pacing.breatherSecondsLate</remarks>
+        public readonly float PacingBreatherSecondsLate;
+
+        /// <summary>Bu tura KADAR (dahil) kisa mola gecerli, sonrasinda uzun mola. Buyutursen gec turlarin hazirlik zamani hic gelmez; 1 yaparsan iki deger tek degere doner ve ayrimin sebebi kaybolur.</summary>
+        /// <remarks>Aralik: 1 .. 20 | JSON: pacing.breatherEarlyUntilRound</remarks>
+        public readonly int PacingBreatherEarlyUntilRound;
 
         /// <summary>Tur 1'de iki zombi dogumu arasi sure. Turun ne kadar surdugunu bu belirler, zombi sayisi kadar.</summary>
         /// <remarks>Aralik: 0.5 .. 5 | JSON: pacing.spawnIntervalSecondsAtRoundOne</remarks>
@@ -137,7 +145,7 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public RoundsConfig(
-            int version = 3,
+            int version = 4,
             float countPerPlayerAtRoundOne = 6f,
             float countLinearAddPerPlayerPerRound = 1.5f,
             int countLinearPhaseUntilRound = 9,
@@ -163,7 +171,9 @@ namespace Bunker.Systems.Config
             float bossPointsMultiplier = 6f,
             float roundEndReserveAmmoFraction01 = 0.4f,
             float roundEndBarricadeBoardsFraction01 = 0.4f,
-            float pacingBreatherSeconds = 10f,
+            float pacingBreatherSecondsEarly = 10f,
+            float pacingBreatherSecondsLate = 20f,
+            int pacingBreatherEarlyUntilRound = 5,
             float pacingSpawnIntervalSecondsAtRoundOne = 2f,
             float pacingSpawnIntervalFloorSeconds = 0.25f)
         {
@@ -193,7 +203,9 @@ namespace Bunker.Systems.Config
             BossPointsMultiplier = bossPointsMultiplier;
             RoundEndReserveAmmoFraction01 = roundEndReserveAmmoFraction01;
             RoundEndBarricadeBoardsFraction01 = roundEndBarricadeBoardsFraction01;
-            PacingBreatherSeconds = pacingBreatherSeconds;
+            PacingBreatherSecondsEarly = pacingBreatherSecondsEarly;
+            PacingBreatherSecondsLate = pacingBreatherSecondsLate;
+            PacingBreatherEarlyUntilRound = pacingBreatherEarlyUntilRound;
             PacingSpawnIntervalSecondsAtRoundOne = pacingSpawnIntervalSecondsAtRoundOne;
             PacingSpawnIntervalFloorSeconds = pacingSpawnIntervalFloorSeconds;
         }

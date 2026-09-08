@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class RoundsConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 3;
+        [SerializeField] private int version = 4;
 
         [Header("count")]
         [Tooltip("Tur 1'de oyuncu basina zombi. Cok dusuk olursa ilk turlar bos ve sikici gecer, oyuncu daha kurallari ogrenmeden canı sikilir. Cok yuksek olursa oyuncu silah alacak puani biriktiremeden bogulur.")]
@@ -128,9 +128,17 @@ namespace Bunker.Config
         [SerializeField] private float roundEndBarricadeBoardsFraction01 = 0.4f;
 
         [Header("pacing")]
-        [Tooltip("Turlar arasi nefes molasi. Cok kisa olursa PILLAR-03'un ritmi bozulur ve oyun yorucu olur; cok uzun olursa gerilim soguр.")]
-        [Range(3f, 20f)]
-        [SerializeField] private float pacingBreatherSeconds = 10f;
+        [Tooltip("ILK turlarin arasindaki nefes molasi (breatherEarlyUntilRound dahil). Erken turlarda molada yapilacak is azdir - barikat saglamdir, tezgahta alacak puan yoktur - ve uzun mola bos bekleme olur. Cok kisaltirsan kart secimi biter bitmez tur baslar ve oyuncu barikata donemez.")]
+        [Range(3f, 30f)]
+        [SerializeField] private float pacingBreatherSecondsEarly = 10f;
+
+        [Tooltip("breatherEarlyUntilRound'dan SONRAKI turlarin arasindaki mola. Gec turda molada yapilacak is coktur: tamir, tezgah, silah, kart okuma. Erken molayla ayni olursa oyuncu bunlardan yalnizca birini secebilir ve turu, sebebini goremedigi bir hazirlik eksigi yuzunden kaybeder.")]
+        [Range(3f, 45f)]
+        [SerializeField] private float pacingBreatherSecondsLate = 20f;
+
+        [Tooltip("Bu tura KADAR (dahil) kisa mola gecerli, sonrasinda uzun mola. Buyutursen gec turlarin hazirlik zamani hic gelmez; 1 yaparsan iki deger tek degere doner ve ayrimin sebebi kaybolur.")]
+        [Range(1, 20)]
+        [SerializeField] private int pacingBreatherEarlyUntilRound = 5;
 
         [Tooltip("Tur 1'de iki zombi dogumu arasi sure. Turun ne kadar surdugunu bu belirler, zombi sayisi kadar.")]
         [Range(0.5f, 5f)]
@@ -170,7 +178,9 @@ namespace Bunker.Config
                 bossPointsMultiplier,
                 roundEndReserveAmmoFraction01,
                 roundEndBarricadeBoardsFraction01,
-                pacingBreatherSeconds,
+                pacingBreatherSecondsEarly,
+                pacingBreatherSecondsLate,
+                pacingBreatherEarlyUntilRound,
                 pacingSpawnIntervalSecondsAtRoundOne,
                 pacingSpawnIntervalFloorSeconds);
         }

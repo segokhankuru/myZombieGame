@@ -4,6 +4,9 @@ using Bunker.Systems.Ai;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Config;
 using Bunker.Systems.Combat;
+using Bunker.Systems.Pickups;
+using Bunker.Systems.Rounds;
+using Bunker.Systems.Telemetry;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -95,6 +98,23 @@ namespace Bunker.AI
         private int _swarmIndex;
         private float _swarmLateralMeters;
 
+        /// <summary>
+        /// Bu zombinin savaş günlüğündeki adı ("Zombi#42"). <b>Doğumda bir kez
+        /// üretilir</b>; vuruş başına string kurmak, kalabalık bir turda saniyede
+        /// yüzlerce tahsis demekti (csharp-code.md).
+        /// </summary>
+        private string _logName = "Zombi";
+
+        /// <summary>Günlük ve teşhis adı. <see cref="ZombieTargetBeacon"/> da okur.</summary>
+        public string LogName => _logName;
+
+        // Dondurma boyamasi (2026-09-08). Renderer listesi ve ORIJINAL renkleri
+        // Awake'te bir kez toplanir: cozulen zombi beyaza degil, KENDI rengine doner.
+        // Beyaza dondurmek, materyalindeki her renk ayarini sessizce silerdi.
+        private Renderer[] _visualRenderers;
+        private Color[] _visualBaseColors;
+        private bool _freezeTintApplied;
+
         // Dogum sayaci. Serit atamasi RASTGELE degil SIRAYLA yapilir (SwarmFormation):
         // rastgele olsaydi arka arkaya dogan uc zombi ayni tarafa dusebilirdi.
         private static int _swarmCursor;
@@ -184,6 +204,60 @@ namespace Bunker.AI
         public IDamageable DamageRoot => this;
         public float HealthFraction01 => _initialized ? _health.Fraction01 : 0f;
 
+        /// <summary>
+        /// Sürünüyor mu (bacağı koptu). <b>Yürüme animasyonu buna bakar</b>: gövde
+        /// zaten öne yatırılmışken bacaklara adım yazmak, sürünürken tekme atan bir
+        /// şey üretirdi.
+        /// </summary>
+        public bool IsCrawling => _crawling;
+
+        /// <summary>
+        /// Vuruş hazırlığının ilerlemesi (0..1); hazırlık yoksa 0. <b>Animasyon bunu
+        /// okur</b> — kolların geriye çekilmesi telegrafın kendisidir (ai-code.md).
+        /// </summary>
+        public float WindupProgress01 =>
+            _brain != null && _brain.State == ZombieState.WindingUp
+                ? _brain.WindupProgress01
+                : 0f;
+
+        /// <summary>
+        /// Vuruş <b>indi mi ve üstünden ne kadar geçti</b> (0 = tam şimdi, 1 = açıklık
+        /// bitti). Kolların ileri savrulması bu eğriden geliyor.
+        /// </summary>
+        public float StrikeProgress01
+        {
+            get
+            {
+                if (_brain == null || _config == null) return 1f;
+
+                if (_brain.State == ZombieState.Striking) return 0f;
+
+                if (_brain.State != ZombieState.Recovering) return 1f;
+
+                float recovery = _config.AttackRecoverySeconds;
+                return recovery <= 0f
+                    ? 1f
+                    : Mathf.Clamp01(_brain.StateTimeSeconds / recovery);
+            }
+        }
+
+        /// <summary>Kalan can. <b>Geliştirme ölçümü</b> — can barının yazısı buradan.</summary>
+        public float Health => _initialized ? _health.Current : 0f;
+
+        /// <summary>Bu doğumdaki en yüksek can (tur ölçeklemesi uygulanmış hâli).</summary>
+        public float MaxHealth => _initialized ? _health.Max : 0f;
+
+        /// <summary>
+        /// Bu zombinin <b>tek vuruşta</b> oyuncudan götürdüğü can — tur çarpanı dahil.
+        ///
+        /// <para>Geliştirici (2026-09-07): <i>"kaç hasar vurabiliyorlar onu da yaz,
+        /// testler için önemli bir detay"</i>. Sayı hiçbir yerde görünmüyordu; "15.
+        /// turda tek mi yiyorum" sorusu ancak ölerek cevaplanabiliyordu. Değerin
+        /// sahibi hâlâ <c>zombie.json</c>; burası yalnızca okuyup gösteriyor.</para>
+        /// </summary>
+        public float AttackDamage =>
+            _initialized && _config != null ? _config.AttackDamage * _damageMultiplier : 0f;
+
         // ---------------------------------------------------------------- kurulum
 
         private void Awake()
@@ -223,6 +297,26 @@ namespace Bunker.AI
             _thinkPhaseOffset = UnityEngine.Random.value;
 
             BuildPartRenderers();
+
+            // Dondurma boyamasinin hedefi: GORSEL model. Vurus kutulari (goze
+            // gorunmez ilkel sekiller) degil - onlar zaten parlama sisteminin isi.
+            // Bir kez toplanir; kare basina GetComponentsInChildren yasak.
+            Transform tintRoot = visualRig != null ? visualRig : transform;
+            _visualRenderers = tintRoot.GetComponentsInChildren<Renderer>(true);
+            _visualBaseColors = new Color[_visualRenderers.Length];
+
+            for (int i = 0; i < _visualRenderers.Length; i++)
+            {
+                Material shared = _visualRenderers[i] != null
+                    ? _visualRenderers[i].sharedMaterial
+                    : null;
+
+                // sharedMaterial OKUNUR, material DEGIL: ikincisi materyali klonlar ve
+                // her zombi ayri cizim cagrisi olur (shader-graphics.md).
+                _visualBaseColors[i] = shared != null && shared.HasProperty(BaseColorId)
+                    ? shared.GetColor(BaseColorId)
+                    : Color.white;
+            }
         }
 
         /// <summary>
@@ -299,6 +393,9 @@ namespace Bunker.AI
             _swarmIndex = _swarmCursor++;
             if (_swarmCursor > 100000) _swarmCursor = 0;   // tasma yok, sayac dolaninca basa
 
+            // Gunluk adi dogumda bir kez kurulur (savas gunlugu, 2026-09-08).
+            _logName = (IsBoss ? "Boss#" : "Zombi#") + _swarmIndex;
+
             _swarmLateralMeters = SwarmFormation.LateralOffsetMeters(
                 _swarmIndex, _config.SwarmLateralSpreadMeters);
 
@@ -315,6 +412,13 @@ namespace Bunker.AI
 
             // Havuzdan cikan zombi onceki hayatinin beyaz parlamasini da tasimaz.
             ClearPartFlashes();
+
+            // ...ne de onceki hayatinin buz rengini. Bayragi sifirlamak YETMEZ:
+            // renderer'da onceki hayatin mavi blogu duruyor olabilir ve karsilastiran
+            // bir kontrol "zaten dogru" diye gecerdi. Renk KOSULSUZ yazilir
+            // (systems-code.md: havuzdan cikan nesne durum tasiyamaz).
+            _freezeTintApplied = PowerupState.IsFreezeActive;
+            ApplyFreezeTint(_freezeTintApplied);
 
             // Havuzdan cikan zombi ONCEKI HAYATININ KOPMUS BACAGIYLA dogamaz. Bu
             // sifirlama olmasaydi bir saat oynadiktan sonra havuzun tamami surunen
@@ -412,6 +516,10 @@ namespace Bunker.AI
             // dusunme adimina baglamak, 125 ms'lik beyaz lekeler uretirdi.
             TickPartFlashes(Time.deltaTime);
 
+            // Dondurma GORUNUR olmali (2026-09-08). Vekil zombide de: dondurma
+            // sahaya ait bir etki, sahnedeki her zombiyi ilgilendirir.
+            TickFreezeTint();
+
             // Yikilma ani her kare surulur ve baska hicbir sey calismaz: olu zombi
             // dusunmez, yol bulmaz, sendelemez.
             if (_dying)
@@ -473,9 +581,7 @@ namespace Bunker.AI
 
             bool needsWindow = !_hasEnteredBuilding && _window != null && _window.IsOpen;
 
-            float distanceToTarget = _target != null
-                ? Vector3.Distance(_transform.position, _target.GroundPosition)
-                : float.MaxValue;
+            float gapToTarget = _target != null ? GapToTarget() : float.MaxValue;
 
             float distanceToWindow = needsWindow
                 ? Vector3.Distance(_transform.position, _window.OutsidePoint)
@@ -491,7 +597,7 @@ namespace Bunker.AI
 
             var senses = new ZombieSenses(
                 hasTarget: _target != null,
-                distanceToTargetMeters: distanceToTarget,
+                gapToTargetMeters: gapToTarget,
                 needsWindowEntry: needsWindow,
                 distanceToWindowMeters: distanceToWindow,
                 actualSpeedMetersPerSecond: actualSpeed,
@@ -520,7 +626,12 @@ namespace Bunker.AI
                 // yavaslatma etkisiz kalirdi.
                 // Surunme carpani da CARPILIR: bacagi kopmus ve ayrica yavaslatilmis
                 // bir zombi iki etkiyi birden tasimali.
+                // Esya etkisi (2026-09-07): yavaslatma/dondurma SAHAYA aittir, tek
+                // sayacta durur (PowerupState) ve her zombi ona bakar. Zombi basina
+                // sayac tutulsaydi, esya toplandiktan SONRA dogan zombi etkilenmez
+                // ve kural ogrenilemezdi. Dondurmada carpan sifir: zombi durur.
                 _navAgent.speed = _baseSpeed * _brain.SpeedMultiplier * _cardSlowMultiplier *
+                                  PowerupState.ZombieSpeedMultiplier *
                                   (_crawling ? _config.CrawlSpeedMultiplier : 1f);
             }
 
@@ -576,6 +687,14 @@ namespace Bunker.AI
             // Yalnizca binaya girmis ya da yaklasan zombi inler; henuz belirmekte olan
             // zombinin sesi, oyuncuya daha dogmadan yer bildirirdi.
             if (_brain.State == ZombieState.Emerging || _brain.State == ZombieState.Dead) return;
+
+            // OLUM EKRANINDA SESSIZLIK (2026-09-08, gelistirici: "olum ekraninda
+            // zombilerin ugultusunu kes"). Homurtu bir GERILIM araci: arkani donmen
+            // icin bir sebep. Run bittikten sonra donulecek bir arka yok - sicil
+            // ekranini okurken devam eden ugultu, gerilim degil gurultu ve oyuncunun
+            // "bitti" hissini geciktiriyor. Zombiler sahnede duruyor, yalnizca
+            // susuyorlar.
+            if (RunSignals.IsRunOver) return;
 
             GameAudio.PlayAt(SfxId.ZombieGroan, _transform.position);
         }
@@ -795,19 +914,136 @@ namespace Bunker.AI
             float reach = (_config.AttackRangeMeters + _config.AttackRangeToleranceMeters)
                           * _bodyScale;
 
-            Vector3 toTarget = _target.GroundPosition - _transform.position;
-            toTarget.y = 0f;   // yukseklik farki menzili yemez (ust kat / rampa)
-
-            if (toTarget.sqrMagnitude > reach * reach)
+            if (GapToTarget() > reach)
             {
                 // Iskaladi: oyuncu telegrafi okuyup cekildi. Sessiz kalmasi dogru -
                 // "hicbir sey olmamasi" zaten iskalamanin geri bildirimi.
                 return;
             }
 
+            // ONDEKI ZOMBININ ARKASINDAN VURULMAZ (2026-09-06, oyun testi).
+            //
+            // <b>Bulgu:</b> <i>"yigin oldugu zaman canin fullken birden oluyorsun"</i>.
+            // Sebep buydu: sira halinde dizilen zombilerin hepsi menzil icinde
+            // sayiliyordu ve ayni karede vuruyorlardi. Oyuncu tek bir zombi goruyor,
+            // arkasindaki ucunun vurusunu ayni anda yiyordu - okunamayan bir olum.
+            //
+            // <b>Neden gorus kontrolu, hasar tavani degil:</b> ikinci vurusu yutmak
+            // sonucu gizler, sebebi degil - zombi hala vurmus olur ve oyuncu neden
+            // hasar almadigini da anlamaz. Burada vurus HIC OLMAZ, cunku gercekten
+            // olmamali: arada baska bir govde var.
+            // DONMUS ZOMBI VURMAZ (2026-09-07). Hizi sifira inen bir zombinin yerinde
+            // durup vurmaya devam etmesi, "dondurma" esyasinin vaadini yalanlar -
+            // oyuncu esyayi alir ve yine hasar yer.
+            if (PowerupState.IsFreezeActive) return;
+
+            if (IsBlocked()) return;
+
             // Boss daha agir vurur: carpan dogum aninda verildi (rounds.json boss).
-            _target.ReceiveAttack(_config.AttackDamage * _damageMultiplier, _transform.position);
+            _target.ReceiveAttack(_config.AttackDamage * _damageMultiplier, _transform.position,
+                                  _logName);
         }
+
+        /// <summary>
+        /// Zombinin gövdesiyle hedefin gövdesi arasındaki <b>yatay boşluk</b>.
+        ///
+        /// <para><b>Merkez mesafesi değil</b>: iki yarıçap düşülür. Gerekçe
+        /// <see cref="ZombieSenses.GapToTargetMeters"/>'te.</para>
+        ///
+        /// <para><b>Yükseklik farkı bir yere kadar yok sayılır</b> (2026-09-06, oyun
+        /// testi). Rampada, eşikte ya da bir basamak üstünde duran oyuncu dokunulmaz
+        /// olmamalı — o yüzden küçük fark önemsenmiyor. Ama sınırsız yok saymak,
+        /// <b>alt kattaki zombinin üst kattaki oyuncuya duvarın içinden vurması</b>
+        /// demekti; geliştirici tam olarak bunu yaşadı: <i>"üst kata yerleştim, duvar
+        /// dibinde, alttan hasar yedim."</i></para>
+        ///
+        /// <para>Sınır zombinin <b>boyuyla</b> ölçülür — uzanabileceği yer kadar. Kat
+        /// yüksekliği bunun üstünde olduğu için kat arası vuruş imkânsız, basamak
+        /// farkı ise hâlâ serbest. Sabit bir metre yazmak, boss ölçeklendiğinde ya da
+        /// kat yüksekliği değiştiğinde sessizce yanlış olurdu.</para>
+        /// </summary>
+        private float GapToTarget()
+        {
+            Vector3 toTarget = _target.GroundPosition - _transform.position;
+
+            // Dikey sinir: zombinin boyunun yarisi kadar uzanabilir. Asilirsa vurus
+            // ISKALAR - "cok uzakta" demekle ayni sey, cunku gercekten oyle.
+            float verticalReach = _navAgent.height * 0.5f;
+
+            if (Mathf.Abs(toTarget.y) > verticalReach) return float.MaxValue;
+
+            toTarget.y = 0f;
+
+            return toTarget.magnitude
+                   - _navAgent.radius              // zaten _bodyScale ile olceklenir
+                   - _target.BodyRadiusMeters;
+        }
+
+        /// <summary>
+        /// Zombiyle hedefi arasında <b>herhangi bir şey</b> duruyor mu — başka bir
+        /// zombi ya da <b>geometri</b>.
+        ///
+        /// <para><b>Yalnızca vuruş indiği karede çalışır</b>, her karede değil: saniyede
+        /// en fazla bir kez, zombi başına (vuruş açıklığı 0,9 sn). 40 zombide bile
+        /// ölçülebilir bir maliyeti yok (ai-code.md: algı bütçeye tabidir).</para>
+        ///
+        /// <para><b>2026-09-07: geometri de sayılır.</b> Önceki sürüm bilerek yalnızca
+        /// gövdelere bakıyordu ve gerekçesi <i>"duvar zaten yolu keser, zombi oraya
+        /// ulaşamaz"</i> idi. O gerekçe <b>düz zeminde doğru, rampada yanlıştı</b>:
+        /// geliştirici rampanın üstünde dururken alttan hasar yedi. Zombi rampanın
+        /// altından geçebiliyor, dikey fark bir zombi boyunun altında kalıyor ve
+        /// aradaki rampa yüzeyi hiç sorulmuyordu. Aynı hata sınıfı daha önce kat
+        /// arasında yaşanmış ve orada dikey sınırla kapatılmıştı; asıl soru "arada bir
+        /// şey var mı" olduğu için doğru cevap burada.</para>
+        ///
+        /// <para><b>Katman maskesi yok, sahibi sorulur:</b> ışın her şeye çarpar, sonra
+        /// çarptığı şeyin <i>kendisi</i> mi, <i>hedefi</i> mi olduğu sorulur. Maske
+        /// olsaydı kural, sahne katman kurulumuna bağlı olurdu — yeni bir platform
+        /// yanlış katmanda doğduğu gün, sebebi görünmeden geri gelen bir hata.</para>
+        /// </summary>
+        private bool IsBlocked()
+        {
+            Vector3 from = _transform.position;
+            from.y += _navAgent.height * 0.5f;      // gogus hizasi
+
+            Vector3 to = _target.Position;
+            Vector3 delta = to - from;
+            float distance = delta.magnitude;
+
+            if (distance < 0.01f) return false;     // ic ice: engel olamaz
+
+            Transform targetRoot = _target.transform.root;
+
+            int count = Physics.RaycastNonAlloc(from, delta / distance, _blockHits,
+                                                distance, Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = _blockHits[i].collider;
+                if (hit == null) continue;
+
+                // Kendi carpisanlari sayilmaz - zombi kendi govdesinin arkasinda
+                // duramaz.
+                if (hit.GetComponentInParent<ZombieAgent>() == this) continue;
+
+                // Hedefin kendi carpisanlari da sayilmaz: isin oyuncunun govdesine
+                // carpiyor olmasi, "arada bir sey var" demek degil.
+                if (hit.transform.IsChildOf(targetRoot)) continue;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Görüş kontrolünün tamponu. <b>Bir kez ayrılır</b>, her vuruşta yeniden değil
+        /// (csharp-code.md: kare başına tahsis yok).
+        ///
+        /// <para>Sekiz yeterli: sonuç "arada bir gövde var mı" sorusunun evet/hayır
+        /// cevabı. Tampon dolarsa zaten en az bir engel bulunmuş demektir.</para>
+        /// </summary>
+        private readonly RaycastHit[] _blockHits = new RaycastHit[8];
 
         public DamageResult ApplyDamage(in DamageInfo damage) =>
             ApplyDamageToPart(damage, ZombiePart.Body);
@@ -825,6 +1061,18 @@ namespace Bunker.AI
             if (!_initialized) return default;
 
             DamageResult result = _health.ApplyDamage(damage);
+
+            // SAVAS GUNLUGU - zombiye gelen her hasarin TEK cikis noktasi
+            // (2026-09-08). Cagri noktalarina degil buraya yazilmasinin sebebi
+            // DamageInfo.Source'ta anlatiliyor: bes ayri yere bes satir koymak,
+            // birinin unutuldugu gun gunlugu sessizce eksik birakirdi.
+            if (CombatLog.IsInstalled && result.Absorbed > 0f)
+            {
+                CombatLog.Damage(damage.Source ?? damage.Kind.ToString(), null,
+                                 _logName, PartName(part), result.Absorbed,
+                                 _health.Current, _health.Max,
+                                 result.Killed, damage.Headshot);
+            }
 
             if (result.Killed)
             {
@@ -847,7 +1095,7 @@ namespace Bunker.AI
             // M1-13: vurusun bir karsiligi olmali. Sendeleme kararini beyin verir
             // (hazirlanan vurusu kesmek dahil), gorunur kismini burasi surer.
             _brain.NotifyHit(damage.Headshot);
-            ApplyKnockback();
+            ApplyKnockback(damage);
             ApplyDebugColor();
 
             // Parlama durum renginden SONRA: tersi sirada durum rengi parlamayi ayni
@@ -860,6 +1108,18 @@ namespace Bunker.AI
 
             return result;
         }
+
+        /// <summary>
+        /// Vuruş kutusunun günlükteki adı. <b>Sabit stringler</b> — <c>enum.ToString()</c>
+        /// her çağrıda tahsis eder ve bu yol atış başına geçiliyor.
+        /// </summary>
+        private static string PartName(ZombiePart part) => part switch
+        {
+            ZombiePart.Head => "kafa",
+            ZombiePart.LegLeft => "sol bacak",
+            ZombiePart.LegRight => "sag bacak",
+            _ => "govde"
+        };
 
         // ---------------------------------------------------------------- surunme
 
@@ -1003,22 +1263,41 @@ namespace Bunker.AI
         }
 
         /// <summary>
-        /// İsabetin yönünü <b>görünür</b> kılar: zombi biraz geri iter.
+        /// İsabetin yönünü <b>görünür</b> kılar: zombi merminin gittiği yöne itilir.
         ///
-        /// <para>Yön bilgisi taktiktir — oyuncu sürüyü bir hatta tutmayı bununla öğrenir.
-        /// İtme <see cref="NavMeshAgent.Move"/> ile yapılır, transform'a yazılarak
+        /// <para><b>Vuruşun geldiği yerden itilir, zombinin baktığı yönden değil</b>
+        /// (2026-09-06, oyun testi: <i>"zombilere arkadan vurunca kendisince geri
+        /// sekiyor, vuruş yönümün tersine hareket etmiş oluyor"</i>). Önceki sürüm
+        /// <c>-transform.forward</c> kullanıyordu ve gerekçesi <i>"zombi zaten oyuncuya
+        /// döner"</i>ydi — barikat sökerken, başka bir oyuncuyu kovalarken ya da
+        /// arkadan vurulduğunda bu doğru değil. O durumlarda zombi <b>ateş edene
+        /// doğru</b> itiliyordu; mermi onu çekiyormuş gibi.</para>
+        ///
+        /// <para><b>Kaynak yoksa eski davranış:</b> patlama ve barikat hasarı yön
+        /// taşımıyor. Yönsüz bir vuruşta "geri" hâlâ makul bir tahmin.</para>
+        ///
+        /// <para>İtme <see cref="NavMeshAgent.Move"/> ile yapılır, transform'a yazılarak
         /// değil: doğrudan yazmak ajanı NavMesh'in dışına taşıyıp "not on NavMesh"
         /// durumuna sokabilir ve zombi olduğu yerde donar.</para>
         /// </summary>
-        private void ApplyKnockback()
+        private void ApplyKnockback(in DamageInfo damage)
         {
             float distance = _config.HitReactionKnockbackMeters;
             if (distance <= 0f) return;
             if (!_navAgent.enabled || !_navAgent.isOnNavMesh) return;
 
-            // Zombinin baktigi yonun tersi: oyuncu onu kovaladigi icin zaten oyuncuya
-            // doner, yani "geri" pratikte atisin geldigi yondur.
-            _navAgent.Move(-_transform.forward * distance);
+            Vector3 push = -_transform.forward;
+
+            if (damage.HasSource)
+            {
+                Vector3 fromSource = _transform.position -
+                                     new Vector3(damage.SourceX, _transform.position.y, damage.SourceZ);
+
+                // Cok yakinsa yon guvenilmez (sifira bolme): eski davranisa dusulur.
+                if (fromSource.sqrMagnitude > 0.01f) push = fromSource.normalized;
+            }
+
+            _navAgent.Move(push * distance);
         }
 
         private void Die(DamageKind kind, bool headshot)
@@ -1073,13 +1352,26 @@ namespace Bunker.AI
             float power = RunModifiers.Total(CardStat.ExplodeOnKill);
             if (power <= 0f) return;
 
-            float radius = _config.CardsExplosionRadiusMeters;
+            // BOSS DAHA BUYUK PATLAR (2026-09-06, gelistirici: "boss olurse onun
+            // patlama efekti zombilere gore daha etkili olmali, sonucta boss bu").
+            //
+            // Hasar zaten olceklenıyordu - <c>_health.Max</c> boss'ta cok daha yuksek.
+            // Ama YARICAP sabitti: alti kat hasar veren bir patlama, normal zombiyle
+            // ayni daireye siginiyordu. Buyuk bir seyin patlamasi buyuk gorunmeli;
+            // aksi halde odul ekranda hic okunmuyor.
+            //
+            // <b>Yeni bir denge sayisi YOK</b> (config-data.md: hesaplanan deger
+            // saklanmaz): olcek zaten dogum aninda verilen <c>_bodyScale</c>.
+            float radius = _config.CardsExplosionRadiusMeters * _bodyScale;
             if (radius <= 0f) return;
 
             float damage = _health.Max * power;
             if (damage <= 0f) return;
 
-            int shrapnel = _config.CardsExplosionShrapnelCount;
+            // Parca sayisi da olceklenir. Sabit kalsaydi genis yaricapta parcalar
+            // SEYRELIR ve boss patlamasi, buyudugu halde daha az sey vuran bir
+            // patlamaya donusurdu - tam tersi bir his.
+            int shrapnel = Mathf.RoundToInt(_config.CardsExplosionShrapnelCount * _bodyScale);
             if (shrapnel <= 0) return;
 
             GameAudio.PlayAt(SfxId.Explosion, _transform.position);
@@ -1100,7 +1392,7 @@ namespace Bunker.AI
                 // "patlama yuzeyi asiyor ve arkasindakilere hasar veriyor"). Kure
                 // sorgusu geometriyi hic gormuyordu; isin gorur.
                 if (!Physics.Raycast(origin, direction, out RaycastHit hit, radius,
-                                     ~0, QueryTriggerInteraction.Ignore))
+                                     Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore))
                 {
                     continue;
                 }
@@ -1122,13 +1414,18 @@ namespace Bunker.AI
                     target.ApplyDamage(new DamageInfo(perShrapnel * selfFraction,
                                                       DamageKind.Environment, false,
                                                       _transform.position.x,
-                                                      _transform.position.z));
+                                                      _transform.position.z,
+                                                      ShrapnelSource));
                     continue;
                 }
 
-                target.ApplyDamage(new DamageInfo(perShrapnel, DamageKind.Environment));
+                target.ApplyDamage(new DamageInfo(perShrapnel, DamageKind.Environment,
+                                                  false, 0f, 0f, ShrapnelSource));
             }
         }
+
+        /// <summary>Şarapnelin günlükteki adı. Sabit: atış başına tahsis yok.</summary>
+        private const string ShrapnelSource = "Patlama";
 
         /// <summary>
         /// Gövde ölçeği: boss büyük görünür, normal zombi kendi boyunda.
@@ -1359,6 +1656,53 @@ namespace Bunker.AI
 
                 _partFlashTimers[i] = 0f;
                 if (i != (int)ZombiePart.Body) RestorePartColor(i);
+            }
+        }
+
+        // ------------------------------------------------------------- dondurma
+
+        /// <summary>Buz rengi. Dokuyu <b>çarpar</b> — modeli silmez, soğutur.</summary>
+        private static readonly Color FreezeTint = new Color(0.52f, 0.76f, 1.00f);
+
+        /// <summary>
+        /// Dondurma eşyasının <b>görünür</b> karşılığı. 2026-09-08.
+        ///
+        /// <para><b>Neden gerekti</b> (geliştirici: <i>"dondurma drobunu alınca
+        /// zombiler donuyor ama hasar da almıyorlar"</i>): dondurmanın tek görünür
+        /// sonucu <b>hareketin durması</b> idi. Duran bir zombi ile ölmüş, takılmış ya
+        /// da dokunulmaz bir zombi ekranda aynı görünür — yani oyuncu, vurduğu hasarın
+        /// sayıldığından emin olamıyor. <b>Kodda dondurmanın hasarı engellediği bir yol
+        /// yok</b> (hasar <see cref="ApplyDamageToPart"/>'tan geçer ve orada eşya
+        /// durumu hiç okunmaz); eksik olan kanıttı. Artık donmuş zombi mavi ve her
+        /// isabet savaş günlüğüne düşüyor — sayı tutmuyorsa dosya söyleyecek.</para>
+        ///
+        /// <para><b>Yalnızca DEĞİŞİMDE yazılır:</b> kare başına kırk zombinin bütün
+        /// renderer'larına özellik bloğu yazmak, hiçbir şey olmadığında bile bedel
+        /// ödemek olurdu (csharp-code.md).</para>
+        /// </summary>
+        private void TickFreezeTint()
+        {
+            bool frozen = PowerupState.IsFreezeActive && IsAlive;
+            if (frozen == _freezeTintApplied) return;
+
+            _freezeTintApplied = frozen;
+            ApplyFreezeTint(frozen);
+        }
+
+        /// <summary>Rengi <b>koşulsuz</b> yazar. Doğum ve durum değişimi çağırır.</summary>
+        private void ApplyFreezeTint(bool frozen)
+        {
+            if (_visualRenderers == null) return;
+
+            for (int i = 0; i < _visualRenderers.Length; i++)
+            {
+                Renderer r = _visualRenderers[i];
+                if (r == null) continue;
+
+                r.GetPropertyBlock(_propertyBlock);
+                _propertyBlock.SetColor(BaseColorId,
+                                        frozen ? FreezeTint : _visualBaseColors[i]);
+                r.SetPropertyBlock(_propertyBlock);
             }
         }
 

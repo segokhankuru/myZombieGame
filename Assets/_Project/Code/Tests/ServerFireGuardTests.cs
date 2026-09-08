@@ -177,14 +177,19 @@ namespace Bunker.Systems.Tests
             Assert.AreEqual(0, g.Reserve);
         }
 
+        /// <summary>
+        /// 2026-09-07: yedek tavanı kaldırıldı (bkz. <c>WeaponState.AddReserve</c>).
+        /// Sunucu doğrulayıcısının istemciyle <b>aynı</b> kuralı uygulaması şart —
+        /// biri kırpıp diğeri kırpmasaydı iki taraf farklı mermi sayardı.
+        /// </summary>
         [Test]
-        public void YedekTavani_Asilmaz()
+        public void YedekTavani_YOK_IstemciyleAyniKural()
         {
             ServerFireGuard g = Guard(startingReserve: 120, reserveCapacity: 300);
 
             g.AddReserve(500);
 
-            Assert.AreEqual(300, g.Reserve);
+            Assert.AreEqual(620, g.Reserve);
         }
 
         [Test]
@@ -206,6 +211,64 @@ namespace Bunker.Systems.Tests
 
             Assert.AreEqual(3, g.RoundsInMagazine);
             Assert.AreEqual(FireRejection.None, g.TryAcceptShot(0.1f));
+        }
+
+        // ------------------------------------------- atis hizi karti (2026-09-06)
+
+        /// <summary>
+        /// Kart atış hızını artırdığında <b>sunucunun hız sınırı da hızlanmalı</b>.
+        ///
+        /// <para><b>Bulundugu yer bir oyun logu</b>: onlarca satır
+        /// <c>"Sunucu atisi reddetti: TooFast"</c>. Sınırlayıcının aralığı kurucuda
+        /// sabitleniyordu; istemci kartla hızlanıyor, sunucu eski aralıkta kalıyordu.
+        /// Ağ payı birikmediği için izinli an yavaşça öne kaçıyor ve bir noktadan
+        /// sonra <b>her atış</b> reddediliyordu — oyuncu tarafında "silahım hasar
+        /// vermiyor".</para>
+        /// </summary>
+        [Test]
+        public void BUG_AtisHiziKartiSonrasi_MesruAtislarReddedilmez()
+        {
+            // 400 atis/dk = 0.15 sn. Kart +%50 -> 0.10 sn.
+            ServerFireGuard guard = Guard(roundsPerMinute: 400f, capacity: 200,
+                                          startingReserve: 0, reserveCapacity: 0);
+
+            guard.ApplyModifiers(new WeaponModifiers(
+                fireRate: 0.5f, reloadSpeed: 0f, damage: 0f,
+                magazine: 0f, headshotMultiplier: 0f));
+
+            // Istemcinin surdugu ritimle otuz atis. Bir tanesi bile reddedilirse
+            // hata geri gelmis demektir - reddedilenler birikerek gelir.
+            float now = 100f;
+
+            for (int i = 0; i < 30; i++)
+            {
+                Assert.AreEqual(FireRejection.None, guard.TryAcceptShot(now),
+                                $"{i}. atis reddedildi - sunucu hala eski aralikta");
+                now += 0.10f;
+            }
+        }
+
+        [Test]
+        public void AtisHiziKartiSonrasi_HALA_COK_HIZLI_ATIS_REDDEDILIR()
+        {
+            ServerFireGuard guard = Guard(roundsPerMinute: 400f, capacity: 200,
+                                          startingReserve: 0, reserveCapacity: 0);
+
+            guard.ApplyModifiers(new WeaponModifiers(
+                fireRate: 0.5f, reloadSpeed: 0f, damage: 0f,
+                magazine: 0f, headshotMultiplier: 0f));
+
+            // Izin 0.10 sn; 0.01 sn araliklarla otuz atis acikca hile.
+            float now = 100f;
+            int rejected = 0;
+
+            for (int i = 0; i < 30; i++)
+            {
+                if (guard.TryAcceptShot(now) == FireRejection.TooFast) rejected++;
+                now += 0.01f;
+            }
+
+            Assert.Greater(rejected, 15, "hiz siniri gevsedi - kart bir hile kapisi oldu");
         }
     }
 }

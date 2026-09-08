@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 119abbb2707121f4fb1a64c8e9e14e85, type: 3}
   m_Name: shop
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.ShopConfigAsset
-  version: 1
+  version: 2
   healthBaseCost: 400
   healthCostGrowth: 1.45
   healthIncrement: 0.1
@@ -27,5 +27,5 @@ MonoBehaviour:
   firerateMaxTier: 6
   magazineBaseCost: 350
   magazineCostGrowth: 1.4
-  magazineIncrement: 2
+  magazineIncrement: 0.1
   magazineMaxTier: 8

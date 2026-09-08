@@ -103,7 +103,7 @@ namespace Bunker.Systems.Config
             float recoilYawDegreesPerShot = 0.35f,
             float recoilRecoverySpeedDegreesPerSecond = 14f,
             float recoilMaxPitchDegrees = 6f,
-            float feelTracerSeconds = 0.05f,
+            float feelTracerSeconds = 0.14f,
             float feelHitMarkerSeconds = 0.12f,
             float feelInputBufferSeconds = 0.15f)
         {

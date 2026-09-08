@@ -183,11 +183,19 @@
     "pacing": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["breatherSeconds", "spawnIntervalSecondsAtRoundOne", "spawnIntervalFloorSeconds"],
+      "required": ["breatherSecondsEarly", "breatherSecondsLate", "breatherEarlyUntilRound", "spawnIntervalSecondsAtRoundOne", "spawnIntervalFloorSeconds"],
       "properties": {
-        "breatherSeconds": {
-          "type": "number", "minimum": 3, "maximum": 20,
-          "description": "Turlar arasi nefes molasi. Cok kisa olursa PILLAR-03'un ritmi bozulur ve oyun yorucu olur; cok uzun olursa gerilim soguр."
+        "breatherSecondsEarly": {
+          "type": "number", "minimum": 3, "maximum": 30,
+          "description": "ILK turlarin arasindaki nefes molasi (breatherEarlyUntilRound dahil). Erken turlarda molada yapilacak is azdir - barikat saglamdir, tezgahta alacak puan yoktur - ve uzun mola bos bekleme olur. Cok kisaltirsan kart secimi biter bitmez tur baslar ve oyuncu barikata donemez."
+        },
+        "breatherSecondsLate": {
+          "type": "number", "minimum": 3, "maximum": 45,
+          "description": "breatherEarlyUntilRound'dan SONRAKI turlarin arasindaki mola. Gec turda molada yapilacak is coktur: tamir, tezgah, silah, kart okuma. Erken molayla ayni olursa oyuncu bunlardan yalnizca birini secebilir ve turu, sebebini goremedigi bir hazirlik eksigi yuzunden kaybeder."
+        },
+        "breatherEarlyUntilRound": {
+          "type": "integer", "minimum": 1, "maximum": 20,
+          "description": "Bu tura KADAR (dahil) kisa mola gecerli, sonrasinda uzun mola. Buyutursen gec turlarin hazirlik zamani hic gelmez; 1 yaparsan iki deger tek degere doner ve ayrimin sebebi kaybolur."
         },
         "spawnIntervalSecondsAtRoundOne": {
           "type": "number", "minimum": 0.5, "maximum": 5,

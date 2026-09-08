@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class PlayerConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 2;
+        [SerializeField] private int version = 3;
 
         [Header("health")]
         [Tooltip("Oyuncunun tam cani. zombie.json'daki 'damage' aciklamasi bu sayiyi 100 kabul eder - degistirirsen o aciklamayi da guncelle, yoksa hasarin ne ifade ettigi kayboluyor. 100 can ve 30 hasar = dort vurusluk omur. Dusurursen tek bir yanlis kose turu bitirir; buyutursen zombiler kalabaligiyla degil sabirla oldurur ve tehdit hissi gider.")]
@@ -56,6 +56,27 @@ namespace Bunker.Config
         [Range(0f, 3f)]
         [SerializeField] private float sprintMinSecondsToStart = 0.6f;
 
+        [Header("crouch")]
+        [Tooltip("Comelmisken yurume hizinin carpani. Comelmenin BEDELI budur: nisan ve hasar kazanirsin, hareket kaybedersin. 0.8'in ustunde bedel hissedilmez ve comelmek her an dogru olur - yani bir karar olmaktan cikar. 0.3'un altinda comelmis oyuncu bir hedef tahtasidir ve tus hic kullanilmaz.")]
+        [Range(0.2f, 0.9f)]
+        [SerializeField] private float crouchSpeedMultiplier = 0.5f;
+
+        [Tooltip("Comelmisken carpisan boyunun carpani. Yalnizca gorsel degil: zombinin dikey vurus siniri govdenin BOYUYLA olculuyor, yani alcalmak gercekten saklanmak demek. Cok kucultursen kamera yere gomulur.")]
+        [Range(0.4f, 0.95f)]
+        [SerializeField] private float crouchHeightMultiplier = 0.6f;
+
+        [Tooltip("Comelmisken silahin dagilim acisinin carpani. ASIL ODUL bu. 1 yaparsan comelmek nisana hicbir sey katmaz; 0.2'nin altinda her silah keskin nisanci tufegine doner ve silahlarin karakter farki (weapons.json spreadDegrees) silinir.")]
+        [Range(0.1f, 1f)]
+        [SerializeField] private float crouchSpreadMultiplier = 0.45f;
+
+        [Tooltip("Comelmisken hasar carpani. Kucuk tutulmali: comelmek NISAN odulu vermeli, guc odulu degil. 1.2'nin ustunde 'her zaman comel' dogru cevap olur ve hareket etmek cezalanir - PILLAR-03'un ritmi biter.")]
+        [Range(1f, 1.25f)]
+        [SerializeField] private float crouchDamageMultiplier = 1.08f;
+
+        [Tooltip("Ayakta ile comelmis arasindaki gecis suresi. Sifir olursa kamera ziplar ve okunmaz; uzatirsan comelmek bir tepki araci olmaktan cikar ve oyuncu tehlike aninda kullanamaz.")]
+        [Range(0f, 0.6f)]
+        [SerializeField] private float crouchTransitionSeconds = 0.12f;
+
         /// <summary>Saf C# karsiligini uretir. Boot bunu bir kez cagirir.</summary>
         public PlayerConfig ToRuntime()
         {
@@ -68,7 +89,12 @@ namespace Bunker.Config
                 sprintSpeedMultiplier,
                 sprintMaxSeconds,
                 sprintRechargePerSecond,
-                sprintMinSecondsToStart);
+                sprintMinSecondsToStart,
+                crouchSpeedMultiplier,
+                crouchHeightMultiplier,
+                crouchSpreadMultiplier,
+                crouchDamageMultiplier,
+                crouchTransitionSeconds);
         }
     }
 }

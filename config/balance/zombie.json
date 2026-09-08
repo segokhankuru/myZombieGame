@@ -1,13 +1,13 @@
 {
   "$schema": "../schema/zombie.schema.json",
-  "version": 5,
+  "version": 9,
   "_meta": {
     "owner": "ai-programmer",
     "system": "SYS-zombi",
-    "lastTuned": "2026-09-05"
+    "lastTuned": "2026-09-07"
   },
 
-  "_note": "v5 (2026-09-06): patlama SARAPNEL oldu. v4 kure sorgusuydu - yaricaptaki herkese TAM hasar veriyor, duvarin arkasina geciyor ve oyunu kolaylastiriyordu. Gelistirici: el bombasi mantigi olsun, sarapneller belli alana firlar ve ISABET ALAN hasar alir. Artik patlama explosionShrapnelCount kadar parca firlatir; her parca bir isindir, ilk carptigi seye toplam hasarin 1/N kadarini verir ve DUVAR onu durdurur. Bir zombi konuma gore bir ya da bes parca yiyebilir - yakin olan cok, koseden bakan az. v4 (2026-09-05): cards bolumu - Yikim etiketi artik gercek. Olen zombinin patlamasinin YARICAPI burada; gucu kartin kendi degerinde (CardStat.ExplodeOnKill). Yaricap kart basina degil TEK bir sayi: iki farkli yaricap, oyuncunun patlamanin nereye kadar ulastigini ogrenmesini imkansiz kilardi. v3 (2026-09-05): swarm bolumu eklendi - zombiler ARKA ARKAYA TEK SIRA diziliyordu ve hedef almak kolaylasiyordu. Ucu birden: her zombiye yanal bir seritin (lateralSpreadMeters), hedefe yaklasirken sonen (spreadFadeDistanceMeters); hiza kucuk bir sapma (speedJitter01) ki konvoy kendiliginden dagilsin; ve zombi basina farkli NavMesh kacinma onceligi - esit oncelikli ajanlar kuyruga girer, sirayla gecer. v2 (2026-09-05): crawl bolumu eklendi - bacagi koparilan zombi surunerek devam eder. M1-04 baslangic degerleri. Zombinin tura gore degisen ozellikleri (can, hiz, adet) rounds.json'da; burasi tur numarasindan bagimsiz karakteri: ne kadar once telefonu belli eder, pencereyi kac saniyede asar, kac vurur. Hicbiri kanit degil, hepsi hipotez - ilk oyun testinde kalibre edilecek.",
+  "_note": "v9 (2026-09-07, gelistirici): PATLAMA GERCEKTEN PATLAMA OLDU. 'patlama karti alirsan capi cok dusuk, bir anlam ifade etmiyor gibi'. Yaricap 4.5 -> 9.0 m ve sarapnel 14 -> 30. Ikisi BIRLIKTE degisti: yalnizca yaricabi buyutmek ayni 14 parcayi iki kat genis bir kureye dagitirdi, yani patlama daha genis ama daha SEYREK olurdu - kart daha da hissedilmezdi. Parca sayisi yaricapla birlikte artinca yogunluk korunuyor. Kartin kendi gucu de 0.35 -> 0.60 (cards.json). v8 (2026-09-07, oyun testi): VURUS MENZILI 0.8 m -> 0.3 m. Gelistirici: 'zombilerin vurus mesafesi cok fazla gibi, en dibinin bir tik uzagindan vurmali, 20 cm gibi'. Olcu zaten govde yuzeyleri arasindaydi ama sayi bir KOL UZUNLUGU (0.5+0.3) idi; oyuncu zombiyle arasinda gorunur bir bosluk varken hasar yiyordu. Artik 0.2+0.1 - yani zombi neredeyse degecek. NavMeshAgent.stoppingDistance de 1.2'den 0.8'e indi (ZombieSetup): merkezler arasi 1.2, govdeler arasinda 0.45 m bosluk demekti ve zombi menzilin DISINDA durup hic vuramazdi - menzili kisaltip durma mesafesini birakmak, zombileri zararsiz yapardi. v7 (2026-09-06, gelistirici): DROP. 'zombiler icerde olunce hic drop atmiyor'. Olen zombi %7 ihtimalle yere bir esya birakir: can, mermi, yavaslatma (10 sn %10), dondurma (5 sn) ya da nuke (sahayi siler, en nadir). Drop, oyuncuyu guvenli koseden CIKARAN tek mekanik - esya, surunun oldugu yere dusuyor. Sikligi bilerek dusuk: her olumden esya cikarsa oyuncu turu degil esya akisini oynar. Ganimet kartlarindan biri (Ugurlu Bulus) bu ihtimali carpar. v6 (2026-09-06, oyun testi): VURUS MENZILI ARTIK GOVDELER ARASI BOSLUK. Gelistirici: 'zombiler yine uzaktan vurup tek atti, yigin oldugu zaman canin fullken birden oluyorsun.' Iki sebep vardi. (1) Menzil MERKEZLER arasi olculuyordu: zombi yaricapi 0.35 + oyuncu yaricapi 0.40 dusuldugunde 1.6+0.6 degeri, govdeler arasinda 1.45 m BOSLUK varken vurmak demekti. Artik olcu govde yuzeyleri arasi ve sayi bir KOL UZUNLUGU: 0.5 + 0.3 tolerans. (2) Sira halindeki zombilerin hepsi ayni anda menzil icindeydi (0.7 m araliklarla dizilen uc zombinin ucu de 2.2 m'nin icinde kaliyordu) ve ayni karede vuruyorlardi - dort zombi = 120 hasar, tek anda, full candan olum. Artik oendeki zombinin ARKASINDAN vurulamiyor: vurus indigi anda gogus hizasindan hedefe bir isin atiliyor, arada baska bir zombi govdesi varsa vurus HIC OLMUYOR. Hasar tavani konmadi bilerek - ikinci vurusu yutmak sebebi degil sonucu gizler. v5 (2026-09-06): patlama SARAPNEL oldu. v4 kure sorgusuydu - yaricaptaki herkese TAM hasar veriyor, duvarin arkasina geciyor ve oyunu kolaylastiriyordu. Gelistirici: el bombasi mantigi olsun, sarapneller belli alana firlar ve ISABET ALAN hasar alir. Artik patlama explosionShrapnelCount kadar parca firlatir; her parca bir isindir, ilk carptigi seye toplam hasarin 1/N kadarini verir ve DUVAR onu durdurur. Bir zombi konuma gore bir ya da bes parca yiyebilir - yakin olan cok, koseden bakan az. v4 (2026-09-05): cards bolumu - Yikim etiketi artik gercek. Olen zombinin patlamasinin YARICAPI burada; gucu kartin kendi degerinde (CardStat.ExplodeOnKill). Yaricap kart basina degil TEK bir sayi: iki farkli yaricap, oyuncunun patlamanin nereye kadar ulastigini ogrenmesini imkansiz kilardi. v3 (2026-09-05): swarm bolumu eklendi - zombiler ARKA ARKAYA TEK SIRA diziliyordu ve hedef almak kolaylasiyordu. Ucu birden: her zombiye yanal bir seritin (lateralSpreadMeters), hedefe yaklasirken sonen (spreadFadeDistanceMeters); hiza kucuk bir sapma (speedJitter01) ki konvoy kendiliginden dagilsin; ve zombi basina farkli NavMesh kacinma onceligi - esit oncelikli ajanlar kuyruga girer, sirayla gecer. v2 (2026-09-05): crawl bolumu eklendi - bacagi koparilan zombi surunerek devam eder. M1-04 baslangic degerleri. Zombinin tura gore degisen ozellikleri (can, hiz, adet) rounds.json'da; burasi tur numarasindan bagimsiz karakteri: ne kadar once telefonu belli eder, pencereyi kac saniyede asar, kac vurur. Hicbiri kanit degil, hepsi hipotez - ilk oyun testinde kalibre edilecek.",
 
   "spawn": {
     "emergeDelaySeconds": 0.6
@@ -19,8 +19,8 @@
   },
 
   "attack": {
-    "rangeMeters": 1.6,
-    "rangeToleranceMeters": 0.6,
+    "rangeMeters": 0.2,
+    "rangeToleranceMeters": 0.1,
     "windupSeconds": 0.55,
     "recoverySeconds": 0.9,
     "damage": 30
@@ -48,9 +48,25 @@
   },
 
   "cards": {
-    "explosionRadiusMeters": 4.5,
-    "explosionShrapnelCount": 14,
+    "explosionRadiusMeters": 9.0,
+    "explosionShrapnelCount": 30,
     "explosionSelfDamageFraction01": 0.0
+  },
+
+  "drops": {
+    "chance01": 0.07,
+    "lifetimeSeconds": 25,
+    "pickupRadiusMeters": 1.4,
+    "healthFraction01": 0.35,
+    "ammoMagazines": 3,
+    "slowFraction01": 0.10,
+    "slowSeconds": 10,
+    "freezeSeconds": 5,
+    "weightHealth": 25,
+    "weightAmmo": 40,
+    "weightSlow": 18,
+    "weightFreeze": 12,
+    "weightNuke": 5
   },
 
   "swarm": {

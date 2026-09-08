@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 472851ded198a7945b4facfbd2fea71f, type: 3}
   m_Name: player
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.PlayerConfigAsset
-  version: 2
+  version: 3
   healthMaxPoints: 100
   healthRegenDelaySeconds: 4
   healthRegenPerSecond: 25
@@ -21,3 +21,8 @@ MonoBehaviour:
   sprintMaxSeconds: 4.5
   sprintRechargePerSecond: 0.5
   sprintMinSecondsToStart: 0.6
+  crouchSpeedMultiplier: 0.5
+  crouchHeightMultiplier: 0.6
+  crouchSpreadMultiplier: 0.45
+  crouchDamageMultiplier: 1.08
+  crouchTransitionSeconds: 0.12

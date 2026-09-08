@@ -48,7 +48,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1294745156988240601}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -138,7 +138,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1798072444573302764}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -251,7 +251,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1969894411760375749}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -320,6 +320,7 @@ GameObject:
   - component: {fileID: 7626797396643432035}
   - component: {fileID: 4742032101874453115}
   - component: {fileID: 754639220494156596}
+  - component: {fileID: 4761424862365781854}
   - component: {fileID: 2555786021152835011}
   m_Layer: 0
   m_Name: Zombie
@@ -381,9 +382,9 @@ NavMeshAgent:
   m_Acceleration: 20
   avoidancePriority: 50
   m_AngularSpeed: 720
-  m_StoppingDistance: 1.2
+  m_StoppingDistance: 0.8
   m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 0
+  m_AutoBraking: 1
   m_AutoRepath: 1
   m_Height: 1.8
   m_BaseOffset: 0
@@ -401,7 +402,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c28ecd4586ce65845965de521e9173ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieAgent
-  bodyRenderer: {fileID: 575249730688114890}
+  bodyRenderer: {fileID: 4056172455616783635}
   animator: {fileID: 0}
   visualRig: {fileID: 3853367374417183814}
   legLeft: {fileID: 6825671349834425166}
@@ -421,6 +422,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieHitbox
   part: 0
   owner: {fileID: 4742032101874453115}
+--- !u!114 &4761424862365781854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6108485377960753986}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9836c07b466cc6c409cedbb88480e16e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieWalkAnimator
+  thighSwingDegrees: 26
+  shinBendDegrees: 22
+  armSwingDegrees: 10
+  armReachDownDegrees: 62
+  armReachForwardDegrees: 48
+  elbowBendDegrees: 26
+  armWindupDegrees: 34
+  armStrikeDegrees: 96
+  armSwingOpenDegrees: 30
+  spineLungeDegrees: 14
+  spineLeanDegrees: 12
 --- !u!114 &2555786021152835011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -433,7 +457,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cfc1d8f2d3296e4bb8671c6cd5cd395, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieHealthBar
-  showInBuild: 0
+  showInBuild: 1
   heightAboveHeadMeters: 0.45
   widthMeters: 0.7
   thicknessMeters: 0.09
@@ -486,7 +510,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6561053144033674933}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -601,7 +625,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6825671349834425166}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -705,7 +729,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7155820847486832818}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -783,6 +807,7 @@ Transform:
   - {fileID: 6456510845104006521}
   - {fileID: 6549578121537192117}
   - {fileID: 8846927356055905705}
+  - {fileID: 8264565576061392226}
   m_Father: {fileID: 7305551944717697043}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8945827128400186304
@@ -858,7 +883,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8945827128400186304}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -914,3 +939,82 @@ MonoBehaviour:
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieHitbox
   part: 3
   owner: {fileID: 4742032101874453115}
+--- !u!1001 &2614947259441864604
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 3853367374417183814}
+    m_Modifications:
+    - target: {fileID: 4949834682717344509, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.861642
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.861642
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.861642
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.8425594
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.02803717
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+--- !u!137 &4056172455616783635 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2017687357266524815, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+  m_PrefabInstance: {fileID: 2614947259441864604}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8264565576061392226 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6267755275535928062, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+  m_PrefabInstance: {fileID: 2614947259441864604}
+  m_PrefabAsset: {fileID: 0}

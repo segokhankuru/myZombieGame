@@ -32,12 +32,12 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0.4 .. 4 | JSON: windowEntry.vaultSeconds</remarks>
         public readonly float WindowEntryVaultSeconds;
 
-        /// <summary>Zombinin vurus icin yaklasmasi gereken mesafe. Buyutursen zombi degmeden vurur ve oyuncu haksizliga ugradigini hisseder; kucultursen zombi icine girip vuramaz.</summary>
-        /// <remarks>Aralik: 0.8 .. 3 | JSON: attack.rangeMeters</remarks>
+        /// <summary>Zombinin KOL UZUNLUGU: iki GOVDE YUZEYI arasinda en fazla bu kadar bosluk varken vurabilir. 2026-09-06'ya kadar merkezler arasi olculuyordu; 1.6 degeri govdeler arasinda 0.9 m bosluk varken vurmak demekti ve oyun testinde 'en oendekiyle mesafem varken vurmus oluyor' diye okundu. Buyutursen zombi yine degmeden vurur ve oyuncu haksizliga ugradigini hisseder; kucultursen zombi oyuncunun icine girip vuramaz.</summary>
+        /// <remarks>Aralik: 0.15 .. 1.5 | JSON: attack.rangeMeters</remarks>
         public readonly float AttackRangeMeters;
 
-        /// <summary>Telegraf sirasinda oyuncu bu kadar uzaklasirsa vurus HALA isabet eder. Sifir yaparsan geri geri yuruyerek hasar almadan sonsuza kadar oynanir; cok buyutursen telegrafi okumanin odulu kalmaz ve geri cekilme hissi olur.</summary>
-        /// <remarks>Aralik: 0 .. 2 | JSON: attack.rangeToleranceMeters</remarks>
+        /// <summary>Telegraf sirasinda oyuncu bu kadar uzaklasirsa vurus HALA isabet eder. Bu da GOVDE BOSLUGU olcusundedir (bkz. rangeMeters). Sifir yaparsan geri geri yuruyerek hasar almadan sonsuza kadar oynanir; cok buyutursen telegrafi okumanin odulu kalmaz ve geri cekilme hissi olur.</summary>
+        /// <remarks>Aralik: 0 .. 1 | JSON: attack.rangeToleranceMeters</remarks>
         public readonly float AttackRangeToleranceMeters;
 
         /// <summary>Vurus hazirligi - oyuncunun goreceği telegraf. Kisaltirsan vurus habersiz gelir, oyuncu 'nereden yedim' der ve oyun adaletsiz hissettirir (ai-code.md). Uzatirsan zombiler zararsizlasir ve gerilim biter.</summary>
@@ -112,6 +112,58 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0 .. 1 | JSON: cards.explosionSelfDamageFraction01</remarks>
         public readonly float CardsExplosionSelfDamageFraction01;
 
+        /// <summary>Bir zombinin olunce esya birakma ihtimali (Ganimet karti bunu carpar). Buyutursen mermi ve can bedava olur, tezgahin ve nisan almanin anlami kalmaz; kucultursen oyuncu esyayi almaya gitmeyi hic ogrenemez ve mekanik yok sayilir.</summary>
+        /// <remarks>Aralik: 0 .. 1 | JSON: drops.chance01</remarks>
+        public readonly float DropsChance01;
+
+        /// <summary>Esyanin yerde durma suresi. Bu sure BASKI demektir: kisa olursa esya, alinmasi imkansiz bir yem olur ve oyuncu her seferinde geç kalir; uzun olursa oyuncu turu temizleyip guvenle toplar ve risk-odul karari kaybolur.</summary>
+        /// <remarks>Aralik: 5 .. 120 | JSON: drops.lifetimeSeconds</remarks>
+        public readonly float DropsLifetimeSeconds;
+
+        /// <summary>Uzerinden gecince toplanma yaricapi. Kucultursen oyuncu esyanin ustunde durup alamadigini sanir - arayuzun soyleyemedigi en sinir bozucu hata; buyutursen esya uzaktan kendiliginden gelir ve gitme karari ortadan kalkar.</summary>
+        /// <remarks>Aralik: 0.5 .. 4 | JSON: drops.pickupRadiusMeters</remarks>
+        public readonly float DropsPickupRadiusMeters;
+
+        /// <summary>Can esyasinin iyilestirdigi miktar, maksimum canin orani. Kucuk olursa esyayi almaya gitmek riske degmez; 1 yapilirsa can yonetimi biter - tam can, kalabaligin ortasindaki tek bir kutuya indirgenir.</summary>
+        /// <remarks>Aralik: 0.05 .. 1 | JSON: drops.healthFraction01</remarks>
+        public readonly float DropsHealthFraction01;
+
+        /// <summary>Mermi esyasinin verdigi yedek, SARJOR cinsinden (elindeki silahin sarjoru kadar). Sarjor cinsinden olmasi sart: mutlak bir sayi, 6 mermilik pompaliyla 30 mermilik SMG'de bambaska iki odul olurdu.</summary>
+        /// <remarks>Aralik: 0.5 .. 10 | JSON: drops.ammoMagazines</remarks>
+        public readonly float DropsAmmoMagazines;
+
+        /// <summary>Yavaslatma esyasinin butun zombilerden dusurdugu hiz orani. Kucuk olursa oyuncu farki hic goremez ve esya bos hisseder; buyutursen 'dondurma' esyasindan farksizlasir ve iki esya tek esyaya doner.</summary>
+        /// <remarks>Aralik: 0.05 .. 0.9 | JSON: drops.slowFraction01</remarks>
+        public readonly float DropsSlowFraction01;
+
+        /// <summary>Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez.</summary>
+        /// <remarks>Aralik: 2 .. 30 | JSON: drops.slowSeconds</remarks>
+        public readonly float DropsSlowSeconds;
+
+        /// <summary>Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir.</summary>
+        /// <remarks>Aralik: 1 .. 15 | JSON: drops.freezeSeconds</remarks>
+        public readonly float DropsFreezeSeconds;
+
+        /// <summary>Can esyasinin cikma agirligi. Agirliklar birbirine gore okunur: toplamin icindeki payi kadar cikar. Hepsini esitlemek, en guclu esyayi (nuke) en sik esyayla ayni sikliga getirir.</summary>
+        /// <remarks>Aralik: 0 .. 100 | JSON: drops.weightHealth</remarks>
+        public readonly int DropsWeightHealth;
+
+        /// <summary>Mermi esyasinin cikma agirligi. En sik cikmasi beklenen esya budur: mermi, oyuncunun her turda tukettigi tek kaynak.</summary>
+        /// <remarks>Aralik: 0 .. 100 | JSON: drops.weightAmmo</remarks>
+        public readonly int DropsWeightAmmo;
+
+        /// <summary>Yavaslatma esyasinin cikma agirligi.</summary>
+        /// <remarks>Aralik: 0 .. 100 | JSON: drops.weightSlow</remarks>
+        public readonly int DropsWeightSlow;
+
+        /// <summary>Dondurma esyasinin cikma agirligi. Yavaslatmadan nadir olmali - ayni ise yarayan iki esyadan gucli olani sik cikarsa zayif olani cop olur.</summary>
+        /// <remarks>Aralik: 0 .. 100 | JSON: drops.weightFreeze</remarks>
+        public readonly int DropsWeightFreeze;
+
+        /// <summary>Nuke (sahadaki butun zombileri oldurur) agirligi. EN NADIR olmali: turu tek basina bitiren bir esya sik cikarsa oyuncu turu degil, sansi oynar. Sifir yapmak nuke'u kapatir.</summary>
+        /// <remarks>Aralik: 0 .. 100 | JSON: drops.weightNuke</remarks>
+        public readonly int DropsWeightNuke;
+
         /// <summary>Her zombinin hedefe giderken tuttugu yanal serit. Sifir yaparsan hepsi tek sira dizilir (eski hali). Cok buyutursen zombiler oyuncuya gelmek yerine yanlardan dolasir ve tehdit dagilir; dar koridorlarda da bosuna yol arar.</summary>
         /// <remarks>Aralik: 0 .. 6 | JSON: swarm.lateralSpreadMeters</remarks>
         public readonly float SwarmLateralSpreadMeters;
@@ -137,12 +189,12 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public ZombieConfig(
-            int version = 5,
+            int version = 7,
             float spawnEmergeDelaySeconds = 0.6f,
             float windowEntryTriggerDistanceMeters = 1.8f,
             float windowEntryVaultSeconds = 1.4f,
-            float attackRangeMeters = 1.6f,
-            float attackRangeToleranceMeters = 0.6f,
+            float attackRangeMeters = 0.5f,
+            float attackRangeToleranceMeters = 0.3f,
             float attackWindupSeconds = 0.55f,
             float attackRecoverySeconds = 0.9f,
             float attackDamage = 30f,
@@ -161,6 +213,19 @@ namespace Bunker.Systems.Config
             float cardsExplosionRadiusMeters = 4.5f,
             int cardsExplosionShrapnelCount = 14,
             float cardsExplosionSelfDamageFraction01 = 0f,
+            float dropsChance01 = 0.07f,
+            float dropsLifetimeSeconds = 25f,
+            float dropsPickupRadiusMeters = 1.4f,
+            float dropsHealthFraction01 = 0.35f,
+            float dropsAmmoMagazines = 3f,
+            float dropsSlowFraction01 = 0.1f,
+            float dropsSlowSeconds = 10f,
+            float dropsFreezeSeconds = 5f,
+            int dropsWeightHealth = 25,
+            int dropsWeightAmmo = 40,
+            int dropsWeightSlow = 18,
+            int dropsWeightFreeze = 12,
+            int dropsWeightNuke = 5,
             float swarmLateralSpreadMeters = 2.5f,
             float swarmSpreadFadeDistanceMeters = 4f,
             float swarmSpeedJitter01 = 0.12f,
@@ -191,6 +256,19 @@ namespace Bunker.Systems.Config
             CardsExplosionRadiusMeters = cardsExplosionRadiusMeters;
             CardsExplosionShrapnelCount = cardsExplosionShrapnelCount;
             CardsExplosionSelfDamageFraction01 = cardsExplosionSelfDamageFraction01;
+            DropsChance01 = dropsChance01;
+            DropsLifetimeSeconds = dropsLifetimeSeconds;
+            DropsPickupRadiusMeters = dropsPickupRadiusMeters;
+            DropsHealthFraction01 = dropsHealthFraction01;
+            DropsAmmoMagazines = dropsAmmoMagazines;
+            DropsSlowFraction01 = dropsSlowFraction01;
+            DropsSlowSeconds = dropsSlowSeconds;
+            DropsFreezeSeconds = dropsFreezeSeconds;
+            DropsWeightHealth = dropsWeightHealth;
+            DropsWeightAmmo = dropsWeightAmmo;
+            DropsWeightSlow = dropsWeightSlow;
+            DropsWeightFreeze = dropsWeightFreeze;
+            DropsWeightNuke = dropsWeightNuke;
             SwarmLateralSpreadMeters = swarmLateralSpreadMeters;
             SwarmSpreadFadeDistanceMeters = swarmSpreadFadeDistanceMeters;
             SwarmSpeedJitter01 = swarmSpeedJitter01;

@@ -6,6 +6,7 @@ using Bunker.Systems.Ai;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
+using Bunker.Systems.Pickups;
 using Bunker.Systems.Rounds;
 using UnityEngine;
 using UnityEngine.AI;
@@ -68,6 +69,17 @@ namespace Bunker.AI
 
         private int _windowCursor;
         private ushort _nextId = 1;
+
+        // --- esya (drop, 2026-09-07) ---
+
+        private DropTable _drops;
+
+        /// <summary>
+        /// Nuke calisirken drop KAPALIDIR. Olmasaydi tek bir nuke, kirk zombinin
+        /// hepsinden zar attirir ve buyuk ihtimalle ikinci bir nuke dogururdu -
+        /// zincirleme, oyuncunun hicbir karar vermedigi bir tur sonu.
+        /// </summary>
+        private bool _suppressDrops;
         private bool _authoritative = true;
         private bool _ready;
         private const float WindowReachabilityRefreshSeconds = 1.5f;
@@ -119,6 +131,20 @@ namespace Bunker.AI
             _runner = new RoundRunner(_scaling);
             _pool = new ZombiePool(zombiePrefab, transform, _scaling.MaxConcurrent);
 
+            // Esya tablosu (2026-09-07). Tohum run basina: ayni run icinde
+            // tekrarlanabilir, run'lar arasinda farkli - kart havuzuyla ayni gerekce.
+            _drops = new DropTable(
+                _zombieRuntimeConfig.DropsChance01,
+                new[]
+                {
+                    _zombieRuntimeConfig.DropsWeightHealth,
+                    _zombieRuntimeConfig.DropsWeightAmmo,
+                    _zombieRuntimeConfig.DropsWeightSlow,
+                    _zombieRuntimeConfig.DropsWeightFreeze,
+                    _zombieRuntimeConfig.DropsWeightNuke
+                },
+                UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+
             // Boot'ta bir kez arama serbest; kare basina yasak (csharp-code.md).
             _windows.AddRange(FindObjectsByType<WindowEntry>(FindObjectsSortMode.None));
 
@@ -147,11 +173,16 @@ namespace Bunker.AI
             // Statik yayin noktasina abone olan herkes OnDisable'da birakir
             // (RunSignals'in iki kuralindan biri).
             RunSignals.RunRestarted += OnRunRestarted;
+
+            // Sahaya dokunan esyalarin sahibi burasi: yavaslatma ve dondurma
+            // zombilerin hizina, nuke sahanin kendisine dokunur.
+            PowerupSignals.Picked += OnPowerupPicked;
         }
 
         private void OnDisable()
         {
             RunSignals.RunRestarted -= OnRunRestarted;
+            PowerupSignals.Picked -= OnPowerupPicked;
         }
 
         /// <summary>
@@ -171,6 +202,11 @@ namespace Bunker.AI
 
             KillAll();
             _runner.Reset();
+
+            // Yeni run: yerdeki esyalar ve suren etkiler de kalkar. Kalsalardi
+            // ikinci run, birincinin dondurmasiyla acilirdi.
+            PowerupPickup.ClearAll();
+            PowerupState.Clear();
         }
 
         private void OnDestroy()
@@ -221,7 +257,39 @@ namespace Bunker.AI
             // kendisidir - menude gecen zaman degil.
             RunSignals.Current.Tick(Time.deltaTime);
 
+            // Esya sayaclarini TEK bir yer ilerletir (PowerupState): iki cagiran,
+            // surenin iki kat hizli akmasi demek.
+            PowerupState.Tick(Time.deltaTime);
+
             TickRound(Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Bir eşya toplandı — <b>sahaya</b> dokunan kısmı burada uygulanır. Can ve
+        /// mermi <c>Bunker.Gameplay</c>'in işi; bu sınıf onları hiç görmez.
+        /// </summary>
+        private void OnPowerupPicked(PowerupKind kind, float amount, float seconds)
+        {
+            if (!_authoritative) return;
+
+            switch (kind)
+            {
+                case PowerupKind.Slow:
+                    PowerupState.ActivateSlow(amount, seconds);
+                    break;
+
+                case PowerupKind.Freeze:
+                    PowerupState.ActivateFreeze(seconds);
+                    break;
+
+                case PowerupKind.Nuke:
+                    // Puan normal oldurme yolundan yazilir (KillAll -> ApplyDamage ->
+                    // Die -> Killed): nuke bir kestirme degil, hizlandirilmis bir tur.
+                    _suppressDrops = true;
+                    KillAll();
+                    _suppressDrops = false;
+                    break;
+            }
         }
 
         /// <summary>
@@ -314,9 +382,20 @@ namespace Bunker.AI
                 if (!_warnedNoWindow)
                 {
                     _warnedNoWindow = true;
-                    Debug.LogError("[Zombi/Yonetmen] Dogum icin uygun pencere yok - hicbir " +
-                                   "zombi dogamayacak. Sahnedeki WindowEntry'lerin 'open' " +
-                                   "alani kapali olabilir.", this);
+
+                    // Sayilarla: "acik alani kapali olabilir" bir tahmindi ve teshisi
+                    // gelistiriciye birakiyordu. Kac pencere var, kaci acik - bunu
+                    // soylemek log'u bir cevaba donusturur.
+                    int open = 0;
+                    for (int i = 0; i < _windows.Count; i++)
+                    {
+                        if (_windows[i] != null && _windows[i].IsOpen) open++;
+                    }
+
+                    Debug.LogError($"[Zombi/Yonetmen] Dogum icin ACIK pencere yok " +
+                                   $"({_windows.Count} pencere, {open} acik) - hicbir zombi " +
+                                   "dogamayacak. WindowEntry'lerin 'open' alani kapali " +
+                                   "ya da barikatlar pencereyi tamamen kapatmis olabilir.", this);
                 }
 
                 return false;
@@ -422,19 +501,61 @@ namespace Bunker.AI
         /// </summary>
         private WindowEntry NextSpawnWindow()
         {
+            WindowEntry openButUnreachable = null;
+
             for (int i = 0; i < _windows.Count; i++)
             {
                 _windowCursor = (_windowCursor + 1) % _windows.Count;
                 WindowEntry candidate = _windows[_windowCursor];
 
                 if (candidate == null || !candidate.IsOpen) continue;
-                if (!IsWindowInPlayableArea(_windowCursor, candidate)) continue;
+
+                if (!IsWindowInPlayableArea(_windowCursor, candidate))
+                {
+                    // Aday olarak SAKLANIR, atilmaz - asagidaki geri cekilme icin.
+                    openButUnreachable ??= candidate;
+                    continue;
+                }
 
                 return candidate;
             }
 
+            // GERI CEKILME (2026-09-06, oyun logu: "Dogum icin uygun pencere yok").
+            //
+            // Ulasilabilirlik bir KALITE kurali: kapali bolgede zombi dogmasin diye
+            // var. Ama tek basina turu KILITLEYEBILIYORDU ve bu bir kalite kuralinin
+            // hakki degil. Kontrol, oyuncu bir an icin NavMesh'ten 2 metreden uzak
+            // kaldiginda (ziplarken, rampada, esikte) BUTUN pencereleri birden
+            // ulasilamaz isaretliyor - hepsi ayni tek hedefe bakiyor.
+            //
+            // Acik bir pencere varken hic zombi dogurmamak, "gelmeyen zombiler
+            // yuzunden tur bitmiyor" demek. Yanlis yerde dogan bir zombi kotu; hic
+            // dogmayan bir zombi oyunu durduruyor.
+            if (openButUnreachable != null)
+            {
+                WarnUnreachableFallback();
+                return openButUnreachable;
+            }
+
             return null;
         }
+
+        /// <summary>
+        /// Ulaşılabilirlik filtresi bütün pencereleri eledi ve geri çekilme devreye
+        /// girdi. <b>Saniyede en fazla bir kez</b> ve <b>uyarı seviyesinde</b>: geçici
+        /// bir durumu hata olarak yazmak, log'u okuyanı olmayan bir arızaya yollar.
+        /// </summary>
+        private void WarnUnreachableFallback()
+        {
+            if (Time.unscaledTime - _lastUnreachableWarnTime < 1f) return;
+            _lastUnreachableWarnTime = Time.unscaledTime;
+
+            Debug.LogWarning("[Zombi/Yonetmen] Hicbir pencereden oyuncuya yol bulunamadi " +
+                             "(oyuncu havada ya da NavMesh disinda olabilir). Acik bir " +
+                             "pencereden dogumla devam ediliyor.", this);
+        }
+
+        private float _lastUnreachableWarnTime = -99f;
 
         /// <summary>
         /// Bu pencere <b>oyuncunun ulaşabildiği alanda mı</b>.
@@ -494,7 +615,22 @@ namespace Bunker.AI
                 RoundSignals.RaiseBossKilled(_scaling.BossPointsMultiplier);
             }
 
+            // SILAHIN VURMADIGI OLDURME DE PUAN YAZAR (2026-09-08, gelistirici:
+            // "nuke drobunu alinca butun zombiler oluyor ama puan karsiligi
+            // yansimiyor").
+            //
+            // Puani bugune kadar SILAH yaziyordu (PlayerWeapon.KillConfirmed ->
+            // PlayerScore). Nuke, ceset patlamasi ve barikat oldurmeleri o yoldan
+            // gecmedigi icin sessizce puansiz kaliyordu. Odul, oldurmenin ARACINA
+            // degil OLAYINA bagli olmali - aksi halde her yeni oldurme yolu ayni
+            // hatayi yeniden uretir.
+            //
+            // Kafa vurusu YOK: cevre hasarinin nisan alma odulu olmaz.
+            if (kind == DamageKind.Environment) RoundSignals.RaiseFieldKills(1);
+
             ZombieKilled?.Invoke(zombie, kind, headshot);
+
+            TryDrop(zombie);
 
             // Olen zombi HEMEN sahadan sayilmaz olur: tur "hepsi oldu mu" sorusunu
             // cesetleri bekleyerek cevaplamamali. Nesnenin kendisi hala gorunur
@@ -504,6 +640,57 @@ namespace Bunker.AI
             zombie.Killed -= OnZombieKilled;
             _active.Remove(zombie);
             _byId.Remove(zombie.NetId);
+        }
+
+        /// <summary>
+        /// Ölen zombi bir şey bıraktı mı (2026-09-07).
+        ///
+        /// <para><b>Neden yönetmende, zombide değil:</b> düşme kararı otoriteye ait ve
+        /// otoriteyi bilen taraf burası. Zombinin kendisi düşürseydi, istemcideki
+        /// vekil kopyalar da düşürürdü — aynı eşyanın iki kere görünmesi, ağ
+        /// hatalarının en tipik türü (ADR-0004).</para>
+        ///
+        /// <para><b>Ganimet kartı yalnızca ŞANSI çarpar</b>, ikinci bir zar atmaz:
+        /// tek zar, oyuncunun sıklığı öğrenebilmesinin şartı.</para>
+        /// </summary>
+        private void TryDrop(ZombieAgent zombie)
+        {
+            if (_drops == null || _suppressDrops || zombie == null) return;
+
+            // DISARIDA OLEN ZOMBI ESYA BIRAKMAZ (2026-09-07, gelistirici: "zombilerin
+            // dropları bunkerın içinde düşmeli, dışarıda hiç böyle bir olay
+            // olmamalı").
+            //
+            // Zar ATILMADAN once bakiliyor: once atip sonra sonucu cope atmak, ayni
+            // sansi iki farkli sikliga cevirirdi - oyuncu dusme oranini ogrenemezdi.
+            // Boylece disarida olum, ic olumlerin sikligini hic degistirmez.
+            Vector3 deathPosition = zombie.transform.position;
+            if (!Bunker.Config.BunkerInterior.IsInside(deathPosition)) return;
+
+            float multiplier = RunModifiers.Multiplier(CardStat.DropRate);
+
+            if (!_drops.TryRoll(multiplier, out PowerupKind kind)) return;
+
+            // Yuk buradan gider: sayilarin sahibi zombie.json, aboneler degil.
+            float amount = kind switch
+            {
+                PowerupKind.Health => _zombieRuntimeConfig.DropsHealthFraction01,
+                PowerupKind.Ammo => _zombieRuntimeConfig.DropsAmmoMagazines,
+                PowerupKind.Slow => _zombieRuntimeConfig.DropsSlowFraction01,
+                _ => 0f
+            };
+
+            float seconds = kind switch
+            {
+                PowerupKind.Slow => _zombieRuntimeConfig.DropsSlowSeconds,
+                PowerupKind.Freeze => _zombieRuntimeConfig.DropsFreezeSeconds,
+                _ => 0f
+            };
+
+            PowerupPickup.Spawn(kind, deathPosition,
+                                _zombieRuntimeConfig.DropsLifetimeSeconds,
+                                _zombieRuntimeConfig.DropsPickupRadiusMeters,
+                                amount, seconds);
         }
 
         private void OnZombieDespawned(ZombieAgent zombie)

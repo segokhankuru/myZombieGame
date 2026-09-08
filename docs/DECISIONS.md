@@ -2,6 +2,11 @@
 
 Append-only. One line per decision. Limit 300 lines - run /context-compact past that.
 
+**Son sıkıştırma: 2026-09-09** (1098 → 231 satır). 2026-09-04…09-08 arası kararlar uzun
+anlatım hâlinden tek satıra indi; tamamı `docs/archive/2026-09-09/` içinde duruyor.
+Reddedilen seçenekler ve gerekçeleri **silinmedi** — aynı tartışmanın üç ay sonra geri
+dönmesini engelleyen tek şey onlar.
+
 | Date | Decision | By | Rationale | Source |
 |---|---|---|---|---|
 | 2026-08-29 | Format: 4 kişilik co-op, sonsuz tur, FPS | kullanıcı | Klasik tur bazlı zombi modu yapısı | design/00-brief.md |
@@ -125,554 +130,110 @@ Append-only. One line per decision. Limit 300 lines - run /context-compact past 
 | 2026-09-02 | **BUG-005:** doğum konumunu `ZombieAgent.Spawn` yazar, `Warp` ile | ai-programmer | `NavMeshAgent` açıkken `transform.position` yazmak işe yaramaz; havuzdan çıkan zombi bir önceki hayatında öldüğü yere geri çekiliyordu. Bir bileşen bir alanın sahibiyse o alana başka kimse yazmamalı | docs/qa/bugs/BUG-005-havuzdan-cikan-zombi-eski-yerinde-beliriyor.md |
 | 2026-09-02 | Yalnızca **oyuncunun ulaşabildiği** pencerelerde doğum olur | game-designer | Klasik tur döngüsünün temel kuralı: kapalı bölgede zombi doğmaz. Bölge tanımına gerek yok — kapalı kapı NavMesh'i kestiği için "oyuncuya yol var mı" sorusu bölge sorusunun karşılığı | Assets/_Project/Code/AI/ZombieDirector.cs |
 | 2026-09-02 | REDDEDİLDİ: "sıkışan zombiyi bir süre sonra sahadan çek" emniyet ağı | kullanıcı | Hatayı başka bir hatayla kapatmak. Turun neden kilitlendiğini gizler ve gerçek sebebi arama isteğini öldürür. Kök sebep düzeltildi, yama geri alındı | Assets/_Project/Code/AI/ZombieDirector.cs |
+| 2026-09-04 | Gri kutuya renk dili + ışık/gökyüzü/sis/post; atmosfer F10 ile kapanır | art-director | Kapı, duvar, rampa, delik kenarı ayırt edilemiyordu ve duvar silahının hiç görseli yoktu — asset eksikliği değil tasarım borcu (PILLAR-04 "sanat gelince okunur olur" gerekçesini reddediyor). F10 şartı ÇK-17 için: atmosfer açıkken alınan "evet", döngünün mü görselliğin mi taşıdığını söylemez | docs/art/GREYBOX-PALETTE.md |
+| 2026-09-04 | `magazinesPerPurchase` C#'tan config'e (economy v2), değer aynı (5) | systems-designer | Tooltip "denge değeri değil" diyordu; simülasyon tersini gösterdi — 5 ile tur 14'te duvara 15 sefer, PILLAR-03'ün reddettiği "menü işi" modu. Ritmi belirleyen sayı C#'ta duramaz | config/schema/economy.schema.json |
+| 2026-09-04 | Tur başı otomatik yenilenme KALDIRILDI (barikat + mermi); **can değişmedi** | kullanıcı | Barikat: klon taban onarmaz, otomatik dönüş bizim sapmamızdı. Mermi: kodun kendi yorumu "M1-10 gelince kalkacak" diyordu, M1-10 geldi iskele kaldı. Can M-02'ye ertelendi — iki katmanlı model bir farklılaştırıcı, kontrol grubuna girmez. Run başı sıfırlama eklendi (M1-11 AC-6'nın karşılığı) | config/balance/rounds.json |
+| 2026-09-04 | Can: iki katmanlı model (kalkan + can) onaylandı, **M-02'ye ertelendi** | kullanıcı | Kaçmanın ödülü kalkanda, yıpranma canda. M-01 bilerek kontrol grubu; farklılaştırıcı içine konursa ÇK-17 yorumlanamaz. AÇIK: can nasıl geri gelir (tezgâh/drop/kusursuz tur/kart) — karar verilmedi | design/systems/SYS-02 §7f |
+| 2026-09-05 | Tezgâh kart ekranından ayrıldı, duvara taşındı (mor, ayrı duvar) | kullanıcı | Kart seçimi turun **zorunlu ödülü**, tezgâh oyuncunun **gitmeyi seçtiği** harcama. Aynı ekranda ikincisi birincisinin eklentisi gibi okunuyordu; duvara taşınınca gitmek bir bedel ve bir karar oldu | Assets/_Project/Code/Gameplay/ShopStation.cs |
+| 2026-09-05 | İlk oyun testi simülasyonun oyuncu profilini yalanladı; **hiçbir denge değeri değişmedi** | playtest-analyst | Gerçek oyuncu %76 kafa vuruşu (sim: %25–50). KIRILMA-1 ("mermi seferleri turu parçalıyor") ABARTILI — tur başına 4 sefer, 15 değil. ÇK-13 12.5 → 8.8 dk. Tek run, tek oyuncu ve o oyuncu oyunun yazarı: belgeye geçersizlik uyarısı kondu | docs/qa/playtests/PT-01-SONUC-01.md |
+| 2026-09-05 | El modeli (`PlayerViewmodel`): silah + bıçak görünür oldu | gameplay-programmer | Elde bir şey olduğuna dair tek kanıt HUD'daki mermi sayacıydı. Prefab'a yazılmadı — sanat kilitlenince değişecek tek yer bir dosya olsun | Assets/_Project/Code/Gameplay/PlayerViewmodel.cs |
+| 2026-09-05 | Rampa kapalı merdiven boşluğuna çevrildi; kapı koridor genişliğinde | level-designer | Kanat serbest bir bloktu, yanından dolaşılıyordu — 1250 puanlık kapı hiçbir şeyi kapatmıyordu. *Bir kapı ancak tek geçit olduğunda kapıdır.* İlk deneme kapıyı duvara 35 cm bırakınca bağlantı "KOPUK" dedi (ajan 70 cm çapında): kapı 1 m içeri alındı | Assets/_Project/Code/Editor/BlockoutGenerator.cs |
+| 2026-09-05 | Yükseltme tezgâhı üst kata (kapının arkasına) | game-designer | Zemin katta başlangıç odasından ulaşılabiliyordu; yükseltmek için haritayı açmak gerekmiyordu. Kapının fiyatına sebep verir | Assets/_Project/Code/Gameplay/ShopStation.cs |
+| 2026-09-05 | Mermi fiyatı ayrı bir anahtar: 250 puan (economy v3) | systems-designer | Duvar silahı bandından (500/1200) okuyordu; tek sayıdan okununca mermiyi ucuzlatmak silah fiyatlarını da oynatıyordu | config/balance/economy.json |
+| 2026-09-05 | Zombi hız kademeleri 4/8 → 6/12, tavan 4.6 → 3.6 m/s | game-designer | Tur 8'de zombi oyuncunun 5 m/s'sine yapışıyordu, kaçmak imkânsızdı. Şemanın "geç turda oyuncudan hızlı olmalı" gerekçesi bu değerde artık geçerli değil — bilinçli tasarım değişikliği, aralık genişletilmedi | config/balance/rounds.json |
+| 2026-09-05 | Zombiye gövde + kopan bacak → sürünme (zombie v2) | ai-programmer | Nişan almanın ikinci ödülü: kafa bitirir, bacak yavaşlatır — üçüncü bir zombi tipi yazmadan sürüye ritim farkı. Gövde çarpıştırıcısı 1.8 → 0.78 m: tek büyük kapsül ışının önünde duruyordu ve içindeki uzuv kutuları HİÇ vurulamazdı | config/balance/zombie.json |
+| 2026-09-05 | Ses geldi: `Bunker.Audio`, çalışma anında sentezlenen 23 ses, varlık dosyası yok | audio-director | *"Arkamdan gelen zombiyi hiç duymayınca heyecanını test edemiyorum."* Homurtu, saldırı hazırlığı, ölüm, bacak, barikat 3B çalar — yön ve mesafe taşır | docs/architecture/adr/ADR-0006.md |
+| 2026-09-05 | `AudioListener` oyuncu **kamerasında**, kökte değil | audio-director | Kökte olsaydı 3B sesin yönü oyuncu döndüğünde değişmezdi — yani ses hiçbir şey söylemezdi | Assets/_Project/Code/Editor/ZombieSetup.cs |
+| 2026-09-05 | Satın alma levhasını `BlockoutGenerator` üretir, `GreyboxLook` yalnızca boyar | tools-programmer | Levhayı yalnızca görünüm aracı üretiyordu ve harita yeniden üretilince kayboluyordu; ince yüzü de duvara bakıyordu. BUG-004'ün ("kapı diye bir nesne yoktu") üçüncü tekrarı | Assets/_Project/Code/Editor/BlockoutGenerator.cs |
+| 2026-09-05 | Yenileme, yenilenen kartı havuz dışında bırakır | gameplay-programmer | `CardPool.Draw` aynı kartı geri getirebiliyordu; harcanan bir hakkın sonucu görünür şekilde değişmeli | Assets/_Project/Code/Systems/Cards/CardPool.cs |
+| 2026-09-05 | Puanlı yenileme gerçekten ücret alıyor; fiyat düğmenin ÜSTÜNDE (economy v4) | systems-designer | Kodda bir TODO duruyordu: yenileme fiilen bedavaydı. Fiyat turla artar — sabit fiyat geç turda bedavaya döner ve yenileme karar olmaktan çıkar | config/balance/economy.json |
+| 2026-09-05 | Kartların çoğu tekrar çıkabilir ve toplanır; yalnızca `unique` bir kez. Havuz 21 → 31 | game-designer | 21 kart yirmi turda tükeniyor ve draft boş açılıyordu | config/content/cards.json |
+| 2026-09-05 | İsabet parlaması vurulan **bölgenin** görseline iner (120 ms) | gameplay-programmer | Beyaz `bodyRenderer`'a yazılıyordu: vuruş kutuları vardı ama oyuncu nereye vurduğunu göremiyordu. `MaterialPropertyBlock` — materyal klonlamak zombi başına çizim çağrısı olurdu | Assets/_Project/Code/AI/ZombieAgent.cs |
+| 2026-09-05 | Bıçak önce **nişan yoluna** bakar, koni yalnızca yedek | gameplay-programmer | Koni taraması her zaman merkeze en yakın kutuyu seçiyordu; bıçak nereye bakarsan bak gövdeye iniyordu | Assets/_Project/Code/Gameplay/PlayerMelee.cs |
+| 2026-09-05 | Koşu (Shift), player v2: 4.5 sn, 1.5×, sn'de 0.5 dolum + HUD göstergesi | game-designer | Sınırsız koşu haritayı küçültür ve zombi hız kademelerini anlamsız kılar. Göstergesiz sınırlı bir kaynak, tam kaçarken sürprize döner | config/balance/player.json |
+| 2026-09-05 | Tur sonu **kısmi** yenilenme: yedek merminin ve barikatın %40'ı (rounds v2) | systems-designer | Tam yenilenme oyunu kolaylaştırıyordu (04'te kaldırılmıştı), hiç yenilenmemesi molanın tamamını tamire bağlayıp tezgâha gitmeyi imkânsız kılıyordu. %40 HİPOTEZ — mermi ekonomisini gevşetebilir, ilk ölçülecek şey bu | config/balance/rounds.json |
+| 2026-09-05 | Anlık canlı zombi tavanı `5 + 1×(tur−1)` (rounds v2) | systems-designer | Turun bütün zombileri sahada yığılıyordu; tavan dolunca doğum durur, biri ölünce yenisi gelir — baskı SABIT kalır, birikmez. `maxConcurrent`=40 performans tavanı ayrı ve tartışmaya kapalı | config/balance/rounds.json |
+| 2026-09-05 | Tezgâh **yalnızca molada** açılır + hasar alınca açık menü kapanır | game-designer | *"14. turda hasar yemeden game over oldum"* — hata ölümde değil tezgâhtaydı: menü açıkken girdi kesiliyor ama **dünya dönüyordu**. Dört vuruş iki saniyede iner. Telemetri de söyledi: iki ölüm de y=4.58, yani tezgâhın olduğu üst kat | Assets/_Project/Code/Gameplay/ShopStation.cs |
+| 2026-09-05 | Sürü cephesi: yanal şerit + hız sapması + ajan başına kaçınma önceliği (zombie v3) | ai-programmer | Zombiler tek sıra diziliyordu; sebep hata değil NavMesh'in doğası — aynı hedefe giden ajanlar aynı yolu bulur, aynı köşeyi döner, sıraya girer. Üç müdahale birlikte çalışır, biri eksikse yine tek sıra | Assets/_Project/Code/Systems/Ai/SwarmFormation.cs |
+| 2026-09-05 | Ana menü (M-04); ESC duraklatma **solo'da dünyayı durdurur, co-op'ta durdurmaz** ve ekran bunu söyler | game-ux-designer | Oyun açılır açılmaz oturuma giriyordu. Duraklatma ayrımı olmasaydı tezgâh hatasının aynısı menüyle tekrarlanırdı | Assets/_Project/Code/UI/MainMenu.cs |
+| 2026-09-05 | Oyuncu ayarları `PlayerPrefs`'te, `config/`'e girmedi | systems-programmer | `config/` **dengedir ve herkeste aynıdır**; hassasiyet/ses/ters bakış oyuncunundur. `Bunker.Systems` motoru göremediği için depo ters çevrildi: kural Systems'te, `PlayerPrefs` Gameplay'de | Assets/_Project/Code/Systems/Settings/GameSettings.cs |
+| 2026-09-05 | Hasar görünürlüğü: verilen hasar zombinin üstünde, yenilen hasar + **geldiği yön** ekranda | game-ux-designer | *"Tek yiyorum sanırım"* — hasar config'de sabit 30 ve turla artmıyor; sorun hasarda değil GÖRÜNÜRLÜKTE'ydi. Yön `DamageInfo`'ya iki düz sayı olarak eklendi, `Vector3` değil: o katman motor tipi tanımaz, tanırsa bütün EditMode testleri Unity'ye bağlanır | Assets/_Project/Code/Gameplay/CombatFeedback.cs |
+| 2026-09-05 | Ayarlar dört sekme; **müzik ve ekran sarsıntısı ayarı REDDEDİLDİ** | game-ux-designer | O sistemler yok. Hiçbir şey yapmayan bir ayar, oyuncuya oyunun bozuk olduğunu öğretir. Tuş değiştirme de yok: girdi haritası taşınmadan yapılamaz ve yalan bir ekran olurdu | Assets/_Project/Code/UI/SettingsPanel.cs |
+| 2026-09-05 | Kart havuzu 31 → 41: Yıkım, delici mermi, Kan İçici, Toplayıcı yazıldı; Don tabanı 0.25 → 0.15 | gameplay-programmer | Etiketler vardı, mekanikleri yoktu. Öldürme ödülleri `PlayerScore.ApplyKillRewards`'ta — "öldürme" olayının tek sahibi orası; silaha ve bıçağa ayrı eklemek birinin unutulması demekti. BEKLEYEN: itme, yerden eşya, diriltme — uydurma kart eklenmedi | config/content/cards.json |
+| 2026-09-05 | Gerçek lobi: `onlineScene` BOŞALTILDI, `autoCreatePlayer` kapatıldı | netcode-programmer | Sebep görünmezdi: `onlineScene` doluydu, host olur olmaz oyun sahnesine geçiliyordu — "oda aç" demek doğrudan oyuna düşmek demekti ve lobi hiç görünmüyordu | Assets/_Project/Code/Net/BunkerNetworkManager.cs |
+| 2026-09-06 | Patlama artık **yalnızca zombileri** vurur; oyuncuya hasar orana bağlı, varsayılan sıfır | gameplay-programmer | Şarapnel kartı alan oyuncu yanındaki zombiyi öldürdüğü an kendini öldürüyordu (tur 10'da 366 hasar, 100 canla anında ölüm). `explosionSelfDamageFraction01` yazılmıştı ama KULLANILMAMIŞTI — **bir ayarın var olması, uygulandığı anlamına gelmez** | config/balance/zombie.json |
+| 2026-09-06 | `IDamageable.DamageRoot`: kimlik **sahne hiyerarşisinden türetilemez** | unity-architect | Delici mermi hiç delmiyordu: kural kimliği `transform.root`'tan okuyordu ve zombilerin hepsi havuzun altında, yani root'ları aynı — mermi ilk zombiden sonra herkesi "zaten vurdum" diye eliyordu. Hiyerarşiden türetilen kimlik, hiyerarşi değiştiği gün SESSİZCE bozulur | Assets/_Project/Code/Systems/Combat/Damage.cs |
+| 2026-09-06 | `ExplosionFlash` + kendi sesi | graphics-programmer | Patlama hasar veriyordu ama ekranda hiçbir şey yoktu. Görünmeyen bir etki, oyuncu için OLMAYAN bir etkidir (PILLAR-04) | Assets/_Project/Code/AI/ExplosionFlash.cs |
+| 2026-09-06 | Ölüm ekranı **öldüren vuruşu** yazıyor (`NoteLethalHit`) | game-ux-designer | "Tek mi yedim, dört mü" iki oturumdur tahmine dayanıyordu. 30 yazıyorsa normal vuruş, 366 yazıyorsa bambaşka bir şey | Assets/_Project/Code/UI/GameOverHud.cs |
+| 2026-09-06 | `playModeStartScene` her editör açılışında `[InitializeOnLoad]` ile kurulur; menü kamerası MainCamera etiketli | tools-programmer | O alan projenin değil **editör oturumunun** ayarı: başsız koşuda yazılan değer geliştiricinin editörüne hiç geçmiyordu. Etiketsiz menü kamerası `Camera.main`'i null bırakır ve ona güvenen her şey sessizce çalışmaz | Assets/_Project/Code/Editor/PlayModeStartScene.cs |
+| 2026-09-06 | Patlama küre sorgusundan **şarapnele** çevrildi (Fibonacci dağılım) | game-designer | Küre sorgusu yarıçaptaki herkese TAM hasar veriyor, duvarın arkasına geçiyordu. Şarapnel üç sorunu birden çözer: gücü düşürür, duvar arkasını kapatır, patlamayı KONUMA bağlar. Rastgele değil eşit dağıtılmış — rastgele parçalar kümelenir ve oyuncu "patlama bazen çalışıyor" diye okur | config/balance/zombie.json |
+| 2026-09-06 | Dört silah (`config/content/weapons.json`); DPS'ler bilerek yakın, 500+ RPM otomatik ateş | systems-designer | *"Atış hızını test edemiyorum."* Silahı seçen şey güç değil RİTİM ve MENZİL olmalı. Her silahın KENDİ mermisi var — ortak sayaç, pompalıyla tabancanın aynı mermiyi paylaşması demekti. Yarı otomatik his tabancanın karakteri, motorun kısıtı değil | config/content/weapons.json |
+| 2026-09-06 | Boss: her 5. turun İLK zombisi, 14× can, 2× hasar, 1.7× boy, **0.75× hız** (rounds v3) | game-designer | Yavaş olması şart: çok canlı VE hızlı bir düşman kaçmaktan başka seçenek bırakmaz. Düzenli aralık — oyuncu hazırlanabilmeli, rastgele boss ölümü şansa bağlar. Ayrı prefab DEĞİL, turun zombisinin çarpanları: zorluk eğrisi tek yerde kalır | config/balance/rounds.json |
+| 2026-09-06 | TAB durum paneli + ham can/tavan senkronu | game-ux-designer | *"Mevcut canımın hasarımın net bilgisini bilmeliyim."* Oran tek başına yetmiyor: kart alan oyuncunun tavanı değişiyor ve "%60 can" her turda başka bir sayı demek | Assets/_Project/Code/UI/StatsHud.cs |
+| 2026-09-06 | **Yayınladığın her mesajın her alıcıda bir karşılığı olmalı — host da bir alıcıdır** | netcode-programmer | Lobi listesi `SendToAll` ile gidiyordu, handler yalnızca uzak istemcilerde kayıtlıydı; host kendi mesajını tanımadı, Mirror bağlantıyı KESTİ ve oyuncu hiç doğmadı ("no audio listeners" bunun görüntüsüydü). "Solo ayrı bir oyun değildir"in (ADR-0004) unutulmuş köşesi | Assets/_Project/Code/Net/BunkerNetworkManager.cs |
+| 2026-09-06 | Steam kapalıysa kullanılabilir taşımaya (KCP) **düşülür ve söylenir** | netcode-programmer | FizzyFacepunch "Steam is probably not running" basıp bağlı taşıma olarak kalıyordu; `Available()` ile "ben çalışamam" diyor ama kimse sormuyordu. ADR-0007'nin açık sözü: Steam çalışmadan oyun çevrimiçi test edilemez hâle GELMEMELİ. Sessizce düşmüyor — Console'a yazıyor | Assets/_Project/Code/Net/BunkerNetworkManager.cs |
+| 2026-09-06 | Sahne değişimi bir kare ertelendi; oyuncu doğumu `OnServerReady` VE `OnServerSceneChanged`'e bağlandı | netcode-programmer | "No cameras rendering" bir kamera hatası değil, **oyuncu doğumu** hatasının görünüşüydü — ekran temizlenmiyordu, menü son karenin kalıntısıydı. `ServerChangeScene` `OnStartHost`'tan çağrılıyordu, yani host istemcisi bağlandıktan SONRA. Karar sahne adı karşılaştırmasından çıkarıldı (`_gameStarted`): string karşılaştırması bir yazım hatasında sessizce "oyuncu yok" üretirdi | Assets/_Project/Code/Net/BunkerNetworkManager.cs |
+| 2026-09-06 | Vuruş inerken mesafe **bir kez daha** ölçülür; menzil gövde ölçeğiyle büyür | ai-programmer | Beyin mesafeyi düşünme adımında (125 ms) ölçüyordu; koşan oyuncu o sürede 0.94 m gider — üç metre uzaktan yenen bir vuruş. Beyindeki kontrol NİYETİ, buradaki SONUCU belirler: telegrafı görüp çekilen oyuncuya vuruş ISKALAMALI | Assets/_Project/Code/AI/ZombieAgent.cs |
+| 2026-09-06 | Silah siluetleri ayrıldı (`WeaponShape`); tek üretici, iki tüketici (el + duvar) | art-director | *"Taramalıda tabanca gibi gözükmesin."* Dört silah aynı modeli taşırsa oyuncu elindekini yalnızca yazıdan bilir — savaşın ortasında kimse yazı okumaz. İki ayrı yerde çizilseydi duvardaki pompalı ile eldeki zamanla ayrışırdı | Assets/_Project/Code/Gameplay/WeaponShape.cs |
+| 2026-09-06 | Duvar silahları modelleriyle duruyor ve üç noktaya dağıtıldı (MP başlangıç, pompalı kapı arkası, tüfek üst kat) | level-designer | Yeri olmayan silah, oyuncunun varlığından haberi olmayan silahtır. Duvar sattığı silahı artık oyuncudan bağımsız biliyor — önceki sürüm tanımı alıcının kataloğundan okuyordu, yani kimse yaklaşmadan modelini çizemiyordu | Assets/_Project/Code/Gameplay/WallWeaponPurchase.cs |
+| 2026-09-06 | Ölüm ekranı üç düğme: yeniden başla / ana menü / çıkış | game-ux-designer | Yalnızca "R" yazan bir ekran oyuncuyu Alt+F4'e zorluyordu. Ölüm oturumu bitirmenin en doğal anı | Assets/_Project/Code/UI/GameOverHud.cs |
+| 2026-09-06 | Zombi vuruş menzili **gövde boşluğu** olarak ölçülüyor (zombie v6); önündeki zombinin arkasından vurulamaz | ai-programmer | *"Zombiler uzaktan vurup tek attı."* Eski ölçüm merkezler arasıydı: 1.6+0.6, gövdeler arasında 1.45 m boşluk varken vurmak demekti. Şema minimumu da 0.8 → 0.15 (eski alt sınır yeni anlamda geçersiz). Hasar tavanı KONMADI bilerek — ikinci vuruşu yutmak sebebi değil sonucu gizler | config/balance/zombie.json |
+| 2026-09-06 | Pompalı dağılımını **yalnızca sunucu** üretir; tek atış = tek isabet bildirimi | netcode-programmer | Dağılım iki kez uygulanıyordu, sekiz saçmanın merkezi nişangâhtan 7 dereceye kayıyordu. Sekiz TargetRpc üst üste çalan ses ve bulanık bir yığın demekti; oyuncunun okuduğu şey tek büyük sayı olmalı | Assets/_Project/Code/Gameplay/PlayerWeapon.cs |
+| 2026-09-06 | Silah seçimi üst kattaki tezgâhtan; alt kat yalnızca mermi satar | game-designer | Silah seçmek bir KARAR ve karar ancak seçenekler yan yana durursa verilebilir. Duvardaki nokta bir MUSLUK olmalı — koştun, aldın, döndün, düşünmedin | Assets/_Project/Code/Gameplay/WeaponStation.cs |
+| 2026-09-06 | Uygulamadan çıkış `Bunker.UI.AppExit`; ağ katmanının kararı değil | unity-architect | `Application.Quit`'i ağ yöneticisinin olay dinleyicisi çağırıyordu; çıkabilmek o nesnenin var olmasına ve aboneliğinin durmasına bağlıydı. Sahnede ikinci bir NetworkManager var ve kopya yok edilirken statik olayı bırakıyor — `-=` hangi örneğin bıraktığını ayırt edemez | Assets/_Project/Code/UI/AppExit.cs |
+| 2026-09-06 | Pompalı dolumu **mermi mermi** (`reloadPerShell`) | game-designer | *"Tek şarjör dolduruyormuş düşüncesi pompalı metasına aykırı."* Toplam süre neredeyse aynı (2.7 vs 2.8 sn); fark, ikinci fişekten sonra kesip ateş edebilmen | config/content/weapons.json |
+| 2026-09-06 | Mermi alımı **satın alınan** silaha yazılır; miktar şarjörün üç katı | gameplay-programmer | Elindeki silaha ekliyordu: tezgâhtan pompalı mermisi alan oyuncunun elinde tabanca varsa para gidiyor yedek artmıyordu. Sabit bir sayı birine cömert diğerine cimri olurdu | Assets/_Project/Code/Gameplay/PlayerWeapon.cs |
+| 2026-09-06 | Zombi vuruşuna **dikey** sınır (zombinin boyunun yarısı) | ai-programmer | Üst katta duvar dibinde duran oyuncu alt kattaki zombiden hasar yedi. Basamak ve rampa farkı hâlâ serbest — sınırsız yok saymak kat arası vuruş demekti | Assets/_Project/Code/AI/ZombieAgent.cs |
+| 2026-09-06 | Boss patlamasının yarıçapı ve şarapnel sayısı gövde ölçeğiyle büyür | gameplay-programmer | Hasar zaten ölçekleniyordu ama sabit yarıçap, altı kat hasar veren bir patlamayı normal zombininkiyle aynı daireye sıkıştırıyordu. Yeni denge sayısı YOK — ölçek doğumda verilen `_bodyScale` | Assets/_Project/Code/AI/ZombieAgent.cs |
+| 2026-09-06 | Çömelme (Ctrl), player v3: ödülün büyük kısmı NİŞANDA (dağılım 0.45×, hasar 1.08×) | game-designer | Büyük bir hasar ödülü "her zaman çömel"i doğru cevap yapar ve hareket etmeyi cezalandırır; nişan ödülü ancak durabildiğin anda işe yarar, yani bir karar üretir. Bedel hızın yarısı | config/balance/player.json |
+| 2026-09-06 | Pompalı menzili 18 → 45 m | systems-designer | Mermi 18 metrede havada kayboluyordu — denge kuralı değil, görünmeyen bir duvar. Pompalıyı yakın mesafe silahı yapan şey artık SADECE dağılım; ceza kendiliğinden geliyor, bir sayıyla dayatılmıyor | config/content/weapons.json |
+| 2026-09-06 | İki tezgâh yan yana; mola 10 → 20 sn (önceki "iki uca koy" kararı geri alındı) | game-designer | Oyun testi tersini gösterdi: 10 saniyelik molada iki tezgâh arasında koşmak molanın yarısını yürüyerek harcıyordu. İkisi de molada açılan harcama noktaları; aynı durak olmaları doğru | config/balance/rounds.json |
+| 2026-09-06 | Zombi can barları build'de de açık — **geçici**, yayın öncesi kalkacak | qa-lead | Varsayılan kapalıydı ve `Application.isEditor` ile açılıyordu: editörde görünüp build'de kaybolan bir ölçüm aracı. Oyun testleri build üzerinde yapılıyor (PILLAR-04) | Assets/_Project/Code/Editor/ZombieSetup.cs |
+| 2026-09-06 | `ServerFireGuard` kart çarpanlarını takip ediyor (BUG + iki gerileme testi) | netcode-programmer | Hız sınırlayıcının aralığı kurucuda sabitleniyordu; atış hızı kartı alan oyuncunun HER ATIŞI reddediliyordu ("silahım hasar vermiyor"). Bu hatayı `ApplyModifiers`'ın KENDİ yorumu tarif ediyordu — **yorum yazmak kodu yazmak değil** | Assets/_Project/Code/Systems/Combat/ServerFireGuard.cs |
+| 2026-09-06 | Ulaşılabilirlik filtresi turu kilitleyemez: açık ama ulaşılamaz pencereye geri çekilir | ai-programmer | Oyuncu bir an NavMesh'ten 2 m uzaklaşınca (zıplarken, rampada) bütün pencereler eleniyordu. Yanlış yerde doğan zombi kötü; hiç doğmayan zombi oyunu durdurur. Geçici durum artık LogError değil, saniyede bir Warning | Assets/_Project/Code/AI/ZombieDirector.cs |
+| 2026-09-06 | İtme yönü **vuruşun geldiği** yönden (`DamageInfo.SourceX/Z`) | gameplay-programmer | `-transform.forward` kullanılıyordu ("zombi zaten oyuncuya döner"); barikat sökerken ya da arkadan vurulurken zombi ateş edene DOĞRU itiliyordu. Aynı değişiklikte iki taşıyıcı hata: `ZombieHitbox` yönü düşürüyordu (bütün mermiler oradan geçer) ve bıçak yön hiç göndermiyordu | Assets/_Project/Code/AI/ZombieAgent.cs |
+| 2026-09-07 | Şarjör kartı ORANSAL (shop v2, cards v2); yedek mermi TAVANI kaldırıldı | systems-designer | +6 mermi tabancada +%50, pompalıda +%100, SMG'de +%20 ediyordu — aynı metin her silahta başka bir vaat. Tavanın oyuncuya görünen tek sonucu, alınan merminin sessizce buharlaşmasıydı; `reserveCapacity` artık tur sonu ikmalinin ÖLÇÜ BİRİMİ. İki kart silindi (Fişeklik, Cephanelik) | config/balance/shop.json |
+| 2026-09-07 | Kart havuzu sadeleşti (41 → 37); Uğurlu Buluş (drop şansı +%60) eklendi | game-designer | Delici Mermi iki, Şarapnel üç kademeydi ve kademeler seçim ekranında birbirinin yerine geçiyordu — kart zaten tekrar alınabiliyor ve etkisi toplanıyor. Metinler "tekrar alırsan güçlenir" diyor | config/content/cards.json |
+| 2026-09-07 | Zombiler eşya bırakıyor (zombie v7 `drops`): can, mermi, yavaşlatma, dondurma, nuke | game-designer | *"Zombiler içerde ölünce hiç drop atmıyor."* Eksik olan ödül değil, oyuncuyu **güvenli köşeden çıkaran** mekanizmaydı. Süreli etkiler zombi başına değil SAHA başına (`PowerupState`): zombi başına olsaydı eşyadan SONRA doğan zombi etkilenmez ve kural öğrenilemezdi | config/balance/zombie.json |
+| 2026-09-07 | Kart seçimi ilk saniye kilitli: 0.8 sn geçmeli VE fare bir kez bırakılmış olmalı | game-ux-designer | Draft turun son zombisi öldüğü KAREDE açılıyor ve hâlâ basılı duran tuş ortadaki kartı seçiyordu — görülmemiş, geri alınamayan bir karar. Yalnızca süre yetmez: otomatik ateşte tuş saniyelerce basılı kalır | Assets/_Project/Code/UI/CardDraftHud.cs |
+| 2026-09-07 | Vuruş engel kontrolü artık **geometriyi** de sayıyor (`IsBlocked`) | ai-programmer | Yalnızca gövdelere bakıyordu; gerekçesi "duvar zaten yolu keser" idi — düz zeminde doğru, rampada YANLIŞ. Katman maskesi yok, sahibi soruluyor: maske sahne kurulumuna bağımlılık olurdu | Assets/_Project/Code/AI/ZombieAgent.cs |
+| 2026-09-07 | Mola iki değerli (rounds v4): ilk beş tur 10 sn, sonrası 20 sn | systems-designer | Erken turda molada yapılacak iş yok ve 20 sn boş bekleme olarak geçiyordu; geç turda tamir + tezgâh + silah + kart aynı molaya sığmalı. Uzunluk GELECEK tura göre seçilir — biten tura bakmak molayı bir tur geç uzatırdı | config/balance/rounds.json |
+| 2026-09-07 | Asset Store sanatı bağlandı (ADR-0008): üçüncü parti SALT OKUNUR, oyun üretilmiş URP kopyasını kullanır | technical-director | Silah yerleşimi (ölçek, eksen, namlu ucu) mesh köşelerinden ÖLÇÜLÜR ve `Config/art.asset`'te saklanır — çalışma anında hesaplanmaz. Katalog boşsa gri kutuya düşer: elin boş kalması sessiz bir hata olurdu | docs/architecture/adr/ADR-0008.md |
+| 2026-09-07 | Pencereden çıkılamıyor: görünmez `PlayerBlocker` katmanı | gameplay-programmer | Sıradan bir çarpıştırıcı mermiyi de durdururdu (pencereden ateş edilemezdi). Katmanı üreteç proje ayarlarında kendisi açıyor — kurulumun bir adımını insan hafızasına bırakmak, bu projedeki hataların en sık kaynağı | Assets/_Project/Code/Config/GameLayers.cs |
+| 2026-09-07 | Eşya yalnızca binanın içinde düşer (`BunkerInterior`); zar ATILMADAN önce bakılır | game-designer | Dışarıda düşen eşya oyuncuyu barikatın DIŞINA çağırır — eşyanın işi güvenli köşeden çıkarmaktı, binadan çıkarmak değil. Önce atıp sonucu çöpe atmak aynı şansı iki farklı sıklığa çevirirdi | Assets/_Project/Code/Config/BunkerInterior.cs |
+| 2026-09-07 | Can barına sayılar (`ZombieHealthLabels`) — geçici geliştirme aracı | qa-lead | Bar bir ORAN gösterir ve oran denge ayarlamaz: 15. turda barın yarısı 90 can da olabilir 1500 de. Tek bir `OnGUI` kayıt defterini dolaşır — zombi başına `OnGUI`, 40 ajanda ölçmeye çalıştığımız kare süresini bozardı | Assets/_Project/Code/AI/ZombieHealthLabels.cs |
+| 2026-09-07 | Silah yönü tahminden ÖLÇÜME geçti; orijin kabzada (%18 arkada), ortada değil | technical-artist | "İnce olan uç namludur" dört silahın ikisinde yanıldı. Kanıt iki parçalı: sınırlar kutusu günlüğe (hangi eksen uzun) + eksen çubuklu önizleme (hangi işaret). **Yalnızca resme bakmak yetmedi** — 3/4 açılı kamerada X ve Z benzer yöne düşüyor. Ortalanmış 0.92 m'lik tüfeğin arka ucu kameranın ARKASINA düşüyordu | Assets/_Project/Code/Editor/ArtIntegration.cs |
+| 2026-09-07 | `WorldClock`: zamanın tek sahibi; sebep sayılır, bayrak tutulmaz | unity-architect | İki menü de `Time.timeScale` yazsaydı birini kapatmak diğerinin arkasında dünyayı akıtırdı. Sahne yüklemesinde ve açılışta kendini bırakır — donmuş bir dünyaya dönmek "oyun açılmıyor" diye okunur. Yalnızca solo: co-op'ta timeScale sıfır ağ paketlerini de durdurur | Assets/_Project/Code/UI/WorldClock.cs |
+| 2026-09-07 | Vuruş menzili 0.8 → 0.3 m (zombie v8); `stoppingDistance` 1.2 → 0.8 | systems-designer | *"Zombilerin vuruş mesafesi çok fazla, 20 cm gibi olmalı."* Menzili kısaltıp durma mesafesini bırakmak zombileri SESSİZCE zararsız yapardı — merkezler arası 1.2, gövdeler arasında 0.45 m boşluk demekti | config/balance/zombie.json |
+| 2026-09-07 | Alınan hasar göstergesi TOPLUYOR ve kaç vuruş olduğunu yazıyor | game-ux-designer | Her vuruşta üstüne yazıyordu; sürü içinde dört vuruş yiyen oyuncu yalnızca sonuncusunu görüyor ve zombinin hasarını yanlış sanıyordu ("-30 vurur diyor ama 250 vurdu") | Assets/_Project/Code/UI/CombatHud.cs |
+| 2026-09-07 | Dış dekor: tahkimat duvarları çepere dizildi (geçitler atlanıyor), bunker zemini koyu ahşap | art-director | Ortada tek başına duran bir duvar parçası hiçbir şey söylemez; sınırın üzerinde duran bir dizi "dünyanın kenarı burası" der. Geçitlerin önünü kapatmak, zombilerin geldiği yönü okunmaz yapardı — dekorun ilk kuralı oynanışa dokunmamak | Assets/_Project/Code/Editor/ArtIntegration.cs |
+| 2026-09-07 | Eşyalar **şekil** ve isim taşıyor (küre=can, kutu=mermi, kapsül=zaman, silindir=nuke) | game-ux-designer | Beş eşya beş renkli küptü; ne olduğunu ancak üstüne basınca öğreniyordun. Renk tek başına bilgi taşımaz (ui-code.md) — karanlık bir köşede kırmızı ile turuncu aynı. Son üç saniyede kalan süre de yazılır | Assets/_Project/Code/AI/PowerupPickup.cs |
+| 2026-09-07 | Co-op: yere düşme, kaldırılma (E, 3.5 sn), tur başında yarı canla dirilme | netcode-programmer | Run yalnızca AYAKTA KİMSE KALMAYINCA biter — solo'da bu ikisi aynı an, yani eski davranış ayrı bir "solo mu" kuralı yazmadan korunuyor. Yerdeyken oyuncunun KENDİ kamerası arkadaşının omzuna ödünç gider; ikinci bir kamera iki `AudioListener` demek olurdu | Assets/_Project/Code/Gameplay/PlayerDownState.cs |
+| 2026-09-07 | Dış hava: yağmur (yalnızca dışarıda) + iç/dış farklı sis + üretilen çamur dokusu | graphics-programmer | Unity'nin sisi küresel ve tek değerli; içerde kalın sis dört metredeki barikatı gizlerdi (PILLAR-04). Bütün haritayı kaplayan bir yağmur çatının altına da yağardı. Altı paketin hiçbirinde toprak dokusu yok ve düz kahverengi yağmurun altında plastik gibi okunuyor | Assets/_Project/Code/Gameplay/OutdoorWeather.cs |
+| 2026-09-07 | Zombi yürüyüşü kemiklerden sürülüyor (klip yok); faz SAATTEN değil YOLDAN ilerler | ai-programmer | Paketin Lite sürümü tek bir animasyon klibi taşımıyor. Sabit hızlı bir döngü, yerinde sayarken ayakları koşan bir zombi üretirdi. Uzaktaki ve sürünen zombi hiç güncellenmiyor | Assets/_Project/Code/AI/ZombieWalkAnimator.cs |
+| 2026-09-07 | El modeline kollar: kollar silahın ÇOCUĞU, şarjör fazı silahın kendi `ReloadProgress01`'inden | gameplay-programmer | *"Silahlar çok havada gözüküyor."* Kollar ayrı olsaydı her hareket için ikinci bir animasyon gerekirdi. Ayrı bir dolum sayacı, süreyi değiştiren kart alındığında senkronu bozardı | Assets/_Project/Code/Gameplay/PlayerViewmodel.cs |
+| 2026-09-07 | Maratoncu kartı koşu SÜRESİ +%50 (hız değil); boss puanı 6 → 15; patlama 4.5 → 9 m ve şarapnel 14 → 30 | systems-designer | Hız artışı `rounds.json`'daki zombi hız kademelerini anlamsız kılar. 14 kat canlı bir şeyi öldürmek bir turun mermisine mal oluyordu ve doğru oynanış bossu görmezden gelmekti. Yalnızca çapı büyütmek aynı parçaları daha seyrek dağıtır — kartı daha da hissedilmez yapardı | config/content/cards.json |
+| 2026-09-07 | F10 artık hava sistemini de kapatıyor | graphics-programmer | `OutdoorWeather` sisi HER KAREDE yeniden yazıyor; yalnızca `RenderSettings`'e dokunan bir anahtar bir kare sonra geri alınırdı — yani çalışmayan bir anahtar ve ÇK-17 ölçümü sessizce imkânsız | Assets/_Project/Code/UI/AtmosphereToggle.cs |
+| 2026-09-07 | Steam daveti bitirildi: üç SESSİZ eksik kapatıldı (ADR-0007 uygulandı) | netcode-programmer | (1) `steam_appid.txt` build çıktısına kopyalanmıyordu — davet editörde çalışıp yayında ölüyordu. (2) `SteamLobby` hazırlığı `OnEnable`'da bir kez soruyordu; Steam'i taşıma başlatıyor ve `Awake`/`OnEnable` sırası TANIMSIZ — sıra ters düştüğünde davet penceresi hiç açılmıyor ve hiçbir hata çıkmıyordu. (3) Gösterilen katılma kodu lobi kimliğiydi, oysa yapıştırılan şey SteamId olarak çözülüyordu — kodu yapıştıran arkadaş HER ZAMAN "bağlanılamadı" alıyordu | docs/architecture/adr/ADR-0007.md |
+| 2026-09-07 | Zombiler "ileri geri uçuyordu" — **iki ayrı hata**: `autoBraking` kapalıydı VE kemiğe konum yazılıyordu | ai-programmer | Frensiz ajan durma yarıçapına tam hızla girip aşıyordu (0.35 sn'de 1.26 m). Ayrıca omurgaya 3.5 cm'lik bir "bob" yazılıyordu: kemik konumu armature'ün yerel biriminde ölçülür ve rigin ölçeği bire bir değil — 3.5 cm dünyada metrelere dönüşüyordu. **İskelete yalnızca dönüş yaz.** Dönüş ekseni de rigden soruluyor artık, kemiğin kendi X'i bir tahmindi | Assets/_Project/Code/AI/ZombieWalkAnimator.cs |
+| 2026-09-08 | Kurulum aracı haritaya DOKUNMUYOR; sıfırdan üretim ayrı ve açık bir menüde | tools-programmer | *"Haritayı elimle düzen yaptım, bunu bozma."* `SetupTestbed` her koşuda kökün TAMAMINI silip yeniden kuruyordu. Yıkıcı olan şey, yıkıcı olduğunu söyleyen bir düğmenin arkasında durmalı | Assets/_Project/Code/Editor/ZombieSetup.cs |
+| 2026-09-08 | Asset rafı: 55 parça oyun alanından 200 m uzakta ızgarada, çoğaltmaya hazır | tools-programmer | Project penceresinde bir prefab'ın ADI var, neye BENZEDİĞİ yok. Raf NavMesh dışı ve çarpıştırıcıları kapalı — silinmedi, prefab bağı korunsun ve çoğaltılan kopyada geri açılabilsin diye | Assets/_Project/Code/Editor/AssetPalette.cs |
+| 2026-09-08 | Sis doğrusaldan ÜSSEL'e (içerisi 0.012, dışarısı 0.055) | graphics-programmer | İki hata: dış alan 18 m ve çevre duvarıyla kapalı, yani en uzak nokta ~25 m — sisin bitişi 34 m'ydi ve hiçbir şey sise girmiyordu. Doğrusal sis bitişe kadar neredeyse şeffaftır; üssel sis İLK METREDEN itibaren birikir ve sahne ölçeğine bağlı değildir | Assets/_Project/Code/Gameplay/OutdoorWeather.cs |
+| 2026-09-08 | Zombi kolları T pozundan çıktı; vuruşta geri çekilme + ileri savrulma | ai-programmer | *"Vururken hamle yapsın, vuruş hissi oluşsun — yani dümdüz ölüyorum."* Son cümle asıl teşhis: vuruşun GÖRÜNMEMESİ ölümü haksızlık gibi okutuyordu. Geri çekilme olmadan ileri hareket okunmaz — bir hamlenin okunmasını sağlayan şey gerilimidir. Telegraf süresi config'ten | Assets/_Project/Code/AI/ZombieWalkAnimator.cs |
+| 2026-09-08 | FPS kolları kutulardan ÜRETİLMİŞ mesh'e (`ArmMesh`) | technical-artist | Düşük poligonlu bir borunun kutuya benzememesinin tek sebebi köşede kırılmayan normaller. Başparmak diğerlerinin TERSİNE kavrıyor — dört paralel parmak bir tarak gibi okunur. Mesh bir kez üretilip paylaşılıyor | Assets/_Project/Code/Gameplay/ArmMesh.cs |
+| 2026-09-08 | **Savaş günlüğü**: her hasar olayı satır satır `telemetry/session-<zaman>.log`'a | performance-engineer | *"Ölüm anında hâlâ tek yiyorum, bunu en sağlıklı böyle bakarak anlayacağım."* `runs.jsonl` run'ın ÖZETİNİ tutuyordu, tek bir vuruşu göstermiyordu. Ölümde son 16 vuruş ARALARINDAKİ SÜREYLE dökülüyor. Etiket `DamageInfo.Source` ile hasarla birlikte taşınıyor ve günlük tek noktada tutuluyor — çağrı noktalarına dağıtılsaydı biri unutulduğunda sessizce eksik kalırdı | Assets/_Project/Code/Systems/Telemetry/CombatLog.cs |
+| 2026-09-08 | Öldürme puanı ARACA değil OLAYA bağlı (`RoundSignals.FieldKills`) | systems-designer | *"Nuke drobunu alınca bütün zombiler ölüyor ama puan karşılığı yansımıyor."* Puanı silah yazıyordu; nuke ve Yıkım kartının zincirleme patlaması sessizce puansız kalıyordu. Kafa puanı YOK (alan silen bir eşya nişan ödülünü hak etmez) ve kart öldürme ödülleri uygulanmaz — Kan etiketi SENİN öldürmelerini ödüllendirir | Assets/_Project/Code/Systems/Rounds/RoundSignals.cs |
+| 2026-09-08 | Yakın dövüş üçledi: HANÇER (varsayılan), KILIÇ 1.5× hasar, BALTA 2.5× hasar ve 2× savuruş | systems-designer | Taban `knife.json`'da kaldı, çarpanlar `config/content/melee.json`'da (hesaplanan değer saklanmaz). Süre çarpanı HEM hazırlığı HEM beklemeyi çarpar — yalnızca bekleme çarpılsaydı balta hançer hızında savurup uzun dinlenirdi, "ağır" değil "gecikmeli" okunurdu. Ağzın yönü tahmin değil ölçüm (asimetri; kararsızsa balçağın yeri) | config/content/melee.json |
+| 2026-09-08 | MP-KISA hasarı 32 → 55 (tabancayla aynı); bütün silahlarda mermi 250 puan | kullanıcı | *"Az olması saçma."* MP artık en yüksek DPS'li silah (687) ve ayırt edici özelliği güç değil MERMİ TÜKETİMİ ve MENZİL: 30'luk şarjör 2.4 sn'de biter, menzil 35 m. Oyun testinde MP tek doğru cevap gibi okunuyorsa düşecek yer `roundsPerMinute` ya da `reserveCapacity`, hasar değil | config/content/weapons.json |
+| 2026-09-08 | Bunker duvarı BETON (Wasteland), zemin kanlı AHŞAP | art-director | İkisi de aynı kanlı ahşaptı, yalnızca biri koyultulmuştu — aynı malzemeden iki yüzey, karanlık bir odada duvarın nerede bittiğini okunmaz kılar (PILLAR-04). Kontrast artık tek bir parlaklık farkından değil MALZEMEDEN geliyor | Assets/_Project/Code/Editor/ArtIntegration.cs |
+| 2026-09-08 | Dışarısı: geçitlerden barikatlara toprak yollar, Toby bitki örtüsü, kara bulut tavanı | art-director | Yol bir süs değil bir OKUMA aracı: sürünün nereden geleceğini savaş başlamadan söyler — telegrafın harita ölçeğindeki hâli. Bitkiler yolun DIŞINDA kalır; yolu yol yapan şey kenarındaki dağınıklıktır. Bulut iki saydam katman (`Skybox/Procedural`'ın bulutu yok, cubemap bu prototipin bütçesi dışında). Toby materyalleri URP'ye DÖNÜŞTÜRÜLMEZ — paketin shader'ı zaten URP ve rüzgâr onun içinde | Assets/_Project/Code/Editor/OutdoorScenery.cs |
+| 2026-09-08 | Atmosfer sahnede yoksa KENDİNİ KURUYOR (`BunkerInterior` şartıyla) | graphics-programmer | Hava sistemi `_CombatHud`'un bir bileşeniydi ve o nesneden silinince SESSİZCE yok oldu — hiçbir hata basılmadı, yalnızca dışarısı bir daha hiç kapanmadı. Şart `BunkerInterior`: sis KÜRESEL bir ayar ve ana menüyü sisin içinde bırakamaz | Assets/_Project/Code/Gameplay/OutdoorWeather.cs |
 
-## 2026-09-04 — Gri kutuya okunabilirlik paleti ve kapatılabilir atmosfer
-
-**Karar:** M-01'e renk dili, ışık, gökyüzü, sis ve post-processing eklendi.
-Atmosfer katmanı **F10 ile kapatılabilir**.
-
-**Neden:** iki ayrı gerekçe, ikisi de geliştiriciden geldi.
-
-1. **Okunabilirlik — açık bir M-01 borcuydu.** Sahnedeki her şey Unity'nin varsayılan
-   grisiydi; kapı, duvar, zemin, rampa ve düşme deliği kenarı ayırt edilemiyordu, duvar
-   silahı satın alma noktalarının **hiç görseli yoktu**. PILLAR-04 "okunabilirlik bir
-   cila işi değil, bir tasarım kısıtıdır" diyor ve *"sanat gelince okunur hale gelir"*
-   gerekçesiyle ertelenen kararları açıkça reddediyor. Bu bir asset eksikliği değil,
-   tasarım eksikliğiydi.
-2. **Atmosfer — geliştiricinin bilinçli tercihi.** "Gri gri oynamayalım."
-
-**Ölçüm bedeli — kayda geçirildi.** ÇK-17 tam olarak *"gri kutuda, sanatsız bir tur
-döngüsü 20 dakika sonra tekrar oynatıyor mu"* diye soruyor. Atmosfer açıkken alınan bir
-"evet", döngünün mü görselliğin mi taşıdığını söylemez. Bu, geliştiriciye söylendi ve
-tercih onun. **Azaltma:** atmosfer tek tuşla kapanır, böylece ÇK-17 istenirse temiz gri
-kutuda ölçülebilir; renk dili her iki durumda da açık kalır (o cila değil, kısıt).
-
-**Not:** bu bir **sanat geçişi değildir**. Stil kilidi yok; `/art-direction` gerçek görsel
-dili kurduğunda bu palet yerini bırakır. Kalıcı olan renk değil, ayrımın kendisi.
-
-Detay: `docs/art/GREYBOX-PALETTE.md`
-
-## 2026-09-04 — `magazinesPerPurchase` config'e taşındı (economy şema v2)
-
-**Karar:** duvardan bir alımda verilen şarjör sayısı, `WallWeaponPurchase`'daki bir
-`[SerializeField]` olmaktan çıktı; `config/balance/economy.json → ammo.magazinesPerPurchase`
-oldu. **Değer değişmedi (5).**
-
-**Neden:** alanın tooltip'i *"Denge değeri DEĞİL — şarjör kapasitesinin katıdır"* diyordu.
-Denge simülasyonu (`design/economy/curves.md`) tersini kanıtladı: bu sayı **turun ritmini
-doğrudan belirliyor.** 5 ile oyuncu tur 14'te duvara **on beş ayrı sefer** yapıyor —
-PILLAR-03'ün açıkça reddettiği "menü işi yapıyorum" modu. Ritmi belirleyen bir sayı,
-`config-data.md` gereği C# içinde duramaz.
-
-**Şema sürümü 1 → 2.** Kayıtlı bir anahtar değil, migration gerekmiyor.
-
-**Not:** bu bir `/tune` değil. Değer aynı kaldı; yalnızca yaşadığı yer değişti — böylece
-oyun testinden sonra ayarlanabilir hâle geldi. Aralık (1–40) ve şema açıklaması,
-oynamadan önce hangi yönün neyi bozacağını yazıyor.
-
-## 2026-09-04 — Tur başı otomatik yenilenme kaldırıldı (barikat + mermi)
-
-**Karar (geliştirici):** *"Tamir eden zaten tur arası süresinde tamir etsin edebildiği
-kadar; ama tur başladığında tamamen yenilenen barikat, can, mermi oyunu çok kolay
-kılıyor."*
-
-Üçünün üçü de gerçekten öyle çalışıyordu. Ama **üçü aynı şey değil:**
-
-| | Neydi | Ne yapıldı | Neden M-01 |
-|---|---|---|---|
-| **Barikat** | Her tur başında `4/4`'e dönüyordu | Tur sıfırlaması kaldırıldı; yalnızca **run** başında sıfırlanıyor | **Sadakat düzeltmesi.** Klon taban barikatı otomatik onarmaz; otomatik dönüş bizim kazara eklediğimiz sapmaydı |
-| **Mermi** | Her tur başında tam yedeğe dönüyordu | Aynı: yalnızca run başında | **Kalmış iskele.** Kodun kendi yorumu *"M1-10 duvar silahı gelince kaldırılacak"* diyordu; M1-10 geldi, iskele kaldı |
-| **Can** | Vurulmayınca tam yenileniyor | **Değişmedi** — M-02'ye ertelendi | Bu klona **sadık**. İki katmanlı model (aşağıda) bir farklılaştırıcı, kontrol grubuna girmez |
-
-**Mermi değişikliğinin etkisi küçük değil.** Denge simülasyonu mermiyi satın alınan bir
-kaynak varsayarak koştu ve gelirin %77–98'inin mermiye gittiğini buldu
-(`design/economy/curves.md`). Yani oyun bugüne kadar simülasyonun anlattığından
-**belirgin şekilde kolaydı**; bu değişiklikle ikisi hizalandı ve KIRILMA 1 (mermi
-seferleri) artık gerçekten hissedilecek.
-
-**Run sıfırlaması eklendi.** Tur sıfırlaması kaldırılınca ikisini düzelten başka hiçbir
-yol kalmıyordu: `R` ile başlayan ikinci run, birincinin sökük barikatları ve kalan
-mermisiyle başlardı — M1-11 AC-6'nın ("sayılar sızmaz") barikat ve mermi karşılığı.
-
-**Oyun testinde izlenecek:** barikatın eski yorumu bir uyarı taşıyordu ve hâlâ geçerli
-olabilir — *"sökük pencereleri tek tek tamir etmek molayı bir dinlenme değil ev ödevi
-yapar (PILLAR-03)."* 10 saniyelik mola dört pencereye yetmiyorsa bu gerilim gerçek olur.
-
-## 2026-09-04 — Can: iki katmanlı model onaylandı (M-02)
-
-**Karar (geliştirici):** Darktide modeli onaylandı — hızlı yenilenen bir **kalkan**
-katmanı + kısmi yenilenen **can** katmanı.
-
-Bu, 3 Eylül'deki "vurulmayınca can tam yenilenir" kararıyla arasındaki çelişkiyi çözüyor:
-kaçmanın ödülü kalkanda yaşamaya devam ediyor, yıpranma ise cana yazılıyor.
-
-**M-02'ye ertelendi.** M-01 bilerek bir kontrol grubu; iki katmanlı can bir
-farklılaştırıcı ve kontrol grubunun içine konursa ÇK-17'nin cevabı yorumlanamaz olur.
-
-**Açık kalan:** can nasıl geri gelir? Kalkan kendiliğinden dolar, ama can hiç dolmazsa
-her run bir ölüm sarmalına döner. Darktide bunu medicae istasyonu ve iksirlerle çözüyor.
-Bizde adayları: tezgâhtan iyileştirme, zombiden düşen nadir can, hasarsız biten turun
-ödülü, `Vampir`/`Kan Nakli` kartları. **Karar verilmedi** — `SYS-02` §7f.
-
----
-
-## 2026-09-05 — Tezgâh kart ekranından ayrıldı, duvara taşındı
-
-Tezgâh önce kart draft ekranının bir paneliydi. Geliştirici oynayınca istedi:
-*"tezgah bence kartlardan bağımsız mermi doldurma yeri gibi duvarda olmalı."*
-
-**Gerekçe:** kart seçimi turun **zorunlu ödülü** ve durdurulmuş bir andır; tezgâh ise
-oyuncunun **gitmeyi seçtiği** bir harcama noktasıdır. Aynı ekranda olmaları ikincisini
-birincisinin eklentisi gibi gösteriyordu. Duvara taşınınca gitmek bir **bedel** oldu:
-molandan yiyor ve seni haritanın belirli bir noktasına bağlıyor — yani tezgâh bir karar
-hâline geldi. Tezgâh turu **durdurmaz**; duvar silahından farklı renkte (mor) ve farklı
-duvarda, çünkü ikisi de E ile açılıyor ve "E ne yapacak" belirsizliği haritanın kendisinde
-çözülmeli.
-
-## 2026-09-05 — İlk oyun testi simülasyonun oyuncu profilini yalanladı
-
-Gerçek oyuncu **%76 kafa vuruşu** yaptı; `balance-sim.ps1`'in "iyi" profili %50, "ortalama"
-profili %25 varsayıyordu. Kafa vuruşu 2× hasar verdiği için bu, öldürme başına mermi
-sayısının ve dolayısıyla bütün ekonomi sonuçlarının girdisi.
-
-**Sonuç:** `curves.md`'nin en önemli bulgusu olan KIRILMA 1 ("mermi seferleri turu
-parçalıyor, PILLAR-03 ihlali") **abartılmıştır** — gerçek isabetle tur başına 4 sefer
-çıkıyor, 15 değil. ÇK-13 cevabı da 12.5 dk'dan **8.8 dk**'ya düştü, yani oyun hedef
-bandın altında.
-
-**Hiçbir denge değeri değiştirilmedi** — tek run, tek oyuncu, ve o oyuncu oyunun yazarı.
-Belgenin başına geçersizlik uyarısı kondu; iki-üç run daha biriktikten sonra yeniden
-üretilecek. Kanıt: `docs/qa/playtests/PT-01-SONUC-01-ilk-keyifli-run.md`.
-
-## 2026-09-05 — İkinci oyun testinin sekiz bulgusu
-
-Tek bir oturumun çıktısı; hepsi geliştiricinin doğrudan gözlemi.
-
-**1. Silah ve bıçak görünmüyordu.** Elde bir şey olduğuna dair tek kanıt HUD'daki mermi
-sayacıydı. `PlayerViewmodel` eklendi: kameranın altında, çalışma anında ilkel şekillerden
-kurulan bir el modeli — ateşte geri tepme ve namlu alevi, dolumda aşağı dönen silah, V ile
-sağdan sola savrulan bıçak. Prefab'a yazılmadı, çünkü sanat yönü kilitlenince değişecek
-tek yer bir dosya olsun.
-
-**2. Üst kat kapısı atlanabiliyordu.** Kanat rampanın ağzında serbest duran bir bloktu;
-yanından dolaşıp çıkmak mümkündü — yani 1250 puanlık kapı hiçbir şeyi kapatmıyordu.
-Geliştiricinin önerdiği çözüm uygulandı: rampa iki yan duvarla **kapalı bir merdiven
-boşluğuna** çevrildi, tavanı zaten üst katın kendi döşemesi. Kanat artık koridor genişliği
-kadar geniş ve döşemeye kadar yüksek. *Bir kapı ancak tek geçit olduğunda kapıdır.*
-
-İlk deneme kapıyı rampa ağzına, güney duvarının **35 cm** önüne koydu ve bağlantı kontrolü
-"zemin -> ust kat: KOPUK" dedi: NavMesh ajanı 70 cm çapında, o şeride sığmıyor — kapının
-önünde durulacak yer kalmamıştı. Kapı bir metre içeri alındı, 1.85 m'lik yaklaşma alanı
-kaldı, ölçüm `tam (45.2 m)`. **Aracın bu sefer doğru anda ölçmesi bir oyun testini
-kurtardı** (BUG-004'ün dersinin karşılığı).
-
-**3. Tezgâh üst kata taşındı.** Zemin katta, başlangıç odasından çıkmadan ulaşılabiliyordu;
-yükseltme almak için haritayı açmak gerekmiyordu. Artık kapının **arkasında**: önce üst
-katı aç, sonra yükselt. Bu, kapının fiyatına bir sebep verir.
-
-**4. Mermi fiyatı 250 puan.** `economy.json` v3: `ammo.refillCost` eklendi. Mermi artık
-duvar silahı bandından (500/1200) okumuyor — o bant ileride gerçek silahlar için duruyor.
-İkisi tek sayıdan okununca mermiyi ucuzlatmak silah fiyatlarını da oynatmak demekti.
-
-**5. Zombi hızlanması yavaşlatıldı.** Kademeler tur 4/8 → **6/12**, tavan hız 4.6 → **3.6**
-m/s (şema alt sınırı 3.5). Tur 8'de zombi oyuncunun 5 m/s hızına yapışıyordu ve kaçmak
-imkânsızdı. Şemanın "geç turda oyuncudan hızlı olmalı" gerekçesi bu değerde artık geçerli
-değil; **bilinçli bir tasarım değişikliği**, aralık genişletilmedi.
-
-**6. Zombiye gövde ve kopan bacak.** Silindir gitti: kalça hizasından kurulan bir gövde
-(gövde, kafa, öne uzanan kollar, iki bacak). Bacaklar ayrı vuruş kutusu; tur canının
-%30'unu emen bacak **kopar**, zombi ölmeden sürünmeye düşer ve tur hızının %45'iyle gelir
-(`zombie.json` v2, `crawl` bölümü). Nişan almanın ikinci ödülü: kafa bitirir, bacak
-yavaşlatır — üçüncü bir zombi tipi yazmadan sürüye ritim farkı girer.
-
-Gövde çarpıştırıcısı 1.8 m'den 0.78 m'ye indirildi: tek büyük kapsül ışının önünde
-duruyordu ve içine konan her uzuv kutusu **hiçbir zaman vurulamazdı**.
-
-**7. Ses geldi.** Bkz. ADR-0006. Bulgu tek cümleydi: *"arkamdan gelen zombiyi hiç
-duymayınca heyecanını test edemiyorum."* Yeni `Bunker.Audio` assembly'si, çalışma anında
-sentezlenen 23 ses, hiçbir varlık dosyası yok. Zombi homurtusu, saldırı hazırlığı, ölüm,
-bacak kırılması ve barikat 3B çalar — yön ve mesafe taşır.
-
-**8. Oyuncu kamerasına `AudioListener`.** Kökte olsaydı 3B sesin yönü oyuncu döndüğünde
-değişmezdi — yani ses hiçbir şey söylemezdi.
-
-**Kanıt durumu:** 1, 2, 3, 8 doğrulanmış hatalar. 4, 5, 6 **hipotez** — tek run, tek
-oyuncu. Oynanarak kalibre edilecek.
+| 2026-09-09 | Dış dekor ve bitki örtüsü `NavMeshModifier` ile **bake dışına** alındı | ai-programmer | *"Apron_south'ta doğan zombiler engel olmadığı hâlde sıkışıp kalıyor."* İki yarı da doğruydu: fiziksel engel yok (çarpıştırıcılar siliniyor) ama `NavMeshSurface`'in geometri kaynağı **Render Meshes** — bake çarpıştırıcıya değil çizilen mesh'e bakar. 943 renderer apronu adalara bölüyordu. **Çarpıştırıcıyı silmek bir nesneyi navigasyondan çıkarmaz; ikisi ayrı sistem.** `useGeometry = PhysicsColliders` REDDEDİLDİ (çarpıştırıcısız her blokout parçası sessizce NavMesh'ten düşerdi), ayrı katman da REDDEDİLDİ (proje ayarlarına gizli bağımlılık). Ölçüldü: 4/6 → 6/6 tam yol | Assets/_Project/Code/Editor/NavMeshDecor.cs |
+| 2026-09-09 | Bağlantı kontrolü artık **doğum noktasından** pencereye yol da ölçüyor | qa-lead | Araç yukarıdaki hata dururken "BAGLI" diyordu: `OutsidePoint`'e bakıyordu ve orada NavMesh gerçekten vardı — ama zombi 14 m daha dışarıda doğuyor ve oraya yürümek zorunda. Ölçülen nokta doğru, ölçülen SORU yanlıştı. Aracın yanlış şeyi ölçmesi, hiç ölçmemesinden tehlikelidir (BUG-004'ün dersinin bir başka kılığı) | Assets/_Project/Code/Editor/LevelConnectivityCheck.cs |
 
 ---
 
-## 2026-09-05 — Ucuncu oyun testi: on bulgu kapatildi
-
-**1. Tezgah ve mermi panosu gorunmuyordu.** Isaretler bos `GameObject`'ti: levhalari
-yalnizca `GreyboxLook` uretiyordu ve harita yeniden uretilince kayboluyordu; ustelik
-levhanin ince yuzu duvarin icine bakiyordu. Levha artik `BlockoutGenerator`'in isi
-(isaret odaya donuk uretiliyor) ve `GreyboxLook` levhayi haritanin merkezine cevirip
-rengini veriyor. BUG-004'un ("kapi diye bir nesne yoktu") ucuncu tekrari.
-
-**2. Yenileme ayni karti geri getirebiliyordu.** `CardPool.Draw` yenilenen yuvayi
-disarida BIRAKMIYORDU. Harcanan bir hakkin sonucu gorunur sekilde degismeli.
-
-**3. Yenilemenin fiyati yaziyordu ama alinmiyordu.** `CardDraftController` icinde bir
-TODO duruyordu: puanli yenileme fiilen bedavaydi. Fiyat artik
-`economy.json v4 -> prices.cardRerollBase + cardRerollAddPerRound * (tur-1)` ve
-dugmenin uzerinde YAZIYOR; puan yetmiyorsa dugme kapali.
-
-**4. Alinan kart bir daha cikmiyordu.** 21 kartlik havuz yirmi turda tukeniyor ve draft
-bos aciliyordu. Artik kartlarin cogu **tekrar cikabilir ve etkileri toplanir**; yalnizca
-`unique: true` olanlar (kafa carpani, tamir puani, dolum, yenilenme gecikmesi) bir kez
-alinir. Havuz ayni gun 21 -> 31 karta cikarildi.
-
-**5. Isabet parlamasi hep govdedeydi.** Sendeleme beyazi `bodyRenderer`'a yaziliyordu:
-vurus kutulari vardi ama oyuncu NEREYE vurdugunu goremiyordu. Parlama artik vurulan
-bolgenin kendi gorseline iniyor (120 ms, `MaterialPropertyBlock`).
-
-**6. Bicak nereye bakarsan baksin govdeye iniyordu.** Koni taramasi her zaman merkeze
-EN YAKIN kutuyu seciyordu. Artik once nisan yolu (kure taramasi) bakiliyor, koni yalnizca
-yedek.
-
-**7. Kosu (sprint) eklendi.** Shift, `player.json v2 -> sprint` (4,5 sn, 1,5x, saniyede
-0,5 sn dolum). Sinirsiz kosu haritayi kucultur ve zombi hiz kademelerini anlamsiz kilardi.
-HUD'a ince bir gosterge geldi: gostergesiz sinirli bir kaynak, tam kacarken suprize doner.
-
-**8. Tur sonu kismi yenilenme.** `rounds.json v2 -> roundEnd`: yedek mermi tavaninin
-%40'i ve tam barikatin %40'i geri gelir. Tam yenilenme oyunu kolaylastiriyordu (2026-09-04
-kaldirilmisti), hic yenilenmemesi ise molanin tamamini tamire baglayip tezgaha gitmeyi
-imkansiz kiliyordu.
-
-**9. Anlik canli zombi tavani.** `rounds.json v2 -> count.aliveCap*`: sahada ayni anda en
-fazla `5 + 1*(tur-1)` zombi durur (her zaman `maxConcurrent`=40 ile sinirli). Tavan
-doluyken dogum durur, biri olunce yenisi gelir. Hem oynanabilirlik (barikat tamiri icin
-bosluk) hem performans.
-
-**Kanit durumu:** 1, 2, 3, 5, 6 dogrulanmis hatalar. 4, 7, 8, 9 tasarim kararlari ve
-**hipotez** — oynanarak kalibre edilecek. Ozellikle %40 mermi yenilenmesi, mermi
-ekonomisini (curves.md) belirgin gevsetebilir; ilk olculecek sey bu.
-
----
-
-## 2026-09-05 (aksam) — Menu, olum hatasi ve surunun cephesi
-
-**1. "14. turda hasar yemeden game over oldum" — bulundu.** Hata olumde degil
-TEZGAHTAYDI: menu acikken oyuncunun girdisi kesiliyor ama **dunya donmeye devam
-ediyordu**. Tur ortasinda tezgahi acmak, surunun ortasinda heykel olmak demekti; dort
-vurus iki saniyede iner ve oyuncu menuye bakiyordur. Telemetri de soyluyor: son iki
-olum de y=4.58'de, yani tezgahin bulundugu UST KATTA.
-
-Iki savunma birden konuldu:
-- **Tezgah yalnizca molada acilir** (`ShopStation.CanOpen`), tur baslayinca kapanir.
-  Tezgah zaten tur arasinin harcamasi; tur ortasinda acilabilmesi bir ozellik degil,
-  kimsenin karar vermedigi bir yan etkiydi.
-- **Hasar alinca acik menu kapanir** (`PlayerHealth`). Emniyet kemeri: kuralin
-  atlandigi bir yol kalirsa bedeli bir run.
-
-**2. Zombiler tek sira diziliyordu.** Sebep bir hata degil NavMesh'in dogasi: ayni
-hedefe giden butun ajanlar ayni en kisa yolu bulur, ayni koseyi ayni noktadan doner ve
-birbirini itmemek icin sıraya girer. Uc mudahale birden (`SwarmFormation`, saf C#):
-her zombiye **yanal bir serit** (hedefe yaklasinca sonen), **hiza kucuk bir sapma**
-(konvoyu zamanla bozar) ve **zombi basina farkli NavMesh kacinma onceligi** (esit
-oncelikli ajanlar kuyruga girer). Sayilar `zombie.json v3 -> swarm`.
-
-**3. Ana menu geldi** (M-04). Oyun artik acilir acilmaz oturuma girmiyor:
-`Scenes/Menu/Menu.unity` (arac uretiyor: `Bunker/Menu/Ana Menuyu Kur`), derleme sahne
-listesinde ILK sirada. Tek kisi oyna / oda ac / odaya katil (adresle) / ayarlar / cikis.
-ESC ile oyun ici duraklatma: **solo'da dunya durur, ortakli oturumda durmaz** ve ekran
-bunu soyler - aksi halde 1. maddedeki hatanin aynisi menuyle tekrarlanirdi.
-
-**4. Ayarlar oyuncunun, config oyunun.** Fare hassasiyeti, ses ve ters dikey bakis
-`PlayerPrefs`'te (`GameSettings` + `ISettingsStore`); `config/` altina girmediler cunku
-orasi **dengedir ve herkeste aynidir**. `Bunker.Systems` motor referansi tasimadigi icin
-depo ters cevrildi: kural Systems'te, `PlayerPrefs` Gameplay'de.
-
-**5. Steam daveti: ADR-0007 yazildi, uygulanmadi.** Iki adim proje disinda (paket
-indirme ve App ID). Menu ve ag katmani o gun **degismeyecek** sekilde kuruldu:
-`SessionSignals` yalnizca niyet tasir, davet de bir "katil" niyetidir. Su an calisan
-yol: **adresle katil** (ayni agda port yonlendirmesi gerekmez).
-
-**Kanit durumu:** 1 ve 2 dogrulanmis bulgular. 3, 4 uygulandi ve testleri var (294
-EditMode testi gecti); menunun kendisi **oynanarak** dogrulanmali - bir menuyu test
-suiti dogrulayamaz.
-
----
-
-## 2026-09-05 (gece) — Hasar gorunurlugu, derin ayarlar, eksik kartlar, gercek lobi
-
-**1. "Tek yiyorum sanirim" — artik tahmin degil, ekranda yaziyor.** Zombi hasari
-config'de SABIT 30 ve turla artmiyor; yani tek vurusta olum yok, dort vurus var ve
-hepsi bir buçuk saniyeye sigiyor. Sorun hasarda degil GORUNURLUKTE'ydi.
-`CombatFeedback` + `DamageNumbersHud`: vurdugun hasar zombinin ustunde (kafa vurusu
-sari ve unlemli, olduren vurus buyuk), yedigin hasar nisangahin ustunde ve **geldigi
-yon** ekranin ortasindan disa bir cizgi olarak. Yon bilgisi `DamageInfo`'ya iki duz
-sayi (SourceX/SourceZ) olarak eklendi - `Vector3` degil, cunku o katman motor tipi
-tanimaz ve tanirsa butun EditMode testleri Unity'ye baglanir.
-
-**2. Ayarlar dort sekme oldu ve hepsi calisiyor.** Goruntu (cozunurluk, ekran bicimi,
-VSync, kare siniri, kalite, FOV), Ses (ana, efekt, arka planda sustur), Kontrol
-(hassasiyet, ters bakis, kosu tusu hold/toggle), Arayuz (hasar sayilari, hasar yonu,
-isabet isareti, nisangah). `SettingsApplier` tek uygulayici: uygulamayi ekranlara
-dagitmak, birinin digerini unutmasiyla biterdi.
-
-**Muzik ve ekran sarsintisi ayari EKLENMEDI** - o sistemler yok. Hicbir sey yapmayan
-bir ayar, oyuncuya oyunun bozuk oldugunu ogretir. Tus degistirme de yok: girdi haritasi
-tasinmadan yapilamaz ve yalan bir ekran olurdu.
-
-**3. Kart havuzu 31 -> 41 ve EKSIK MEKANIKLER YAZILDI.**
-- **Yikim etiketi artik bos degil**: olen zombi patliyor (`ZombieAgent.TryExplode`),
-  zincirleme patlama serbest - kartin vaat ettigi an o. Yaricap `zombie.json v4 ->
-  cards.explosionRadiusMeters` (3.5 m), gucu kartin degerinde.
-- **Delici mermi**: `PlayerWeapon.FirePenetrating` - isin siralanmis coklu isabete
-  cevrilir. Duvar mermiyi DURDURUR (yoksa harita anlamsizlasirdi), ayni zombiye iki
-  kez vurmaz.
-- **Kan Icici** (oldurunce iyilesme) ve **Toplayici** (oldurunce mermi): ikisi de
-  `PlayerScore.ApplyKillRewards`'ta, cunku "oldurme" olayinin tek sahibi orasi -
-  silaha ve bicaga ayri ayri eklemek birinin unutulmasi demekti.
-- **Don**: yavaslatma tabani 0.25 -> 0.15. Eski taban, kartlarin toplami ne olursa
-  olsun zombiyi yuruyebilir birakiyordu ve ust kademe kart hissedilmiyordu.
-- Hala BEKLEYEN: itme/savurma, yerden esya, diriltme. Ucu de olmayan sistemlere
-  dokunuyor; uydurma kart eklenmedi.
-
-**4. Lobi gercekten yoktu - simdi var.** Sebep gorunmezdi: Mirror'in `onlineScene`
-alani doluydu, yani host olur olmaz oyun sahnesine geciliyordu. "Oda ac" demek
-DOGRUDAN oyuna dusmek demekti ve lobi ekrani hic gorunmuyordu. Artik `onlineScene`
-BOS, `autoCreatePlayer` KAPALI; sahneyi lobi "BASLAT" dedigi an sunucu degistiriyor
-(`ServerStartGame`) ve oyuncular oyun sahnesinde `OnServerReady`'de yaratiliyor.
-Lobide: 4 kisilik oyuncu listesi (Steam adlariyla, `LobbyController` mesajlariyla),
-davet, katilma kodu, BASLAT (yalnizca host), ayril.
-
-**Ayrica Play artik HEP menuden basliyor** (`playModeStartScene`). Menu yazilmisti ama
-hangi sahne acikise Play ona basiyordu - genellikle sandbox. Sandbox'ta hizli test icin
-`Bunker/Menu/Play'i Menuden Baslat` ile kapatilabiliyor.
-
-**Kanit durumu:** 294 EditMode testi geciyor. 1 ve 4 dogrulanmis eksiklerin
-kapatilmasi. 2 ve 3 oynanarak kalibre edilecek - ozellikle patlama gucu (0.35/0.55/0.80)
-ve delici merminin gec turlarda ne kadar guclu oldugu HIPOTEZ.
-
----
-
-## 2026-09-06 — Uc kart hatasi: biri oyuncuyu olduruyordu
-
-Oyun testi uc cumleyle geldi: *"direk oluyorum"*, *"delici mermi delmiyor"*,
-*"patlama hissedilmiyor"*. Ucu de kendi yazdigimiz kodun hatasiydi ve ikisi ayni
-kok sebebi paylasiyordu.
-
-**1. PATLAMA OYUNCUYU OLDURUYORDU.** `TryExplode` yaricaptaki her `IDamageable`'a
-hasar veriyordu - ve oyuncu da bir `IDamageable`. Sarapnel karti alan oyuncu, yanindaki
-zombiyi oldurdugu anda olen zombinin canina orantili hasari KENDI yiyordu: tur 5'te
-192, tur 10'da 366 hasar. 100 canla bu aninda olum. `explosionSelfDamageFraction01`
-ayari yazilmisti ama KULLANILMAMISTI - ayarin var olmasi, uygulandigi anlamina gelmiyor.
-
-Artik patlama yalnizca zombileri vurur; oyuncuya hasar ancak o oran sifirdan buyukse ve
-onunla olceklenerek gider. Varsayilan sifir: patlamanin oyuncuyu yakip yakmayacagi bir
-denge karari, koda gomulecek bir sey degil.
-
-**2. DELICI MERMI HIC DELMIYORDU** - ve sebebi kartta degil, "ayni yaratiga iki kez
-vurma" kuralindaydi. Kural kimligi `transform.root`'tan okuyordu. Zombiler havuzdan
-`_ZombieDirector`'un ALTINA doguyor, yani **hepsinin root'u ayni nesne**: mermi ilk
-zombiden sonra sahnedeki herkesi "zaten vurdum" diye eliyordu.
-
-**Ders: kimlik sahne hiyerarsisinden turetilemez.** `IDamageable` artik `DamageRoot`
-tasiyor - vurus kutusu sahibini soyler, yaratik kendisini. Ayni kural patlamaya da
-uygulandi; iki yerde de hiyerarsi sorgusu kalmadi. Hiyerarsiden turetilen kimlik,
-hiyerarsi degistigi gun SESSIZCE bozulur ve bu tam olarak oyle bozulmustu.
-
-**3. PATLAMA GORUNMUYORDU.** Hasar veriyordu ama ekranda hicbir sey yoktu, sesi de
-zombi olum sesiydi. Gorunmeyen bir etki, oyuncu icin OLMAYAN bir etkidir (PILLAR-04).
-Havuzlu bir `ExplosionFlash` (hizla buyuyup sonen kure) ve kendi sesi eklendi.
-
-**4. Artik tahmin yok: olum ekrani OLDURENI yaziyor.** "Tek mi yedim, dort mu" sorusu
-iki oturumdur tahmine dayaniyordu. `CombatFeedback.NoteLethalHit` + skor ekraninda
-"son vurus: N hasar (tur)". 30 yaziyorsa normal bir zombi vurusu, 366 yaziyorsa
-bambaska bir sey - ve hangisi oldugu artik ilk bakista okunuyor.
-
-**Kanit durumu:** 294 EditMode testi geciyor. 1, 2 ve 3 dogrulanmis hatalarin
-duzeltilmesi; oynanarak teyit edilecek. Bu uc hatanin ortak dersi kayda deger:
-**bir ozelligi "yazmis olmak" ile "calisir gormek" arasindaki mesafe, bu projede
-gorunurluk eksikligi yuzunden buyuyor.** Hasar sayilari ve olum sebebi tam da o
-mesafeyi kapatmak icin var.
-
----
-
-## 2026-09-06 (aksam) — Sarapnel, silahlar, boss ve kesin sayilar
-
-**1. Play menuden baslamiyordu - sebep gorunmezdi.** `EditorSceneManager.playModeStartScene`
-projenin degil **editor OTURUMUNUN** ayari; bassiz bir toplu calistirmada yazilan deger
-gelistiricinin actigi editore hic gecmiyordu. Menu kuruldu, ayar yazildi, oyun yine
-sandbox'tan basladi. Artik `PlayModeStartScene` sinifi `[InitializeOnLoad]` ile her
-editor acilisinda ayari kuruyor; tercih `EditorPrefs`'te (makineye ozel, dogru yer).
-
-Ayrica menu kamerasi artik **MainCamera etiketli**: oyundan menuye donuldugunde oyuncu
-ve kamerasi yok oluyor, etiketsiz bir menu kamerasi `Camera.main`'i null birakir ve ona
-guvenen her sey sessizce calismaz.
-
-**2. Patlama SARAPNEL oldu.** v4 bir kure sorgusuydu: yaricaptaki herkese TAM hasar,
-duvarin arkasina geciyor ve oyunu kolaylastiriyordu. Gelistirici dogru mekanigi tarif
-etti - el bombasi sarapnelleri belli alana firlar, **isabet alan hasar alir**.
-
-Artik patlama `explosionShrapnelCount` (14) parca firlatir; her parca bir ISINDIR,
-ilk carptigi seye toplam hasarin 1/N'ini verir ve **duvar onu durdurur**. Bu tek
-degisiklik uc sorunu birden cozuyor: gucu dusuruyor (yakindaki zombi birkac parca yer,
-hepsini degil), duvar arkasini kapatiyor ve patlamayi KONUMA bagli hale getiriyor.
-
-Parcalar rastgele degil **kureye esit dagitilmis** (Fibonacci): rastgele on dort parca
-kumelenir ve ayni mesafedeki iki zombiden biri bes parca yerken digeri hic almayabilir -
-oyuncu bunu "patlama bazen calisiyor" diye okur.
-
-**3. Dort silah** (`config/content/weapons.json` + `WeaponCatalogAsset`). Gelistirici:
-*"atis hizini test edemiyorum."* Tabanca referans; MP-KISA hizli ve affedici, POMPALI
-sekiz sacmayla yakin mesafenin cevabi, TUFEK yavas ve agir. **DPS'leri bilerek
-birbirine yakin**: silahi secen sey guc degil RITIM ve MENZIL olmali.
-
-- Her silahin KENDI mermisi var (ortak sayac, pompaliyla tabancanin ayni mermiyi
-  paylasmasi demek olurdu).
-- 500 RPM ustu silahlar **otomatik** ates eder; yari otomatik his tabancanin karakteri,
-  motorun kisiti degil.
-- Duvar noktalari artik silah satiyor: ilk alista SILAH, sonrakilerde MERMI. Ucuz duvar
-  MP, pahali duvar pompali - fiyat farki silahin yerini de soyluyor.
-- Pompalinin sacma dagilimini SUNUCU uretir: istemci gonderseydi hepsini tek noktaya
-  toplayan bir istemci pompaliyi keskin nisanci tufegine cevirirdi (netcode.md).
-
-**4. Boss geldi** (`rounds.json v3 -> boss`). Her **besinci** turda, turun ILK zombisi
-boss olur: 14 kat can, 2 kat hasar, 1.7 kat buyukluk, **0.75 kat hiz** ve 6 kat puan.
-
-- **Yavas olmasi sart**: cok canli VE hizli bir dusman oyuncuya kacmaktan baska secenek
-  birakmaz ve o da isleyen bir plan degildir. Yavas boss, bir KOSU DONGUSU problemi olur.
-- **Duzenli aralik, rastgele degil**: oyuncu hazirlanabilmeli. Besinci turun boss turu
-  oldugunu bilmek, dorduncu turun molasinda tezgaha gitmeyi bir PLAN yapar.
-- **Ayri prefab degil**, turun zombisinin carpanlari: zorluk egrisi tek yerde kaliyor.
-- Turun ILK zombisi olmasi bilincli: sonda gelseydi tur boyunca "acaba simdi mi" diye
-  oynanirdi; basta gelmesi turun geri kalanini onunla birlikte hayatta kalma problemine
-  cevirir.
-
-**5. TAB durum paneli.** Gelistirici: *"mevcut canimin hasarimin net bilgisini
-bilmeliyim."* Can (ham sayi / tavan), silahin hasari ve atis hizi TABANIYLA birlikte
-("71 (taban 55)"), kafa carpani, dolum, sarjor, delici sayisi, hiz carpani, envanter ve
-kart sayisi. Basili tutulur - bir mod degil bir bakis.
-
-Kesin can icin `PlayerHealth` artik ham can ve tavani da senkronluyor: oran tek basina
-yetmiyordu, cunku kart alan oyuncunun tavani degisiyor ve "%60 can" her turda baska bir
-sayi demek.
-
-**Kanit durumu:** 294 EditMode testi geciyor. 1 ve 2 dogrulanmis hatalarin duzeltilmesi.
-3, 4, 5 yeni sistemler ve **hepsi hipotez** - ozellikle silah DPS dengesi ve boss'un 14
-kat cani oynanarak kalibre edilecek.
-
----
-
-## 2026-09-06 (gece) — Log'un ele verdigi iki hata
-
-Oyun testinin Console cikti bir hatanin degil IKI hatanin izini tasiyordu; ikisi de
-benim onceki oturumda yazdigim kodda.
-
-**1. LOBI MESAJI SOLO OYUNU KIRIYORDU.** Zincir soyleydi:
-
-```
-Unknown message id: 32899  ->  NetworkClient: failed to unpack -> Disconnecting
-->  oyuncu hic dogmadi  ->  "There are no audio listeners" x sonsuz
-```
-
-Sunucu lobi listesini `SendToAll` ile yayinliyor ve **host'un kendi istemcisi de** o
-yayini aliyor. Handler yalnizca uzak istemcilerde kayitliydi (`OnClientConnect` host
-icin erken donuyordu), host kendi mesajini tanimadi, Mirror baglantiyi KESTI. Sonuc:
-sunucu tur akisini yurutmeye devam ediyor ama oyuncu yok - log'daki bitmeyen "audio
-listener" uyarisi da bu, cunku kamera oyuncunun uzerinde.
-
-**Kural cikti:** yayinladigin her mesajin **her alicida** bir karsiligi olmali. Host da
-bir alicidir. Bu, "solo ayri bir oyun degildir" ilkesinin (ADR-0004) unutulmus bir
-kosesiydi: host'u istemci saymayan her satir, tek kisilik oyunu bozmaya adaydir.
-
-**2. STEAM KAPALIYKEN OYUN BAGLANAMIYORDU.** FizzyFacepunch `Awake`'te "Steam is
-probably not running" hatasi basiyor ama **bagli tasima olarak kaliyordu**. Tasimanin
-kendisi zaten `Available()` ile "ben calisamam" diyor; kimse sormuyordu.
-
-`EnsureUsableTransport` artik aciliste soruyor ve kullanilamayan tasimadan ayni
-nesnedeki calisan bir tasimaya (KCP) **duserek** devam ediyor - ADR-0007'nin acik
-sozu buydu: *"Steam calismadan oyun cevrimici test edilemez hale GELMEMELI."*
-
-**Sessizce dusmuyor, soyluyor:** Console'a "Steam kapali, KCP'ye gecildi, davet bu
-oturumda yok" yaziyor. Steam'e dustugunu fark etmeden arkadas davet etmeye calismak,
-teshis edilmesi en can sikici durumlardan biri olurdu.
-
-**Kanit durumu:** 294 EditMode testi geciyor. Ikisi de dogrulanmis hata; solo oyunun
-tekrar oynanabilir oldugu OYNANARAK teyit edilmeli.
-
----
-
-## 2026-09-06 (gec) — "No cameras rendering": ekrandaki menu bir HAYALETTI
-
-Ekran goruntusu ilk bakista "iki sahne birden yuklu" gibi duruyordu: menu dugmeleri ve
-oyun HUD'u ust uste. Menu sahnesi denetlendi - icinde yalnizca uc nesne var, temiz.
-
-**Gercek:** kamera olmadigi icin ekran hic TEMIZLENMIYOR. Menunun goruntusu son cizilen
-karenin kalintisi; canli olan tek sey IMGUI cizen oyun HUD'u. Yani ortada iki sahne
-degil, **kamerasi olmayan bir sahne** vardi - ve kamera oyuncunun uzerinde oldugu icin
-asil sorun yine oyuncunun DOGMAMASIYDI.
-
-**Kok sebep, Mirror'in kendi yorumunda yaziyordu:**
-
-> *"scene change needed? then change scene and spawn afterwards. => BEFORE host client
-> connects."*
-
-`ServerChangeScene`'i `OnStartHost` icinden cagiriyordum. `OnStartHost` ise
-`FinishStartHost`'un ICINDE, yani host istemcisi **baglandiktan sonra** kosuyor - tam
-tersi sira. Hazir olma (ready) akisi yarida kaliyor ve `OnServerReady` hic gelmiyor,
-dolayisiyla oyuncu yaratilmiyordu.
-
-Uc noktadan saglamlastirildi:
-
-1. **Sahne degisimi bir kare sonraya birakildi** (`_pendingStart` + `Update`): host
-   tamamen ayaga kalkip istemci baglanana kadar beklenir.
-2. **Oyuncu yaratma iki yere baglandi**: `OnServerReady` VE `OnServerSceneChanged`.
-   Hazir olma bildirimi sahne degisiminden once de sonra da gelebilir; tek birine
-   baglamak "siralamaya gore bazen calisan" bir doğum demekti.
-3. **Karar sahne adi karsilastirmasindan cikarildi**: `_gameStarted` bayragi. Sahne
-   yolunu string olarak karsilastirmak, bir yazim hatasinda sessizce "oyuncu yok"
-   uretirdi - ve hata yine kamera hatasi gibi gorunurdu.
-
-**Ders:** "no cameras rendering" bir kamera hatasi degil, bir **oyuncu doğumu** hatasinin
-gorunusuydu. Bir hatanin gorundugu yer, oldugu yer degildir.
-
----
-
-## 2026-09-06 (gece yarisi) — Uzaktan yenen vurus ve silahlarin siluetleri
-
-**1. "MESAFE VARKEN HIT YIYORUM" — bulundu, gercek bir hataydi.** Beyin mesafeyi
-DUSUNME ADIMINDA olcuyordu (saniyede 8 kez = 125 ms'de bir) ve vurus o eski olcume gore
-iniyordu. Kosan oyuncu 125 ms'de 0,94 m gidiyor; menzil toleransiyla (0,6 m) birlikte bu
-**uc metre uzaktan yenen bir vurus** demekti.
-
-Iki duzeltme:
-- **Vurus inerken mesafe BIR KEZ DAHA olculuyor** (`LandAttack`). Beyindeki kontrol
-  NIYETI belirler (vurusa baslamaya deger mi), buradaki kontrol SONUCU belirler (hala
-  menzilde mi). Telegrafin bedeli budur: oyuncu hazirligi gorup cekilirse vurus
-  ISKALAMALI (ai-code.md).
-- **Menzil govde olcegiyle buyuyor.** Boss 1,7 kat buyuktu ama menzili normal zombiyle
-  ayniydi; govdesi cok uzaktayken merkezler arasi mesafe hala menzil icinde kaliyordu.
-  Buyuk yaratigin uzun kolu olmasi OKUNABILIR, "gorunmeyen bir menzil" degil.
-
-**2. Silahlarin siluetleri ayrildi** (`WeaponShape`). Gelistirici: *"taramalida tabanca
-gibi gozukmesin."* Dort silah ayni modeli tasiyorsa oyuncu elindekini yalnizca yazidan
-bilir - ve savasin ortasinda kimse yazi okumaz. Tabanca kisa ve yalin; taramalida
-**sarkan sarjor** ve katlanir dipcik; pompalida **kalin namlu ve pompa kolu**; tufekte
-**en uzun namlu ve durbun**.
-
-**Tek uretici, iki tuketici:** ayni geometri hem elde hem duvarda. Iki ayri yerde
-cizilseydi duvardaki pompali ile eldeki pompali zamanla birbirine benzemez olurdu ve
-oyuncu duvarda gordugu seyi eline aldiginda tanimazdi. Namlu ucu de sekilden geliyor -
-sabit bir konum, pompalida alevin govde icinde patlamasi demekti.
-
-**3. Silahlar duvarda MODELIYLE duruyor** ve ucu de bir yere kondu: MP-KISA baslangic
-odasinda (ucuz duvar), POMPALI kapinin arkasinda, **TUFEK ust katta** (yeni ucuncu
-nokta). Yeri olmayan silah, oyuncunun varligindan haberi olmayan silahtir - pompaliyi
-bulamamasinin sebebi buydu, tufegin ise hic yeri yoktu.
-
-Duvar artik sattigi silahi **oyuncudan bagimsiz** biliyor: onceki surum tanimi alicinin
-katalogundan okuyordu, yani kimse yaklasmadan once ne sattigini bilmiyor ve modelini
-cizemiyordu.
-
-**4. Olum ekrani bir cikis kapisi oldu.** Yalnizca "R" yazan bir ekran oyuncuyu ya
-yeniden baslamaya ya da Alt+F4'e zorluyordu. Olum, oturumu bitirmenin en dogal ani;
-menuye donus orada olmazsa hicbir yerde yok demektir. Uc dugme: yeniden basla, ana menu,
-cikis.
-
-**Kanit durumu:** 294 EditMode testi geciyor. 1 dogrulanmis bir hatanin duzeltilmesi;
-2, 3, 4 oynanarak dogrulanacak. Ozellikle bakilacak: bossun menzili artik adil mi
-(1,7 kat erisim FAZLA gelebilir - o zaman olcek carpanini erisimden ayirmak gerekir).
+**Arşiv:** 2026-09-04 … 2026-09-08 arası kararların uzun anlatımları (970 satır)
+`docs/archive/2026-09-09/decisions-2026-09-09.md` içinde duruyor. Buradaki satırlar
+özettir; bir kararın *nasıl* bulunduğunu okumak istiyorsan arşive bak.

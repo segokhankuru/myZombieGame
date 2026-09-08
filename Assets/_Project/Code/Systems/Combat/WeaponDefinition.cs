@@ -65,6 +65,19 @@ namespace Bunker.Systems.Combat
         /// <summary>Mermi dolumunun fiyatı.</summary>
         public readonly int AmmoPrice;
 
+        /// <summary>
+        /// Dolum <b>mermi mermi</b> mi ilerliyor (pompalı), yoksa şarjör bir kerede mi
+        /// dolduruluyor.
+        ///
+        /// <para><b>Neden bir bayrak, iki ayrı silah sınıfı değil</b> (2026-09-06,
+        /// geliştirici: <i>"tek şarjör dolduruyormuş düşüncesi pompalı metasına
+        /// aykırı"</i>): doğru gözlem. Pompalıyı pompalı yapan şey, dolumun
+        /// <b>bölünebilir</b> olması — iki fişek koyup ateş edebilmek bir karardır ve
+        /// o karar silahın karakteridir. Bayrak açıkken <see cref="ReloadSeconds"/>
+        /// TEK BIR merminin süresidir.</para>
+        /// </summary>
+        public readonly bool ReloadPerShell;
+
         public WeaponDefinition(string id, string displayName, float damage, float roundsPerMinute,
                                 float headshotMultiplier, float rangeMeters, float spreadDegrees,
                                 int pelletCount, int magazineCapacity, int reserveCapacity,
@@ -72,8 +85,10 @@ namespace Bunker.Systems.Combat
                                 float recoilPitchPerShot, float recoilYawPerShot,
                                 float recoilRecoveryPerSecond, float recoilMaxPitch,
                                 float tracerSeconds, float hitMarkerSeconds,
-                                float inputBufferSeconds, int price, int ammoPrice)
+                                float inputBufferSeconds, int price, int ammoPrice,
+                                bool reloadPerShell = false)
         {
+            ReloadPerShell = reloadPerShell;
             Id = id ?? throw new ArgumentNullException(nameof(id));
             DisplayName = displayName ?? id;
             Damage = damage;

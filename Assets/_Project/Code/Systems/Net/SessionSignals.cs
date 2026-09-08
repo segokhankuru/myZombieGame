@@ -77,11 +77,99 @@ namespace Bunker.Systems.Net
 
         public static void RequestInvite() => InviteRequested?.Invoke();
 
+        /// <summary>
+        /// Şu an hangi taşımayla bağlanılacağı, oyuncuya gösterilecek hâliyle
+        /// ("Steam" / "Yerel ag (KCP)"). 2026-09-09.
+        ///
+        /// <para><b>Neden ekranda:</b> taşımanın Steam'den KCP'ye düşmesi bugüne kadar
+        /// yalnızca <c>Player.log</c>'a yazılıyordu. İki makineli bir testte kimse log
+        /// okumaz; oyuncunun gördüğü şey "davet gitmedi, kod çalışmadı" oluyor ve teşhis
+        /// oturumun tamamını yiyor. Bir satır yazı, bir saatlik aramanın yerine
+        /// geçiyor.</para>
+        /// </summary>
+        public static string TransportLabel { get; private set; } = string.Empty;
+
+        /// <summary>Ağ katmanı yazar, menü okur.</summary>
+        public static void SetTransportLabel(string label)
+        {
+            if (TransportLabel == label) return;
+
+            TransportLabel = label ?? string.Empty;
+            LobbyChanged?.Invoke();
+        }
+
         /// <summary>Davet durumunu bildirir. <b>Yalnızca <c>Bunker.Net</c> çağırır.</b></summary>
         public static void SetInviteState(bool canInvite, string joinCode)
         {
             CanInvite = canInvite;
             JoinCode = joinCode ?? string.Empty;
+        }
+
+        // ------------------------------------------------- oyun ici arkadas listesi
+
+        /// <summary>
+        /// Davet edilebilecek bir arkadaş. <b>Düz veri</b> — <c>Bunker.Systems</c>
+        /// ne Unity'yi ne Steamworks'ü görür (<c>noEngineReferences</c>), o yüzden
+        /// <c>SteamId</c> burada bir metin.
+        /// </summary>
+        public readonly struct FriendEntry
+        {
+            /// <summary>SteamId, metin hâlinde. Davet bunu geri gönderir.</summary>
+            public readonly string Id;
+
+            public readonly string Name;
+
+            /// <summary>Bu oyunu <b>şu an oynuyor mu</b>. Listenin başına o gelir.</summary>
+            public readonly bool InGame;
+
+            public FriendEntry(string id, string name, bool inGame)
+            {
+                Id = id;
+                Name = name;
+                InGame = inGame;
+            }
+        }
+
+        /// <summary>
+        /// Davet edilebilecek çevrimiçi arkadaşlar. 2026-09-09.
+        ///
+        /// <para><b>Neden kendi listemizi çiziyoruz</b> (geliştirici: <i>"Steam davet
+        /// et etkisiz, herhangi bir liste gelmiyor"</i>): Steam'in davet penceresi
+        /// <b>overlay</b>'dir ve overlay yalnızca Steam'in kendi başlattığı bir sürece
+        /// enjekte edilir. Doğrudan çift tıklanan bir <c>.exe</c>'de
+        /// <c>OpenGameInviteOverlay</c> <b>sessizce hiçbir şey yapmaz</b> — hata da
+        /// vermez. Önceki gerekçe ("Steam'in zaten yaptığı işi ikinci kez yapmayalım")
+        /// overlay çalıştığı varsayımına dayanıyordu ve o varsayım bu kurulumda
+        /// yanlış.</para>
+        ///
+        /// <para>Overlay hâlâ ayrıca açılmaya çalışılıyor; çalışıyorsa iki yol da
+        /// var demektir. Bu liste, çalışmadığında davetin ölmemesini sağlıyor.</para>
+        /// </summary>
+        public static IReadOnlyList<FriendEntry> Friends => _friends;
+
+        private static readonly List<FriendEntry> _friends = new List<FriendEntry>(16);
+
+        /// <summary>Listeyi <c>Bunker.Net</c> doldurur, menü okur.</summary>
+        public static void SetFriends(IReadOnlyList<FriendEntry> friends)
+        {
+            _friends.Clear();
+
+            if (friends != null)
+            {
+                for (int i = 0; i < friends.Count; i++) _friends.Add(friends[i]);
+            }
+
+            LobbyChanged?.Invoke();
+        }
+
+        /// <summary>Bir arkadaşa doğrudan lobi daveti gönder.</summary>
+        public static event Action<string> InviteFriendRequested;
+
+        public static void RequestInviteFriend(string steamId)
+        {
+            if (string.IsNullOrEmpty(steamId)) return;
+
+            InviteFriendRequested?.Invoke(steamId);
         }
 
         // ---------------------------------------------------------------- lobi
@@ -154,7 +242,35 @@ namespace Bunker.Systems.Net
 
         public static void RequestLeave() => LeaveRequested?.Invoke();
 
+        /// <summary>
+        /// Oturumu kapatma <b>niyeti</b>. Dinleyiciler temizliğini yapar.
+        ///
+        /// <para><b>Uygulamadan çıkmayı burası YAPMAZ</b> ve yapamaz: bu derleme
+        /// motoru görmez (<c>noEngineReferences</c>) — kasıtlı, çünkü kuralları Unity
+        /// açmadan test edebilmek buna bağlı. Çıkışın kendisi
+        /// <c>Bunker.UI.AppExit</c>'te ve oraya bakmanın sebebi
+        /// <see cref="AppExitNote"/>'ta yazılı.</para>
+        /// </summary>
         public static void RequestQuit() => QuitRequested?.Invoke();
+
+        /// <summary>
+        /// <b>Çıkış neden burada değil</b> (2026-09-06, oyun testi: "Q ya da çıkışa
+        /// basınca yine çıkamadı").
+        ///
+        /// <para>Önceki hâlde <c>Application.Quit</c>'i <c>BunkerNetworkManager</c>
+        /// çağırıyordu, yani çıkabilmek şuna bağlıydı: o nesnenin var olması,
+        /// <c>OnEnable</c>'ının koşmuş olması ve aboneliğinin hâlâ duruyor olması.
+        /// Sahnede ikinci bir <c>NetworkManager</c> var (log: <i>"Multiple
+        /// NetworkManagers detected"</i>) ve kopya yok edilirken <c>OnDisable</c>'ı
+        /// koşuyor; <b>statik</b> bir yöntemi bırakan <c>-=</c> hangi örneğin
+        /// bıraktığını ayırt edemez.</para>
+        ///
+        /// <para>Ders: <b>uygulamadan çıkmak bir ağ kararı değil</b> ve bir
+        /// dinleyicinin varlığına bağlanmamalı. Artık düğme doğrudan
+        /// <c>AppExit.Quit()</c> çağırıyor; o da önce bu olayı tetikleyip (temizlik)
+        /// sonra koşulsuz çıkıyor.</para>
+        /// </summary>
+        private const string AppExitNote = "bkz. Bunker.UI.AppExit";
 
         /// <summary>Ağ katmanı durumu bildirir. <b>Yalnızca <c>Bunker.Net</c> çağırır.</b></summary>
         public static void SetStatus(SessionStatus status, string error = null)
@@ -177,17 +293,20 @@ namespace Bunker.Systems.Net
             QuitRequested = null;
             StatusChanged = null;
             InviteRequested = null;
+            InviteFriendRequested = null;
             LobbyChanged = null;
             StartGameRequested = null;
 
             IsInLobby = false;
             IsHost = false;
             _lobbyPlayers.Clear();
+            _friends.Clear();
 
             Status = SessionStatus.Offline;
             LastError = string.Empty;
             CanInvite = false;
             JoinCode = string.Empty;
+            TransportLabel = string.Empty;
         }
     }
 }

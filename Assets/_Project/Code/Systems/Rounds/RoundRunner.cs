@@ -56,10 +56,18 @@ namespace Bunker.Systems.Rounds
 
         public int RemainingToSpawn => TotalForRound - SpawnedThisRound;
 
+        /// <summary>
+        /// Bu molanın uzunluğu. <b>Sıradaki turun numarasına göre</b> (2026-09-07):
+        /// molada <see cref="Round"/> henüz biten turdur, mola ise gelecek tura
+        /// hazırlıktır. Biten tura bakmak, sınırın tam üstünde molayı bir tur geç
+        /// uzatırdı.
+        /// </summary>
+        public float BreatherSeconds => _scaling.BreatherSecondsForRound(Round + 1);
+
         /// <summary>Molanın bitmesine kalan süre. Aktif turda sıfır.</summary>
         public float BreatherRemainingSeconds =>
             Phase == RoundPhase.Breather
-                ? Math.Max(0f, _scaling.BreatherSeconds - PhaseTimeSeconds)
+                ? Math.Max(0f, BreatherSeconds - PhaseTimeSeconds)
                 : 0f;
 
         /// <summary>Bu tick'te yeni bir tur başladı mı. <b>Tek tick doğrudur.</b></summary>
@@ -85,7 +93,7 @@ namespace Bunker.Systems.Rounds
 
             if (Phase == RoundPhase.Breather)
             {
-                if (PhaseTimeSeconds < _scaling.BreatherSeconds) return 0;
+                if (PhaseTimeSeconds < BreatherSeconds) return 0;
 
                 BeginRound();
                 return 0;

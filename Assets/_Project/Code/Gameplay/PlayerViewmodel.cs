@@ -32,6 +32,10 @@ namespace Bunker.Gameplay
         [SerializeField] private PlayerWeapon weapon;
         [SerializeField] private PlayerMelee melee;
 
+        [Tooltip("Silah modelleri. Bosken elde gri kutu silah gorunur - " +
+                 "Bunker > Gorunum > Magaza Modellerini Bagla ile doldurulur.")]
+        [SerializeField] private Bunker.Config.ArtCatalogAsset art;
+
         // --- yerlesim (muhendislik sabitleri: denge degeri degil, el konumu) ---
         private static readonly Vector3 GunHome = new Vector3(0.17f, -0.15f, 0.42f);
         private static readonly Vector3 KnifeHome = new Vector3(0.22f, -0.18f, 0.36f);
@@ -43,6 +47,12 @@ namespace Bunker.Gameplay
         private Transform _rig;
         private Transform _gun;
         private Transform _knife;
+
+        // --- eller ve kollar (2026-09-07)
+        private Transform _armRight;
+        private Transform _armLeft;
+        private Transform _magazine;
+        private Vector3 _magazineHome;
         private GameObject _muzzleFlash;
         private Light _muzzleLight;
 
@@ -63,6 +73,39 @@ namespace Bunker.Gameplay
         private Material _gunMaterial;
         private Material _accentMaterial;
         private Vector3 _muzzleTip = new Vector3(0f, 0.005f, 0.235f);
+
+        // Bicak gorunumu (2026-09-08): hangi bicagin govdesi kurulu, ucu nerede ve
+        // gri kutu geri dusus yolunun materyalleri.
+        private string _builtMeleeId;
+        private Vector3 _knifeTip = new Vector3(0f, 0.02f, 0.25f);
+
+        /// <summary>
+        /// Bıçağın ucunun el modelindeki yeri. Savuruş izi ya da kan sıçraması
+        /// buraya bağlanır; ölçüsü üreteçten geliyor
+        /// (<c>ArtIntegration.MeasureMelee</c>), tahmin değil.
+        /// </summary>
+        public Vector3 MeleeTipLocal => _knifeTip;
+        private Material _knifeBladeMaterial;
+        private Material _knifeGuardMaterial;
+        private Material _knifeHandleMaterial;
+
+        /// <summary>
+        /// Savuruşun görsel süresi. <b>Bıçağın kendi ritminden gelir</b> (2026-09-08):
+        /// baltanın bekleme süresi hançerinkinin iki katı ve savuruş animasyonu sabit
+        /// kalsaydı, balta hızlı savrulup uzun beklerdi — oyuncunun okuduğu şey
+        /// "ağır bir silah" değil "gecikmeli bir silah" olurdu.
+        /// </summary>
+        private float SwingDurationSeconds
+        {
+            get
+            {
+                if (melee == null || !melee.Current.IsValid) return SwingSeconds;
+
+                // Savurus, bekleme suresinin yarisi kadar surer: kalan yari
+                // toparlanmadir ve o sirada bicak zaten bekleme konumuna doner.
+                return Mathf.Clamp(melee.Current.CooldownSeconds * 0.5f, 0.18f, 1.2f);
+            }
+        }
 
         private void Awake()
         {
@@ -129,6 +172,13 @@ namespace Bunker.Gameplay
             // karsilastirmasi; degismedigi surece hicbir sey yapmaz.
             RebuildGun();
 
+            // Bicak da degisebilir (hancer -> kilic -> balta). Ayni desen, ayni
+            // bedel: degismedigi surece bir string karsilastirmasi.
+            if (melee != null && _knife != null && melee.Current.Id != _builtMeleeId)
+            {
+                BuildKnifeBody(melee.Current.Id);
+            }
+
             // Kamera LateUpdate'te donuyor (PlayerController); el ondan SONRA
             // yerlesmeli, yoksa hizli donuste bir kare geride kalir ve titrer.
             if (_rig == null) return;
@@ -156,7 +206,7 @@ namespace Bunker.Gameplay
             if (_swingTimer < 0f) return;
 
             _swingTimer += dt;
-            if (_swingTimer >= SwingSeconds) _swingTimer = -1f;
+            if (_swingTimer >= SwingDurationSeconds) _swingTimer = -1f;
         }
 
         private void TickReload(float dt)
@@ -166,6 +216,50 @@ namespace Bunker.Gameplay
             // Yumusak gecis: dolum aninda silahin bir kare icinde asagi firlamasi
             // "bozuldu" gibi okunur.
             _reloadBlend = Mathf.MoveTowards(_reloadBlend, reloading ? 1f : 0f, dt * 5f);
+
+            TickMagazine(reloading);
+        }
+
+        /// <summary>
+        /// Şarjörün <b>çıkıp geri girmesi</b>. 2026-09-07 (geliştirici:
+        /// <i>"yapabiliyorsan şarjör değiştirme animasyonunu da ekle"</i>).
+        ///
+        /// <para><b>Faz silahın kendi ilerlemesinden okunur</b>
+        /// (<c>ReloadProgress01</c>), ayrı bir sayaçtan değil. Ayrı sayaç tutsaydık,
+        /// dolum süresini değiştiren bir kart (<c>ReloadSpeed</c>) animasyonu
+        /// senkronunu bozardı — şarjör silah çoktan dolduktan sonra yerine oturur ve
+        /// oyuncu "bitti mi bitmedi mi" sorusunu ekrandan okuyamazdı. Animasyon durumu
+        /// takip eder, durum animasyonu beklemez (gameplay-code.md).</para>
+        ///
+        /// <para><b>Üç evre:</b> ilk %30 düşer, ortada aşağıda kalır, son %35'te geri
+        /// sürülür. Ortadaki boşluk bilerek: doluma "bir şey oluyor" süresi veren şey
+        /// hareketin kendisi değil, <i>duraklaması</i>.</para>
+        /// </summary>
+        private void TickMagazine(bool reloading)
+        {
+            if (_magazine == null) return;
+
+            if (!reloading)
+            {
+                _magazine.localPosition = _magazineHome;
+                _magazine.localRotation = Quaternion.identity;
+                return;
+            }
+
+            float t = weapon != null ? weapon.ReloadProgress01 : 0f;
+
+            // 0.0 - 0.30 dusus | 0.30 - 0.65 asagida | 0.65 - 1.0 geri surme
+            float drop;
+            if (t < 0.30f) drop = Mathf.SmoothStep(0f, 1f, t / 0.30f);
+            else if (t < 0.65f) drop = 1f;
+            else drop = Mathf.SmoothStep(1f, 0f, (t - 0.65f) / 0.35f);
+
+            _magazine.localPosition = _magazineHome
+                                      + new Vector3(0f, -0.16f, -0.03f) * drop;
+
+            // Dusen sarjor hafif doner: dumduz asagi inen bir kutu, bir asansor
+            // gibi okunur.
+            _magazine.localRotation = Quaternion.Euler(drop * 22f, 0f, drop * -14f);
         }
 
         private void TickMuzzle(float dt)
@@ -207,7 +301,7 @@ namespace Bunker.Gameplay
                                           Mathf.Sin(_bobPhase * 2.1f) * 0.003f, 0f);
 
             bool swinging = _swingTimer >= 0f;
-            float swing01 = swinging ? _swingTimer / SwingSeconds : 0f;
+            float swing01 = swinging ? Mathf.Clamp01(_swingTimer / SwingDurationSeconds) : 0f;
 
             // --- silah
             Vector3 gunPos = GunHome + sway + breathe;
@@ -231,17 +325,43 @@ namespace Bunker.Gameplay
             // --- bicak
             if (swinging)
             {
-                // Sagdan sola, once hizli sonra yavas: savurusun agirligi burada okunur.
-                float arc = Mathf.Sin(swing01 * Mathf.PI);
-                float across = Mathf.SmoothStep(0f, 1f, swing01);
+                // SAVURUS UC PARCA: geri cek, indir, topla (2026-09-08).
+                //
+                // <b>Neden degisti</b> (gelistirici: "bu melee saldirisinin
+                // animasyonunu guzelce elden gecir"): onceki hareket tek yonlu bir
+                // kaydirmaydi - bicak sagdan sola suzuluyordu ve hicbir yerde
+                // HIZLANMIYORDU. Bir savurusun okunmasini saglayan sey gerilimidir:
+                // once geri gider (ilk %22), sonra hizla iner, sonra toparlanir.
+                // Zombinin kol animasyonundaki egrinin aynisi, ayni sebeple.
+                const float windup01 = 0.22f;
 
-                _knife.localPosition = Vector3.Lerp(KnifeHome, KnifeHome + new Vector3(-0.45f, 0.10f, 0.10f), across)
-                                       + Vector3.up * (arc * 0.06f) + sway;
+                float wind = Mathf.Clamp01(swing01 / windup01);
+                float strike = Mathf.Clamp01((swing01 - windup01) / (1f - windup01));
 
+                // Geri cekme yumusak baslar, iniş SERT: kare-alma egrisi hizlanmayi
+                // gozle okunur kilar.
+                float pull = Mathf.SmoothStep(0f, 1f, wind) * (1f - strike);
+                float chop = strike * strike;
+
+                // Toparlanma: son ceyrekte bicak bekleme yonune donmeye baslar.
+                float settle = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.72f, 1f, swing01));
+
+                // Yol: sag-yukari-geriden, sol-asagi-oneye. Capraz bir kesme, yatay
+                // bir suzulmeden cok daha okunur ve bicagin agirligini tasir.
+                Vector3 back = new Vector3(0.12f, 0.14f, -0.16f);
+                Vector3 through = new Vector3(-0.34f, -0.22f, 0.18f);
+
+                Vector3 offset = back * pull + through * chop;
+                offset = Vector3.Lerp(offset, KnifeStowed - KnifeHome, settle * 0.55f);
+
+                _knife.localPosition = KnifeHome + offset + sway;
+
+                // Donus de ayni ucluyu izler: geri cekerken bilek burkulur, inerken
+                // agiz one doner.
                 _knife.localRotation = Quaternion.Euler(
-                    -20f + arc * 40f,
-                    -30f + across * 90f,
-                    -25f + arc * 55f);
+                    -14f - pull * 46f + chop * 78f,
+                    -22f - pull * 24f + chop * 64f,
+                    -18f - pull * 30f + chop * 72f);
             }
             else
             {
@@ -281,12 +401,17 @@ namespace Bunker.Gameplay
             {
                 Transform child = _gun.GetChild(i);
                 if (child == null) continue;
+
+                // Alev, isik ve KOLLAR silahin degil elin parcasi: silah degisince
+                // yeniden kurulmalari, her degistirmede iki kol yaratip eskisini
+                // silmek demek olurdu (ve bir kare boyunca dort kol).
                 if (child.name == "MuzzleFlash" || child.name == "MuzzleLight") continue;
+                if (child.name == "ArmRight" || child.name == "ArmLeft") continue;
 
                 Destroy(child.gameObject);
             }
 
-            _muzzleTip = WeaponShape.Build(_gun, id, 1f, _gunMaterial, _accentMaterial);
+            _muzzleTip = WeaponShape.Build(_gun, id, 1f, _gunMaterial, _accentMaterial, art);
 
             if (_muzzleFlash != null) _muzzleFlash.transform.localPosition = _muzzleTip;
 
@@ -294,6 +419,10 @@ namespace Bunker.Gameplay
             {
                 _muzzleLight.transform.localPosition = _muzzleTip + new Vector3(0f, 0.015f, 0.045f);
             }
+
+            // Destek eli silahin boyuna gore kayar: tabancada govdenin dibinde,
+            // tufekte on govdede.
+            PlaceSupportHand();
         }
 
         private void BuildRig()
@@ -347,15 +476,207 @@ namespace Bunker.Gameplay
 
             _muzzleFlash.SetActive(false);
 
+            BuildArms();
+
             // --- bicak
             var knife = new GameObject("Knife");
             knife.transform.SetParent(_rig, false);
             knife.transform.localPosition = KnifeStowed;
             _knife = knife.transform;
 
-            Part(_knife, "Blade", new Vector3(0f, 0.02f, 0.14f), new Vector3(0.016f, 0.042f, 0.22f), bladeMaterial);
-            Part(_knife, "Guard", new Vector3(0f, 0.02f, 0.02f), new Vector3(0.060f, 0.016f, 0.020f), gunMaterial);
-            Part(_knife, "Handle", new Vector3(0f, 0.00f, -0.05f), new Vector3(0.028f, 0.032f, 0.10f), accentMaterial);
+            _knifeBladeMaterial = bladeMaterial;
+            _knifeGuardMaterial = gunMaterial;
+            _knifeHandleMaterial = accentMaterial;
+
+            BuildKnifeBody(melee != null ? melee.Current.Id : null);
+        }
+
+        /// <summary>
+        /// Eldeki bıçağın <b>gövdesini</b> kurar; bıçak değişince yeniden çağrılır.
+        /// 2026-09-08.
+        ///
+        /// <para><b>Neden gerçek model</b> (geliştirici: <i>"bu melee saldırısının
+        /// meshlerini vs güzelce elden geçir, daha düzgün ve gerçekçi gözüksün"</i>):
+        /// üç kutudan yapılmış bir bıçak, üç ayrı bıçağı da aynı gösterir — yani
+        /// 2000 puana alınan baltanın karşılığı ekranda hiç görünmez. Model kataloğu
+        /// ateşli silahlarda zaten çalışıyordu; bıçak tek istisna kalmıştı.</para>
+        ///
+        /// <para><b>Geri düşüş yolu duruyor:</b> katalog eksikse gri kutu bıçak kurulur.
+        /// Elin boş kalması, oyuncunun ne taşıdığını göremediği <i>sessiz</i> bir hata
+        /// olurdu — <see cref="WeaponShape"/>'teki aynı kural.</para>
+        /// </summary>
+        private void BuildKnifeBody(string meleeId)
+        {
+            if (_knife == null) return;
+
+            // Onceki govde SILINIR: eklemek, hancerin uzerine kilic koymak demekti.
+            for (int i = _knife.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_knife.GetChild(i).gameObject);
+            }
+
+            _builtMeleeId = meleeId;
+
+            if (!string.IsNullOrEmpty(meleeId) &&
+                WeaponShape.BuildMelee(_knife, meleeId, 1f, art, out Vector3 tip))
+            {
+                _knifeTip = tip;
+                return;
+            }
+
+            Part(_knife, "Blade", new Vector3(0f, 0.02f, 0.14f), new Vector3(0.016f, 0.042f, 0.22f), _knifeBladeMaterial);
+            Part(_knife, "Guard", new Vector3(0f, 0.02f, 0.02f), new Vector3(0.060f, 0.016f, 0.020f), _knifeGuardMaterial);
+            Part(_knife, "Handle", new Vector3(0f, 0.00f, -0.05f), new Vector3(0.028f, 0.032f, 0.10f), _knifeHandleMaterial);
+
+            _knifeTip = new Vector3(0f, 0.02f, 0.25f);
+        }
+
+        /// <summary>
+        /// Silahı tutan <b>eller ve kollar</b>. 2026-09-07.
+        ///
+        /// <para><b>Neden gerekti</b> (geliştirici): <i>"silahlar çok havada
+        /// gözüküyor, CS'de EFT'de olduğu gibi elle tuttuğu kolları falan
+        /// gözüksün."</i> Doğru teşhis: havada süzülen bir silah, ekranın alt köşesine
+        /// yapıştırılmış bir arayüz öğesi gibi okunur. Kol, silahı <b>bir bedene</b>
+        /// bağlar; o bedenin de bir ağırlığı ve bir mesafesi olur ve geri tepme
+        /// birdenbire <i>hissedilir</i>.</para>
+        ///
+        /// <para><b>Neden kutulardan, modellenmiş bir karakterden değil:</b> elle
+        /// modellenmiş bir çift FPS eli, iskeleti, ağırlık boyaması ve tutuş pozları
+        /// olan ayrı bir iştir — ve sanat yönü hâlâ kilitlenmedi (<c>/art-direction</c>
+        /// çalışmadı). Kilitlenmeden yapılan bir karakter modeli atılacak iştir. Gri
+        /// kutunun kuralı burada da geçerli: <i>okunabilir olsun, güzel olmasın.</i>
+        /// Kol iki parçadan (üst kol + ön kol) ve bir avuçtan kuruluyor; siluet
+        /// "silahı tutan bir kol" diyor, gerisi sanat geldiğinde değişecek.</para>
+        ///
+        /// <para><b>Sağ kol silahın kabzasında, sol kol ön gövdede</b> — gerçek bir
+        /// tutuş. İkisi de silahın ÇOCUĞU: silah geri teptiğinde, dolum için indiğinde
+        /// ve savuruşta çekildiğinde kollar onunla gider. Ayrı yaşasalardı her
+        /// hareket için ikinci bir animasyon yazmak gerekirdi ve ikisi zamanla
+        /// birbirinden ayrılırdı.</para>
+        /// </summary>
+        private void BuildArms()
+        {
+            Material skin = MakeMaterial(new Color(0.52f, 0.40f, 0.33f));
+            Material sleeve = MakeMaterial(new Color(0.22f, 0.24f, 0.22f));
+
+            // --- SAG KOL: kabzayi tutar. Kameradan asagi-saga dogru uzanir.
+            var right = new GameObject("ArmRight");
+            right.transform.SetParent(_gun, false);
+            _armRight = right.transform;
+
+            // Kol iki BORU parcasindan: ust kol ve on kol, dirsekte aciyla birlesir.
+            // Tek duz bir boru "protez" gibi okunur; dirsek acisi kolu canli yapar.
+            Limb(_armRight, "UpperArm", new Vector3(0.105f, -0.255f, -0.30f),
+                 new Vector3(0.045f, -0.140f, -0.115f), sleeve, 1.15f);
+            Limb(_armRight, "Forearm", new Vector3(0.045f, -0.140f, -0.115f),
+                 new Vector3(0.014f, -0.070f, -0.020f), sleeve, 1f);
+
+            Hand(_armRight, new Vector3(0.012f, -0.062f, -0.014f),
+                 Quaternion.Euler(-22f, -8f, 0f), skin);
+
+            // --- SOL KOL: on govdeyi destekler. Namluya dogru uzanir, yani
+            //     silah uzadikca elin de ileri gitmesi gerekir - konumu silahin
+            //     namlu ucundan turetiliyor (RebuildGun yeniden yerlestirir).
+            var left = new GameObject("ArmLeft");
+            left.transform.SetParent(_gun, false);
+            _armLeft = left.transform;
+
+            Limb(_armLeft, "UpperArm", new Vector3(-0.185f, -0.250f, -0.14f),
+                 new Vector3(-0.115f, -0.140f, 0.030f), sleeve, 1.10f);
+            Limb(_armLeft, "Forearm", new Vector3(-0.115f, -0.140f, 0.030f),
+                 new Vector3(-0.056f, -0.062f, 0.125f), sleeve, 1f);
+
+            Hand(_armLeft, new Vector3(-0.050f, -0.055f, 0.135f),
+                 Quaternion.Euler(-34f, 14f, 0f), skin);
+
+            // --- SARJOR: dolum animasyonunun tasidigi tek nesne. Silahin degil
+            //     SOL ELIN yanindadir - dolum sirasinda el onu asagi cekip geri
+            //     surer, yani hareket eden sey elin isi.
+            var magazine = new GameObject("Magazine");
+            magazine.transform.SetParent(_armLeft, false);
+            _magazine = magazine.transform;
+            _magazineHome = new Vector3(-0.045f, -0.045f, 0.10f);
+            _magazine.localPosition = _magazineHome;
+
+            Part(_magazine, "Body", Vector3.zero, new Vector3(0.030f, 0.095f, 0.055f), sleeve);
+
+            // Kollar silahtan SONRA kuruldugu icin ilk yerlesim burada yapilir;
+            // RebuildGun'daki cagri o an _armLeft henuz yokken bos donmustu.
+            PlaceSupportHand();
+        }
+
+        /// <summary>
+        /// Sol elin silahın boyuna göre yerleşmesi: <b>uzun silahta el daha ileride</b>.
+        /// Sabit bir konum, tabancada eli namlunun ucuna, tüfekte gövdenin ortasına
+        /// koyardı — ikisi de tutuş gibi görünmez.
+        /// </summary>
+        private void PlaceSupportHand()
+        {
+            if (_armLeft == null) return;
+
+            // Namlu ucunun yarisi kadar ileride, ama makul bir aralikta: tabancada
+            // el gövdenin dibinde, tufekte on gövdede durur.
+            float forward = Mathf.Clamp(_muzzleTip.z * 0.45f, 0.06f, 0.34f);
+
+            Vector3 position = _armLeft.localPosition;
+            position.z = forward - 0.10f;
+            _armLeft.localPosition = position;
+        }
+
+        /// <summary>
+        /// İki nokta arasına bir <b>kol parçası</b> koyar (üretilmiş daralan boru).
+        ///
+        /// <para><b>Neden iki nokta, boyut değil:</b> bir kol parçasının doğal tarifi
+        /// "şuradan şuraya" — omuzdan dirseğe, dirsekten bileğe. Konum + boyut ile
+        /// tarif etmek, dirsek açısını her ayarda elle yeniden hesaplamak demekti ve
+        /// eklem yerleri kaçıyordu.</para>
+        /// </summary>
+        private static void Limb(Transform parent, string name, Vector3 from, Vector3 to,
+                                 Material material, float thickness)
+        {
+            Vector3 delta = to - from;
+            float length = delta.magnitude;
+            if (length < 1e-4f) return;
+
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = from;
+            go.transform.localRotation = Quaternion.LookRotation(delta / length, Vector3.up);
+
+            // Mesh'in boyu 1 birim; olcek uzunlugu ve kalinligi birlikte verir.
+            go.transform.localScale = new Vector3(thickness, thickness, length);
+
+            var filter = go.AddComponent<MeshFilter>();
+            filter.sharedMesh = ArmMesh.Arm();
+
+            Paint(go.AddComponent<MeshRenderer>(), material);
+        }
+
+        /// <summary>Eli koyar (avuç + parmaklar, üretilmiş mesh).</summary>
+        private static void Hand(Transform parent, Vector3 localPosition,
+                                 Quaternion localRotation, Material material)
+        {
+            var go = new GameObject("Hand");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPosition;
+            go.transform.localRotation = localRotation;
+
+            var filter = go.AddComponent<MeshFilter>();
+            filter.sharedMesh = ArmMesh.Hand();
+
+            Paint(go.AddComponent<MeshRenderer>(), material);
+        }
+
+        /// <summary>
+        /// El modelinin çizim ayarları: <b>gölge yok, ışın yok</b>. Kameraya yapışık
+        /// bir nesnenin gölge çizmesi hem bedava değil hem de yanlış görünür.
+        /// </summary>
+        private static void Paint(Renderer renderer, Material material)
+        {
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
         private static void Part(Transform parent, string name, Vector3 localPosition,

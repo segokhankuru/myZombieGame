@@ -37,8 +37,13 @@ yeniden yazım mı olacağını belirler.
 
 ## Geliştirme yaklaşımı
 1. **Klon taban = kontrol grubu** (M-01) — klasik döngüyü sadık inşa et, ölçüm referansı üret
-2. **Kendi sistemleri** (M-03) — kart draft'ı, ödül yapısı. Hâlâ gri kutuda
+2. **Kendi sistemleri** (M-03) — kart draft'ı, ödül yapısı
 3. **Görsel makyaj** — asset, ışık, ses, dönem kimliği
+
+**Sıra kaydı (2026-09-07/08):** 2 ve 3 planlanandan erken ve **iç içe** ilerledi. Bunun
+bedeli kayıtlı: ÇK-17 artık temiz gri kutuda ölçülemiyor (atmosfer F10 ile kapansa da
+kartlar ve sanat duruyor). Kazancı da kayıtlı: farklılaştırıcı, en ucuz olduğu anda
+test edilebilir hâle geldi — PILLAR'ların istediği buydu.
 
 Mekanik kopyalanır, kimlik kopyalanmaz: isimler, sesler, görsel imzalar ve **kat planı**
 prototipte bile girmez.
@@ -49,7 +54,8 @@ prototipte bile girmez.
 | Engine | Unity 6000.3.23f1 LTS, Personal | ADR-0002 |
 | Render pipeline | URP (Forward+) | ADR-0003 |
 | Netcode | Mirror (MIT), host otoriteli, hareket client-authoritative | ADR-0004 |
-| Transport | KCP (yerel) → FizzySteamworks (M-02) | ADR-0004 |
+| Transport | FizzyFacepunch (Steam), Steam kapalıysa **KCP'ye düşer ve söyler** | ADR-0004 / ADR-0007 |
+| Mağaza sanatı | Altı paket; üçüncü parti salt okunur, oyun üretilmiş URP kopyasını kullanır | ADR-0008 |
 | Ses | Varlıksız: `Bunker.Audio` sesleri çalışma anında sentezler | ADR-0006 |
 
 **ADR-0001 supersede edildi** (FishNet). Gerekçe zinciri belgede duruyor.
@@ -78,10 +84,17 @@ Detay: `docs/architecture/ARCHITECTURE.md`
 tur akışı · M1-06 silah · M1-07 bıçak · M1-08 barikat · M1-09 kapı · M1-10 duvar
 silahı · M1-11 ölüm/skor ekranı · M1-12 telemetri · M1-13 vuruş hissi
 
-**İki oyun testi koşuldu** (2026-09-05). İkincisinin sekiz bulgusu kapatıldı: el modeli
-(silah + bıçak görünür), üst kat kapısı artık atlanamıyor (rampa kapalı merdiven
-boşluğu), tezgâh üst katta, mermi 250 puan, zombi hızlanması yavaşlatıldı, zombiye gövde
-ve kopan bacak (sürünme), **ses geldi** (ADR-0006). Detay: `docs/DECISIONS.md`.
+**Üç oyun testi koşuldu** (2026-09-05) ve bulgularının tamamı kapatıldı. Sonrasında
+M-01'in dışına taşan işler de girdi ve **oyun artık gri kutu değil**: ana menü + lobi
+(M-04), Steam daveti (ADR-0007), Asset Store sanatı (ADR-0008), co-op yere düşme /
+kaldırılma, kart havuzu (37 kart) ve tezgâh, dört ateşli silah + üç yakın dövüş silahı,
+eşya düşürme (drop), dış hava ve dış arazi. Kararların tamamı `docs/DECISIONS.md`'de bir
+satır; uzun anlatımları `docs/archive/`'da.
+
+**Teşhis hattı iki dosyaya çıktı** (2026-09-08): `telemetry/runs.jsonl` run özetini,
+`telemetry/session-<zaman>.log` her hasar olayını satır satır tutuyor — ölüm anında son
+16 vuruş aralarındaki süreyle dökülüyor. "Tek mi yiyorum" sorusu artık tahminle
+cevaplanmıyor.
 
 **Sıradaki yine kod değil, oynamak.** Protokol:
 `docs/qa/playtests/PT-01-ck17-tekrar-oynatiyor-mu.md` — kalan iki seans (kapalı zarflı öz
@@ -95,7 +108,7 @@ test → arkadaşlar). **Build hazır:** `Bunker.exe` çıkıyor ve açılıyor.
 | ÇK-13 tur 10'a ~15 dk | ❌ **ölçüldü: ~8.8 dk — hedefin ALTINDA** (PT-01/Sonuç-01) |
 | ÇK-14 üç bölge açılıyor | 🔶 modelde karşılanıyor, **iki kırılma var** |
 | ÇK-15 40 zombi bütçede | ✅ **ölçüldü** — p99 bütçenin %8.5'i |
-| ÇK-16 Unity'siz test | ✅ 263 test yeşil |
+| ÇK-16 Unity'siz test | ✅ 335 test yeşil |
 | **ÇK-17 tekrar oynatıyor mu** | 🔶 **ilk sinyal olumlu** (7 dk, "keyifliydi") ama 20 dk değil; kartlar girdiği için temiz kontrol grubu artık ölçülemez |
 
 **Oyun testinde aranacak bulgu** (`design/economy/curves.md`): geç oyunda harcanacak bir
@@ -106,10 +119,11 @@ test → arkadaşlar). **Build hazır:** `Bunker.exe` çıkıyor ve açılıyor.
 **Altyapı:** config importer (ADR-0005) — denge sayıları tek kaynakta ·
 zombi konum seam'i kilitlendi: tek paket, 12 bayt/zombi, 10 Hz ·
 **telemetri hattı** (M1-12): her run `telemetry/runs.jsonl`'a bir satır,
-`.claude/tools/telemetry.ps1` özetler ve ÇK-13'ü cevaplar
+`.claude/tools/telemetry.ps1` özetler ve ÇK-13'ü cevaplar ·
+**savaş günlüğü**: her oturum `telemetry/session-*.log`, hasar olayları satır satır
 **Blocked:** kapsam sayıları (silah/zombi/kart adedi) bilinçli olarak ertelendi
 
-**Toplam 263 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
+**Toplam 335 EditMode testi yeşil.** Derleme ve testler Unity açmadan koşuyor:
 `.claude/tools/unity-test.ps1`, `.claude/tools/unity-exec.ps1`.
 
 **Oyun testinde bulunan 5 hata düzeltildi** (BUG-001…005, `docs/qa/bugs/`). Ortak ders:
@@ -126,3 +140,13 @@ teşhis oyun testine kaldı.
   zombi konum senkronu tek seam'den (`NetworkTransform` zombide yasak).
 - **PILLAR-02 M-01'de hiç sınanamaz** — solo build takım muhtaçlığını test edemez.
 - IP sınırı: mekanik serbest, kimlik ve kat planı değil.
+- **Yayın öncesi kaldırılacak geliştirme araçları** (PILLAR-04): zombi can barları ve
+  üstündeki sayılar (`ZombieSetup` → `showInBuild`, `ZombieHealthLabels`). Şu an build'de
+  bilerek açık — oyun testleri build üzerinde yapılıyor.
+- **Ölçülmemiş yeni yük** (2026-09-08): dış arazi 222 parça (ağaç/çalı/taş/çim) ve iki
+  büyük saydam bulut katmanı. Yukarı bakınca overdraw var. Sıradaki `/perf-check`'in ilk
+  kalemi bu; frame bütçesi hâlâ eski ölçüme dayanıyor.
+- **Zombi vuruş hasarı turla ARTMIYOR** ve bu bir hata değil: `zombie.json →
+  attack.damage` sabit 30, tur ölçeklemesi yalnızca can/hız/adet üretiyor (tek çarpan
+  boss ×2). "Tek yiyorum" hissinin kaynağı aynı karede vuran zombi sayısı; savaş günlüğü
+  bunu ölçmek için var. Eğri değişecekse bu bilinçli bir `/tune` kararı olmalı.

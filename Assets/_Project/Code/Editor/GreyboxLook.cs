@@ -218,6 +218,59 @@ namespace Bunker.Editor
             result["Shop"] = LoadOrCreate(ref changed, "mat_shop_greybox", ShopColor,
                                           unlit: true);
 
+            // BUNKERIN YUZEYI: kanli ahsap (2026-09-07, gelistirici istegi).
+            //
+            // Cevre duvari ONCE ayri bir anahtara kopyalanir: o disarisi ve gri
+            // kalmali. Ikisi ayni malzeme olsaydi, pencereden bakan oyuncu "hala
+            // icerideyim" okurdu - ic ve dis arasindaki tek isaret malzeme.
+            result["Perimeter_"] = Get(result, "Wall_");
+
+            Material wood = ArtIntegration.EnsureBloodyWood();
+            Material woodFloor = ArtIntegration.EnsureBloodyWoodFloor();
+
+            Material concrete = ArtIntegration.EnsureConcreteWall();
+
+            if (wood != null && woodFloor != null)
+            {
+                // DUVAR BETON, ZEMIN AHSAP (2026-09-08, gelistirici: "bunker
+                // binasinin duvarlarini wasteland paketindeki wall'u kullan, beton
+                // gorunumu verecek; zeminine tahta assetinin kanli olanini kullan").
+                //
+                // Onceki hal ikisini de ayni kanli ahsaptan yapiyordu, yalnizca biri
+                // koyultulmustu. Ayni malzemeden iki yuzey, karanlik bir odada duvarin
+                // nerede bittigini okunmaz kilar (PILLAR-04). Kontrast artik
+                // MALZEMEDEN geliyor, tek bir parlaklik farkindan degil.
+                //
+                // Beton bulunamazsa ahsaba duser: eksik bir doku, duvarsiz bir bina
+                // yapmamali.
+                result["Wall_"] = concrete != null ? concrete : wood;
+
+                // ZEMIN DE AHSAP (2026-09-07, gelistirici: "tahtalari duvara
+                // dosemissin, yere de dose"), ama KOYU varyanti: zemin sahnenin en
+                // koyu yuzeyi kalmali ki ustunde duran zombi, esya ve delik kenari
+                // ondan ayrilsin (PILLAR-04). Duvarla birebir ayni malzeme, karanlik
+                // bir odada nerede durdugunu okunmaz yapardi.
+                result["Floor_Ground"] = woodFloor;
+
+                // DISARISI CAMUR (2026-09-07): ic mekan ahsap, disarisi islak toprak.
+                // Malzeme farki, "icerisi" ile "disarisi" arasindaki en hizli okunan
+                // sinir - pencereden bakan oyuncu hangi tarafta oldugunu bilmeli.
+                Material mud = MudSurface.Ensure();
+                if (mud != null) result["Apron_"] = mud;
+
+                // Ust kat zemini ACIK kalir - paletteki gerekcesi aynen gecerli:
+                // "hangi kattasin, bakmadan bilinir". Iki kat ayni AHSAPLA doseniyor
+                // ama farkli deger tasiyor; ayni dilin iki tonu. (Duvar artik beton
+                // oldugu icin 'wood' burada yalnizca zemin varyanti demek.)
+                result["Floor_C"] = wood;
+            }
+            else
+            {
+                Debug.LogWarning("[Gorunum] Kanli ahsap materyali uretilemedi; duvarlar " +
+                                 "ve zemin gri kutu kaldi. Tim's Substances paketi " +
+                                 "eksik olabilir.");
+            }
+
             return result;
         }
 
@@ -320,8 +373,27 @@ namespace Bunker.Editor
             int changed = 0;
             var unmatched = new List<string>();
 
+            Transform decor = root.transform.Find("Decor_Outside");
+
+            // Dis arazi (2026-09-08): Toby bitkileri, toprak yollar ve bulut tavani.
+            // Dekorla AYNI gerekceyle atlanir - hepsi kendi materyalleriyle geliyor ve
+            // bir role eslesmesi beklenmiyor. Atlanmasaydi uyari 951 satir bagirirdi
+            // ve gercek bir eslesmeme oldugunda kimse listeye bakmazdi.
+            //
+            // Bitkiler icin bu YALNIZCA gurultu meselesi degil: Toby shader'i rüzgar
+            // ve yaprak saydamligini tasiyor; gri kutu materyaline cevrilmeleri
+            // agaclari donuk, yapraklari dikdortgen yapardi.
+            Transform scenery = root.transform.Find("Scenery_Outside");
+
             foreach (MeshRenderer renderer in root.GetComponentsInChildren<MeshRenderer>(true))
             {
+                // Dis dekor (2026-09-07) gri kutu paletinin DISINDA: kendi URP
+                // materyalleriyle geliyor ve bir role eslesmesi beklenmiyor. Burada
+                // raporlansaydi uyari her kosuda 46 satir bagirir, gercek bir
+                // eslesmeme oldugunda kimse listeye bakmazdi.
+                if (decor != null && renderer.transform.IsChildOf(decor)) continue;
+                if (scenery != null && renderer.transform.IsChildOf(scenery)) continue;
+
                 Material match = MatchByName(renderer.transform, materials);
 
                 if (match == null)
@@ -392,9 +464,11 @@ namespace Bunker.Editor
             if (name.StartsWith("Apron", System.StringComparison.Ordinal))
                 return Get(materials, "Apron_");
 
-            // Cevre duvari: duvar dilini paylasir - oyuncu icin de "duvar"dir.
+            // Cevre duvari GRI kalir (2026-09-07): bunkerin ahsap yuzeyi artik
+            // "icerisi" demek, dis beton ise "burasi baska bir yer". Ayni malzemeyi
+            // paylassalardi pencereden bakan oyuncu icerisiyle disarisini ayirt edemezdi.
             if (name.StartsWith("Perimeter", System.StringComparison.Ordinal))
-                return Get(materials, "Wall_");
+                return Get(materials, "Perimeter_");
 
             if (name.StartsWith("DropLip", System.StringComparison.Ordinal))
                 return Get(materials, "DropLip_");
@@ -616,11 +690,23 @@ namespace Bunker.Editor
                 // Materyallerde oldugu gibi ONCE KARSILASTIR: kosulsuz SetDirty,
                 // "iki kez calistirmak bir kez calistirmakla ayni" iddiasini koda
                 // degil sansa birakir. Materyal tarafinda bir kez isirilmistik.
+                // GOTIK, KAPALI HAVA (2026-09-08, gelistirici: "disarida hava kara
+                // bulutlarla kapanmis gibi gotik bir ortam hissettirsin").
+                //
+                // Bulutlarin kendisi ayri bir katman (OutdoorScenery -> StormClouds);
+                // burasi onun ALTINDAKI gokyuzu. Ikisi ayni cumleyi kurmali: bulut
+                // tavani koyu kursuni ise, arkasindaki gok acik mavi kalamaz - yirtik
+                // yerlerden gorunen sey o.
+                //
+                // AtmosphereThickness BUYUTULDU (0.75 -> 1.15): kalin atmosfer isigi
+                // dagitir ve ufku soluklastirir; "gunes var ama goremiyorsun" hissi
+                // buradan geliyor. Exposure DUSURULDU: kapali bir gunun toplam isigi
+                // acik bir gunun ceyregi kadardir ve sahne bunu soylemeli.
                 bool skyDirty = false;
-                skyDirty |= SetIfDifferent(sky, "_SkyTint", new Color(0.22f, 0.24f, 0.30f));
-                skyDirty |= SetIfDifferent(sky, "_GroundColor", new Color(0.10f, 0.10f, 0.11f));
-                skyDirty |= SetIfDifferent(sky, "_AtmosphereThickness", 0.75f);
-                skyDirty |= SetIfDifferent(sky, "_Exposure", 0.85f);
+                skyDirty |= SetIfDifferent(sky, "_SkyTint", new Color(0.15f, 0.16f, 0.19f));
+                skyDirty |= SetIfDifferent(sky, "_GroundColor", new Color(0.07f, 0.07f, 0.08f));
+                skyDirty |= SetIfDifferent(sky, "_AtmosphereThickness", 1.15f);
+                skyDirty |= SetIfDifferent(sky, "_Exposure", 0.55f);
 
                 if (skyDirty) { EditorUtility.SetDirty(sky); changed++; }
 

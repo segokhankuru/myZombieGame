@@ -22,8 +22,23 @@ namespace Bunker.AI
                  "ayaga degil - mesafe olcumu de oradan yapilmali.")]
         [SerializeField] private float aimHeightMeters = 1f;
 
+        [Tooltip("Hedefin govde yaricapi. Zombi menzili GOVDELER ARASINDAKI bosluktan " +
+                 "olculur, merkezler arasindan degil. CharacterController varsa ondan " +
+                 "okunur; bu alan yalnizca yedek. Denge degeri degil - fiziksel olcu.")]
+        [SerializeField] private float bodyRadiusMeters = 0.4f;
+
         private Transform _transform;
         private IDamageable _damageable;
+
+        /// <summary>
+        /// Hedefin gövde yarıçapı. Zombi vuruş menzili bunu <b>düşer</b>.
+        ///
+        /// <para><b>Neden hedef kendi yarıçapını söylüyor:</b> zombi
+        /// <c>CharacterController</c>'ı bilmez ve bilmemeli (<c>Bunker.AI</c>,
+        /// <c>Bunker.Gameplay</c>'e bağımlı değil). Ölçüyü taşıyan yer, ölçünün ait
+        /// olduğu nesnedir.</para>
+        /// </summary>
+        public float BodyRadiusMeters => bodyRadiusMeters;
 
         /// <summary>Zombinin nişan aldığı nokta (gövde ortası).</summary>
         public Vector3 Position
@@ -49,6 +64,12 @@ namespace Bunker.AI
             // Cana sahip olmak zorunlu degil: M1-04'te oyuncunun cani yok. Kare basina
             // GetComponent yasak oldugu icin bir kez cozuluyor (csharp-code.md).
             _damageable = GetComponent<IDamageable>();
+
+            // Yaricap ELLE girilen sayidan degil, gercek carpisandan gelsin: iki yerde
+            // duran bir olcu, birinin degismesiyle sessizce ayrisir (config-data.md'nin
+            // "hesaplanan deger saklanmaz" kuralinin fiziksel karsiligi).
+            var controller = GetComponent<CharacterController>();
+            if (controller != null) bodyRadiusMeters = controller.radius;
         }
 
         private void OnEnable() => ZombieTargets.Register(this);
@@ -60,14 +81,20 @@ namespace Bunker.AI
         /// "arkadan mi yedim onden mi" sorusu cevapsiz kalirsa oyuncu dogru tepkiyi
         /// veremez ve olum haksizlik gibi okunur.
         /// </param>
-        public void ReceiveAttack(float damage, Vector3 sourcePosition)
+        /// <param name="attackerName">
+        /// Vuranın günlükteki adı ("Zombi#42"). Savaş günlüğü buradan yazılır
+        /// (2026-09-08); <c>null</c> geçmek yalnızca satırı adsız bırakır.
+        /// </param>
+        public void ReceiveAttack(float damage, Vector3 sourcePosition,
+                                  string attackerName = null)
         {
             LastAttackerPosition = sourcePosition;
 
             // Yon hasarla birlikte gidiyor: HUD "nereden yedim" gostergesini bundan
             // cizer (DamageInfo.SourceX/SourceZ).
             _damageable?.ApplyDamage(new DamageInfo(damage, DamageKind.Melee, false,
-                                                    sourcePosition.x, sourcePosition.z));
+                                                    sourcePosition.x, sourcePosition.z,
+                                                    attackerName));
         }
 
         /// <summary>Son vuranin konumu. Can bileseni hasar olayina bunu ekler.</summary>

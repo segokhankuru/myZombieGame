@@ -29,8 +29,24 @@ namespace Bunker.Systems.Rounds
         /// <summary>Aynı anda canlı olabilecek maksimum zombi (PERF-BUDGET tavanı).</summary>
         public int MaxConcurrent => _config.CountMaxConcurrent;
 
-        /// <summary>Turlar arası nefes molası.</summary>
-        public float BreatherSeconds => _config.PacingBreatherSeconds;
+        /// <summary>
+        /// <paramref name="nextRound"/> başlamadan önceki nefes molası (2026-09-07).
+        ///
+        /// <para><b>Tek bir süre değil, iki süre.</b> İlk turlarda molada yapılacak iş
+        /// yoktur — barikat sağlamdır, tezgâhta alacak puan yoktur — ve 20 saniye boş
+        /// bekleme olarak geçer. Geç turlarda ise tamir, tezgâh, silah ve kart okuma
+        /// aynı molaya sığmak zorunda; kısa mola orada turu, oyuncunun göremediği bir
+        /// hazırlık eksiğiyle kaybettirir.</para>
+        ///
+        /// <para>Sınır ve iki değer <c>rounds.json → pacing</c>'de; buraya sayı
+        /// yazılmaz (config-data.md).</para>
+        /// </summary>
+        public float BreatherSecondsForRound(int nextRound)
+        {
+            return ClampRound(nextRound) <= _config.PacingBreatherEarlyUntilRound
+                ? _config.PacingBreatherSecondsEarly
+                : _config.PacingBreatherSecondsLate;
+        }
 
         /// <summary>
         /// Tur temizlenince geri gelen yedek mermi oranı (yedek <b>tavanının</b> oranı).

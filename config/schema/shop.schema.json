@@ -81,7 +81,7 @@
       "properties": {
         "baseCost": { "type": "integer", "minimum": 50, "maximum": 5000, "description": "Ilk alimin fiyati." },
         "costGrowth": { "type": "number", "minimum": 1.05, "maximum": 3, "description": "Her alimda fiyat carpani." },
-        "increment": { "type": "number", "minimum": 1, "maximum": 30, "description": "Her alimda eklenen MERMI (oran degil, adet). Sarjor kapasitesi tam sayidir." },
+        "increment": { "type": "number", "minimum": 0.02, "maximum": 0.5, "description": "Her alimda eklenen sarjor ORANI (0.10 = silahin kendi sarjorunun +%10'u). 2026-09-07'ye kadar mutlak mermiydi ve ayni kademe pompalida (6 mermi) SMG'dekinin bes kati ise yariyordu; oran, hattin vaadini butun silahlarda ayni tutar. Buyutursen dolum kararini yok eder, kucultursen kademe hissedilmez." },
         "maxTier": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Hattin tavani." }
       }
     }

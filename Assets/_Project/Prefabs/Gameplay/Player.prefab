@@ -21,6 +21,8 @@ GameObject:
   - component: {fileID: 7141545215752374328}
   - component: {fileID: 4344132020479491740}
   - component: {fileID: 7227001487057636917}
+  - component: {fileID: 5267344498263627180}
+  - component: {fileID: 6412149234775829127}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -197,6 +199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Bunker.AI::Bunker.AI.ZombieTargetBeacon
   aimHeightMeters: 1
+  bodyRadiusMeters: 0.4
 --- !u!114 &7851821998031307125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -213,6 +216,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   knifeConfig: {fileID: 11400000, guid: aa36df24865bb924caed78a2ae5d8488, type: 2}
+  meleeCatalog: {fileID: 11400000, guid: 372845ab5bf7bf54cbfaa70320564b99, type: 2}
   playerCamera: {fileID: 0}
 --- !u!114 &3373046144908580758
 MonoBehaviour:
@@ -251,6 +255,7 @@ MonoBehaviour:
   playerCamera: {fileID: 0}
   score: {fileID: 2235901581722306753}
   weapon: {fileID: 4540313072016357330}
+  melee: {fileID: 7851821998031307125}
   rangeMeters: 3
 --- !u!114 &4344132020479491740
 MonoBehaviour:
@@ -286,6 +291,37 @@ MonoBehaviour:
   playerCamera: {fileID: 714375003496467534}
   weapon: {fileID: 4540313072016357330}
   melee: {fileID: 7851821998031307125}
+  art: {fileID: 11400000, guid: 358b17557a2af8742be6c2c47b445706, type: 2}
+--- !u!114 &5267344498263627180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc05e8003469317408e76c467c39902c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerDownState
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &6412149234775829127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 864752d12df748543a294f7427d6605e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerRevive
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &4229883192584380925
 GameObject:
   m_ObjectHideFlags: 0

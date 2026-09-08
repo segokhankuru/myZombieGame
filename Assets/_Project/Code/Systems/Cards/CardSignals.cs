@@ -54,7 +54,9 @@ namespace Bunker.Systems.Cards
         /// "su menu ya da bu menu" yazmak, alti bir sonraki menude unutulacak bir
         /// kontrol demektir.</para>
         /// </summary>
-        public static bool IsAnyMenuOpen => IsDraftOpen || IsShopOpen || Ui.MenuSignals.IsPauseOpen;
+        public static bool IsAnyMenuOpen =>
+            IsDraftOpen || IsShopOpen ||
+            Ui.MenuSignals.IsPauseOpen || Ui.MenuSignals.IsWeaponShopOpen;
 
         /// <summary>Bir draft açıldı — arayüz burayı dinler.</summary>
         public static event Action<CardDraft> DraftOpened;

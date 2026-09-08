@@ -63,7 +63,16 @@ namespace Bunker.Gameplay
         /// karşılamak demekti. Tezgâhın "yalnızca molada açılır" kuralının kapanış
         /// tarafı: kural açılışta konur, burada da kapanır.</para>
         /// </summary>
-        private void OnRoundStarted(int round) => CardSignals.SetShopOpen(false);
+        private void OnRoundStarted(int round)
+        {
+            CardSignals.SetShopOpen(false);
+
+            // Silah tezgahi da kapanir ve AYNI SEBEPLE (2026-09-06): "yalnizca molada
+            // acilir" kuralinin kapanis tarafi. Kural acilista konup kapanista
+            // unutulursa, mola biterken menude kalan oyuncu surunun ilk zombisini
+            // menunun arkasindan karsilar.
+            Systems.Ui.MenuSignals.SetWeaponShopOpen(false);
+        }
 
         private void OnRunRestarted()
         {

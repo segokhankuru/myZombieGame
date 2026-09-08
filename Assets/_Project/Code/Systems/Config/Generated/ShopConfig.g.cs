@@ -76,8 +76,8 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 1.05 .. 3 | JSON: magazine.costGrowth</remarks>
         public readonly float MagazineCostGrowth;
 
-        /// <summary>Her alimda eklenen MERMI (oran degil, adet). Sarjor kapasitesi tam sayidir.</summary>
-        /// <remarks>Aralik: 1 .. 30 | JSON: magazine.increment</remarks>
+        /// <summary>Her alimda eklenen sarjor ORANI (0.10 = silahin kendi sarjorunun +%10'u). 2026-09-07'ye kadar mutlak mermiydi ve ayni kademe pompalida (6 mermi) SMG'dekinin bes kati ise yariyordu; oran, hattin vaadini butun silahlarda ayni tutar. Buyutursen dolum kararini yok eder, kucultursen kademe hissedilmez.</summary>
+        /// <remarks>Aralik: 0.02 .. 0.5 | JSON: magazine.increment</remarks>
         public readonly float MagazineIncrement;
 
         /// <summary>Hattin tavani.</summary>
@@ -89,7 +89,7 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public ShopConfig(
-            int version = 1,
+            int version = 2,
             int healthBaseCost = 400,
             float healthCostGrowth = 1.45f,
             float healthIncrement = 0.1f,
@@ -104,7 +104,7 @@ namespace Bunker.Systems.Config
             int firerateMaxTier = 6,
             int magazineBaseCost = 350,
             float magazineCostGrowth = 1.4f,
-            float magazineIncrement = 2f,
+            float magazineIncrement = 0.1f,
             int magazineMaxTier = 8)
         {
             Version = version;

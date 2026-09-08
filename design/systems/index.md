@@ -9,3 +9,7 @@
 Adı geçen ama henüz dosyası olmayanlar (`docs/DECISIONS.md`'de kararları var):
 SYS-ekonomi, SYS-tur, SYS-zombi, SYS-silah, SYS-bıçak — tunable'ları `config/schema/`
 içinde, tasarım gerekçeleri şema `description` alanlarında yaşıyor.
+
+**İçerik katalogları** (şemasız, `config/content/`): `cards.json` (37 kart),
+`weapons.json` (4 ateşli silah), `melee.json` (3 yakın dövüş silahı — taban `knife.json`,
+buradakiler çarpan).

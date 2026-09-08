@@ -140,7 +140,7 @@ namespace Bunker.UI
 
             y += h + gap;
 
-            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "CIKIS")) SessionSignals.RequestQuit();
+            if (GUI.Button(new Rect(cx - w / 2f, y, w, h), "CIKIS")) AppExit.Quit();
         }
 
         /// <summary>
@@ -177,6 +177,25 @@ namespace Bunker.UI
             GUI.color = Color.white;
             y += 132f;
 
+            // --- HANGI TASIMAYLA BAGLANIYORUZ (2026-09-09)
+            //
+            // <b>Neden ekranda:</b> Steam'den KCP'ye dusme bugune kadar yalnizca
+            // Player.log'a yaziliyordu. Iki makineli testte kimse log okumaz; gorulen
+            // sey "davet gitmedi, kod calismadi" oluyor ve teshis bir oturumu yiyor.
+            // Bir satir yazi, bir saatlik aramanin yerine geciyor.
+            if (!string.IsNullOrEmpty(SessionSignals.TransportLabel))
+            {
+                bool steam = SessionSignals.TransportLabel.StartsWith("Steam",
+                                                                      System.StringComparison.Ordinal);
+
+                GUI.color = steam ? new Color(0.6f, 0.9f, 0.6f) : new Color(1f, 0.75f, 0.35f);
+                GUI.Label(new Rect(cx - w / 2f, y, w, 22f),
+                          $"Baglanti: {SessionSignals.TransportLabel}", _labelStyle);
+                GUI.color = Color.white;
+
+                y += 26f;
+            }
+
             // --- davet
             if (SessionSignals.CanInvite)
             {
@@ -186,6 +205,8 @@ namespace Bunker.UI
                 }
 
                 y += 44f;
+
+                y = DrawFriends(cx, y, w);
 
                 GUI.Label(new Rect(cx - w / 2f, y, w - 100f, 22f),
                           $"Katilma kodu: {SessionSignals.JoinCode}", _labelStyle);
@@ -235,6 +256,71 @@ namespace Bunker.UI
                 SessionSignals.RequestLeave();
                 _page = Page.Root;
             }
+        }
+
+        /// <summary>
+        /// <b>Oyun içi arkadaş listesi</b> — Steam overlay'i olmadan davet. 2026-09-09.
+        ///
+        /// <para><b>Neden var</b> (geliştirici: <i>"Steam davet et etkisiz, herhangi
+        /// bir liste gelmiyor"</i>): Steam'in davet penceresi bir <b>overlay</b>'dir ve
+        /// overlay yalnızca Steam'in kendi başlattığı bir sürece enjekte edilir.
+        /// Doğrudan çift tıklanan bir <c>.exe</c>'de o çağrı sessizce hiçbir şey
+        /// yapmaz. Bu liste, davetin overlay'e bağımlı olmaktan çıkması.</para>
+        ///
+        /// <para><b>Yalnızca çevrimiçi arkadaşlar</b>, oyunu oynayanlar başta:
+        /// App ID 480 ile bir davet ancak karşı taraf oyunu <i>zaten açmışsa</i>
+        /// varır — yani "oynuyor" işaretli isimler, davetin gerçekten işe yarayacağı
+        /// isimler. Liste sekiz satırla sınırlı: menü bir arkadaş yöneticisi
+        /// değil.</para>
+        /// </summary>
+        /// <returns>Çizimden sonraki dikey konum.</returns>
+        private float DrawFriends(float cx, float y, float w)
+        {
+            IReadOnlyList<SessionSignals.FriendEntry> friends = SessionSignals.Friends;
+
+            if (friends == null || friends.Count == 0)
+            {
+                GUI.color = new Color(1f, 1f, 1f, 0.55f);
+                GUI.Label(new Rect(cx - w / 2f, y, w, 34f),
+                          "Cevrimici arkadas yok. Katilma kodu her kosulda calisir.",
+                          _labelStyle);
+                GUI.color = Color.white;
+
+                return y + 38f;
+            }
+
+            const int maxRows = 8;
+            int rows = Mathf.Min(friends.Count, maxRows);
+
+            for (int i = 0; i < rows; i++)
+            {
+                SessionSignals.FriendEntry friend = friends[i];
+
+                // Oyunu oynayan arkadas VURGULU: daveti kabul edebilecek tek grup o.
+                GUI.color = friend.InGame ? new Color(0.6f, 0.9f, 0.6f) : Color.white;
+
+                string label = friend.InGame ? $"{friend.Name}  (oyunda)" : friend.Name;
+
+                if (GUI.Button(new Rect(cx - w / 2f, y, w, 26f), label))
+                {
+                    SessionSignals.RequestInviteFriend(friend.Id);
+                }
+
+                GUI.color = Color.white;
+                y += 28f;
+            }
+
+            if (friends.Count > maxRows)
+            {
+                GUI.color = new Color(1f, 1f, 1f, 0.5f);
+                GUI.Label(new Rect(cx - w / 2f, y, w, 20f),
+                          $"...ve {friends.Count - maxRows} kisi daha", _labelStyle);
+                GUI.color = Color.white;
+
+                y += 22f;
+            }
+
+            return y + 4f;
         }
 
         private void DrawJoin(float cx, float y)
