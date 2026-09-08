@@ -26,6 +26,6 @@ MonoBehaviour:
   recoilYawDegreesPerShot: 0.35
   recoilRecoverySpeedDegreesPerSecond: 14
   recoilMaxPitchDegrees: 6
-  feelTracerSeconds: 0.05
+  feelTracerSeconds: 0.14
   feelHitMarkerSeconds: 0.12
   feelInputBufferSeconds: 0.15

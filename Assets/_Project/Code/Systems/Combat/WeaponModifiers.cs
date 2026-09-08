@@ -20,7 +20,7 @@ namespace Bunker.Systems.Combat
     /// </summary>
     public readonly struct WeaponModifiers
     {
-        public static readonly WeaponModifiers None = new WeaponModifiers(0f, 0f, 0f, 0, 0, 0f);
+        public static readonly WeaponModifiers None = new WeaponModifiers(0f, 0f, 0f, 0f, 0f);
 
         /// <summary>Atış hızı oranı (0.15 = +%15).</summary>
         public readonly float FireRate;
@@ -31,17 +31,21 @@ namespace Bunker.Systems.Combat
         /// <summary>Hasar oranı.</summary>
         public readonly float Damage;
 
-        /// <summary>Şarjör kapasitesine eklenen mermi.</summary>
-        public readonly int Magazine;
-
-        /// <summary>Yedek tavanına eklenen mermi.</summary>
-        public readonly int Reserve;
+        /// <summary>
+        /// Şarjör kapasitesi oranı (0.40 = silahın kendi şarjörünün +%40'ı).
+        ///
+        /// <para><b>2026-09-07'ye kadar mutlak mermiydi.</b> Aynı kart pompalıda
+        /// kapasiteyi ikiye katlarken SMG'de beşte bir artırıyordu; kart metni her
+        /// silahta başka bir şey vaat ediyordu. Gerekçenin tamamı
+        /// <see cref="Bunker.Systems.Cards.CardStat.MagazineCapacity"/>'de.</para>
+        /// </summary>
+        public readonly float Magazine;
 
         /// <summary>Kafa vuruşu çarpanına eklenen değer.</summary>
         public readonly float HeadshotMultiplier;
 
         public WeaponModifiers(float fireRate, float reloadSpeed, float damage,
-                               int magazine, int reserve, float headshotMultiplier)
+                               float magazine, float headshotMultiplier)
         {
             // Negatif bir oran silahi tersine cevirir; -1 ise sifira boler. Kart
             // degerleri bugun hep pozitif ama bir gun "ates hizi -%20, hasar +%80"
@@ -49,13 +53,15 @@ namespace Bunker.Systems.Combat
             FireRate = Math.Max(-0.9f, fireRate);
             ReloadSpeed = Math.Max(-0.9f, reloadSpeed);
             Damage = Math.Max(-0.9f, damage);
-            Magazine = Math.Max(0, magazine);
-            Reserve = Math.Max(0, reserve);
+            Magazine = Math.Max(-0.9f, magazine);
             HeadshotMultiplier = headshotMultiplier;
         }
 
         public float FireRateMultiplier => 1f + FireRate;
         public float ReloadSpeedMultiplier => 1f + ReloadSpeed;
         public float DamageMultiplier => 1f + Damage;
+
+        /// <summary>Şarjör çarpanı: <c>1 + oran</c>.</summary>
+        public float MagazineMultiplier => 1f + Magazine;
     }
 }

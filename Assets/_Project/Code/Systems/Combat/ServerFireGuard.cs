@@ -67,7 +67,7 @@ namespace Bunker.Systems.Combat
 
             _cadence = new ActionRateLimiter(SecondsBetweenShots, _tolerance);
             _roundsInMagazine = MagazineCapacity;
-            _reserve = Math.Min(_config.StartingReserve, ReserveCapacity);
+            _reserve = _config.StartingReserve;
         }
 
         /// <summary>
@@ -82,13 +82,25 @@ namespace Bunker.Systems.Combat
         {
             _mods = modifiers;
 
+            // HIZ SINIRININ ARALIGI DA GUNCELLENIR (2026-09-06). Bu satirin yoklugu,
+            // yukaridaki paragrafta tarif edilen hatanin ta kendisiydi: sinirlayici
+            // kurucudaki aralikta kaliyor, istemci kartla hizlaniyor ve bir sure sonra
+            // HER ATIS reddediliyordu. Oyun logunda onlarca satir "TooFast".
+            //
+            // Ders: bir yorumun hatayi tarif etmesi, kodun onu onledigi anlamina
+            // gelmiyor.
+            _cadence.SetInterval(SecondsBetweenShots);
+
             if (_roundsInMagazine > MagazineCapacity) _roundsInMagazine = MagazineCapacity;
-            if (_reserve > ReserveCapacity) _reserve = ReserveCapacity;
         }
 
-        public int MagazineCapacity => Math.Max(1, _config.MagazineCapacity + _mods.Magazine);
-
-        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
+        /// <summary>
+        /// Kart etkileriyle şarjör: <b>oransal</b> ve <see cref="WeaponState"/> ile
+        /// birebir aynı formül — yukarı yuvarlama dahil. İki tarafın bir mermi bile
+        /// ayrılması, doğrulayıcının meşru bir atışı reddetmesi demektir.
+        /// </summary>
+        public int MagazineCapacity =>
+            Math.Max(1, (int)Math.Ceiling(_config.MagazineCapacity * _mods.MagazineMultiplier));
 
         public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
 
@@ -140,18 +152,18 @@ namespace Bunker.Systems.Combat
             _reloadPending = true;
         }
 
-        /// <summary>Yedeğe mermi ekler (duvar silahı, dağıtıcı).</summary>
+        /// <summary>Yedeğe mermi ekler (duvar silahı, dağıtıcı). <b>Tavan yok</b> (2026-09-07).</summary>
         public void AddReserve(int amount)
         {
             if (amount <= 0) return;
-            _reserve = Math.Min(_reserve + amount, ReserveCapacity);
+            _reserve += amount;
         }
 
         /// <summary>Yeni run.</summary>
         public void Reset()
         {
             _roundsInMagazine = Math.Max(1, _config.MagazineCapacity);
-            _reserve = Math.Min(_config.StartingReserve, _config.ReserveCapacity);
+            _reserve = _config.StartingReserve;
             _cadence.Reset();
             _reloadRequestedTime = float.NegativeInfinity;
             _reloadPending = false;
@@ -170,15 +182,38 @@ namespace Bunker.Systems.Combat
         private void SettlePendingReload(float now)
         {
             if (!_reloadPending) return;
-            if (now - _reloadRequestedTime < ReloadSeconds - _tolerance) return;
 
-            _reloadPending = false;
+            float step = ReloadSeconds;
+            if (step <= 0f) step = 0.01f;
+
+            float elapsed = now - _reloadRequestedTime;
+            if (elapsed < step - _tolerance) return;
 
             int needed = MagazineCapacity - _roundsInMagazine;
-            int moved = Math.Min(needed, _reserve);
+
+            // POMPALI: gecen surede KAC FISEK sigdiysa o kadar (2026-09-06).
+            //
+            // Sunucu dolumu tembel takip eder - yalnizca bir atis geldiginde hesaplar.
+            // Tek parca dolumda "sure doldu mu" yeterliydi; mermi mermi dolumda kac
+            // adim gectigi onemli, cunku istemci ikinci fisekten sonra ates etmis
+            // olabilir. Sayiyi asagi yuvarlamak istemcinin lehine DEGIL: gecmemis bir
+            // adim sayilmaz.
+            int steps = _config.ReloadPerShell
+                ? (int)((elapsed + _tolerance) / step)
+                : int.MaxValue;
+
+            int moved = Math.Min(Math.Min(needed, _reserve), steps);
 
             _roundsInMagazine += moved;
             _reserve -= moved;
+
+            // Pompalida dolum DEVAM EDIYOR olabilir: bekleyen durum ancak sarjor
+            // dolunca ya da yedek bitince kapanir. Kapatilsaydi sunucu, istemcinin
+            // ucuncu fisekten sonra attigi atisi "mermin yoktu" diye reddederdi.
+            _reloadPending = _config.ReloadPerShell &&
+                             _reserve > 0 && _roundsInMagazine < MagazineCapacity;
+
+            if (_reloadPending) _reloadRequestedTime += moved * step;
         }
     }
 }

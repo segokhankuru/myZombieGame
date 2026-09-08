@@ -36,6 +36,9 @@ namespace Bunker.UI
 
         private bool _on = true;
         private bool _fogAtStart;
+
+        /// <summary>Dis hava sistemi. F10 onu da kapatmak zorunda (2026-09-07).</summary>
+        private Bunker.Gameplay.OutdoorWeather _weather;
         private GUIStyle _style;
 
         private void Awake()
@@ -63,6 +66,14 @@ namespace Bunker.UI
             _on = !_on;
 
             if (atmosphere != null) atmosphere.SetActive(_on);
+
+            // HAVA SISTEMI DE KAPANIR (2026-09-07). OutdoorWeather sisi HER KAREDE
+            // yeniden yaziyor ve yagmuru surduruyor; yalnizca RenderSettings'e
+            // dokunmak, F10'un bir kare sonra geri alinmasi demek olurdu - yani
+            // calismayan bir anahtar. Kapatma isteginin sahibine soylenmesi gerekiyor.
+            if (_weather == null) _weather = FindFirstObjectByType<Bunker.Gameplay.OutdoorWeather>();
+            if (_weather != null) _weather.SetEnabled(_on);
+
             if (alsoToggleFog) RenderSettings.fog = _on && _fogAtStart;
         }
 

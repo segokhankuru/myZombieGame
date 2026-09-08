@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Bunker.Audio;
 using Bunker.Config;
 using Bunker.Systems.Cards;
@@ -12,15 +13,25 @@ using UnityEngine.InputSystem;
 namespace Bunker.Gameplay
 {
     /// <summary>
-    /// Bıçak. M1-07.
+    /// Yakın dövüş: <b>hançer, kılıç, balta</b>. M1-07, 2026-09-08'de üçe çıktı.
     ///
     /// <para><b>Neden var:</b> mermi harcamayan, en yakın ve en riskli öldürme yolu.
     /// Ekonomi de en yüksek puanı ona verir (SYS-ekonomi). Erken turlarda mermi
     /// biriktirmenin, geç turlarda son çarenin adı.</para>
     ///
+    /// <para><b>Neden üç silah</b> (geliştirici, 2026-09-08): <i>"kılıç dagger'ın 1.5
+    /// katı hasar, axe 2.5 katı ama savurması da 2x uzun sürsün."</i> Üçü aynı bıçağın
+    /// güçlüsü değil, <b>üç ayrı ritim</b>: hançer hızlı ve affedici, balta ağır ve
+    /// taahhütlü. Bıçağın riski zamanlamada olduğu için, savuruş süresini uzatmak
+    /// hasarı artırmanın gerçek bedelidir — silah tezgâhındaki dört silahın DPS'lerinin
+    /// bilerek yakın tutulmasıyla aynı tasarım.</para>
+    ///
     /// <para><b>Risk zamanlamada:</b> bekleme süresi boyunca oyuncu savunmasızdır ve
-    /// zombinin saldırı menzili (1.6 m) bıçağın erişiminin (2.2 m) hemen içindedir —
-    /// yani bıçak kullanmak, vurulma menziline <i>bilerek</i> girmek demektir.</para>
+    /// zombinin saldırı menzili bıçağın erişiminin hemen içindedir — yani bıçak
+    /// kullanmak, vurulma menziline <i>bilerek</i> girmek demektir.</para>
+    ///
+    /// <para><b>Sayılar burada değil:</b> taban savuruş <c>knife.json</c>'da, silah
+    /// başına çarpanlar <c>config/content/melee.json</c>'da (config-data.md).</para>
     ///
     /// <para><b>Hasar host'ta</b> (ADR-0004), hız sınırı sunucuda ayrıca sayılır. Yerel
     /// oyuncu savuruşu aynı karede görür; onay beklemez.</para>
@@ -29,13 +40,28 @@ namespace Bunker.Gameplay
     public sealed class PlayerMelee : NetworkBehaviour
     {
         [Header("Ayar")]
-        [Tooltip("config/balance/knife.json'dan uretilen varlik.")]
+        [Tooltip("config/balance/knife.json'dan uretilen varlik. TABAN savurus.")]
         [SerializeField] private KnifeConfigAsset knifeConfig;
+
+        [Tooltip("config/content/melee.json'dan uretilen katalog. Bos birakilirsa " +
+                 "yalnizca taban bicak calisir.")]
+        [SerializeField] private MeleeCatalogAsset meleeCatalog;
 
         [Header("Referanslar")]
         [SerializeField] private Camera playerCamera;
 
-        private KnifeConfig _config;
+        /// <summary>Oyuncunun her run'a başladığı bıçak. Katalogdaki id ile aynı.</summary>
+        private const string StarterMeleeId = "melee.dagger";
+
+        private KnifeConfig _base;
+
+        private List<MeleeDefinition> _catalog;
+        private readonly List<MeleeDefinition> _owned = new List<MeleeDefinition>(3);
+
+        private MeleeDefinition _current;
+
+        /// <summary>Savaş günlüğünde vuranın adı ("Oyuncu[BALTA]"). Silah değişince kurulur.</summary>
+        private string _logSource = "Oyuncu";
 
         private float _localCooldown;
         private float _pendingSwingDelay;
@@ -64,11 +90,49 @@ namespace Bunker.Gameplay
         /// </summary>
         public event Action SwingStarted;
 
+        /// <summary>
+        /// Elindeki bıçak değişti. <b>El modeli buna bağlanır</b> — balta aldığın hâlde
+        /// elinde hançer görmek, satın almanın karşılığını görünmez kılar.
+        /// </summary>
+        public event Action<MeleeDefinition> Equipped;
+
         /// <summary>Bir bıçak öldürmesi onaylandı. Ekonomi buna bağlanır.</summary>
         public event Action<DamageKind, bool> KillConfirmed;
 
         /// <summary>Savuruş bekleme süresi (0 = hazır). HUD için.</summary>
         public float CooldownRemaining => _localCooldown;
+
+        /// <summary>Elindeki bıçak. Arayüz ve el modeli okur.</summary>
+        public MeleeDefinition Current => _current;
+
+        /// <summary>Satılabilecek bütün bıçaklar. <b>Tezgâh bunu listeler.</b></summary>
+        public IReadOnlyList<MeleeDefinition> Catalog => _catalog;
+
+        /// <summary>Bu bıçak envanterde var mı.</summary>
+        public bool Owns(string meleeId)
+        {
+            for (int i = 0; i < _owned.Count; i++)
+            {
+                if (_owned[i].Id == meleeId) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Katalogdan bir tanım; bulunamazsa geçersiz tanım döner.</summary>
+        public MeleeDefinition FindInCatalog(string meleeId)
+        {
+            if (_catalog == null) return default;
+
+            for (int i = 0; i < _catalog.Count; i++)
+            {
+                if (_catalog[i].Id == meleeId) return _catalog[i];
+            }
+
+            return default;
+        }
+
+        // ---------------------------------------------------------------- kurulum
 
         private void Awake()
         {
@@ -83,16 +147,163 @@ namespace Bunker.Gameplay
                 return;
             }
 
-            _config = knifeConfig.ToRuntime();
+            _base = knifeConfig.ToRuntime();
+
+            // Katalog yoksa oyun TABAN bicakla calisir - eksik bir katalog oyunu
+            // durdurmamali ama SESSIZ de kalmamali (silah katalogu ile ayni kural).
+            if (meleeCatalog != null && meleeCatalog.Count > 0)
+            {
+                _catalog = meleeCatalog.ToRuntime(_base);
+            }
+            else
+            {
+                Debug.LogWarning("[Bicak] melee.asset atanmamis ya da bos - yalnizca " +
+                                 "taban bicak calisacak. 'Bunker/Config/Yakin Dovus " +
+                                 "Ice Aktar' calistir.", this);
+
+                _catalog = new List<MeleeDefinition>(1)
+                {
+                    new MeleeDefinition(StarterMeleeId, "BICAK", string.Empty,
+                                        _base.SwingDamage, _base.SwingRangeMeters,
+                                        _base.SwingArcDegrees, _base.SwingCooldownSeconds,
+                                        _base.SwingWindupSeconds, 0)
+                };
+            }
+
+            MeleeDefinition starter = FindInCatalog(StarterMeleeId);
+            if (!starter.IsValid) starter = _catalog[0];
+
+            AddMelee(starter);
+            Equip(starter);
+        }
+
+        /// <summary>
+        /// Bir bıçağı envantere ekler.
+        /// </summary>
+        /// <returns>Yeni eklendiyse <c>true</c>; zaten varsa <c>false</c>.</returns>
+        private bool AddMelee(in MeleeDefinition definition)
+        {
+            if (!definition.IsValid || Owns(definition.Id)) return false;
+
+            _owned.Add(definition);
+            return true;
+        }
+
+        /// <summary>
+        /// Eldeki bıçağı değiştirir.
+        ///
+        /// <para><b>Hız sınırı da yeniden kurulur:</b> baltanın bekleme süresi
+        /// hançerinkinin iki katı ve sunucu sınırı eskisiyle kalsaydı, balta hançer
+        /// hızında savrulabilirdi — istemcinin dayattığı bir ritim, tam olarak
+        /// <c>ActionRateLimiter</c>'in engellemek için var olduğu şey (netcode.md).</para>
+        /// </summary>
+        private void Equip(in MeleeDefinition definition)
+        {
+            if (!definition.IsValid) return;
+
+            _current = definition;
+            _logSource = "Oyuncu[" + definition.DisplayName + "]";
 
             // Ag payi silahtakiyle ayni gerekcede: komut bir kare sonra gelir
             // (BUG-002). Tolerans birikmez.
-            _serverLimiter = new ActionRateLimiter(_config.SwingCooldownSeconds);
+            _serverLimiter = new ActionRateLimiter(definition.CooldownSeconds);
+
+            // Bekleyen savurus IPTAL: hancerin hazirligiyla baslayip baltanin
+            // hasarini indiren bir savurus, iki silahin ritmini birden yalanlardi.
+            _swingPending = false;
+            _pendingSwingDelay = 0f;
+
+            Equipped?.Invoke(definition);
         }
+
+        /// <summary>
+        /// Tezgâh alımı: bıçağı verir ve eline koyar. <b>Yalnızca sunucu.</b>
+        /// </summary>
+        [Server]
+        public void ServerGrantMelee(MeleeDefinition definition, bool equip)
+        {
+            if (!AddMelee(definition)) return;
+
+            TargetGrantMelee(connectionToClient, definition.Id, equip);
+
+            if (equip) Equip(definition);
+        }
+
+        /// <summary>
+        /// Zaten sahip olunan bir bıçağa geçer (tezgâhta ikinci kez tıklamak).
+        /// <b>Yalnızca sunucu.</b>
+        /// </summary>
+        [Server]
+        public void ServerEquipOwned(string meleeId)
+        {
+            if (!Owns(meleeId)) return;
+
+            MeleeDefinition definition = FindInCatalog(meleeId);
+            if (!definition.IsValid) return;
+
+            Equip(definition);
+            TargetEquipMelee(connectionToClient, meleeId);
+        }
+
+        /// <summary>Geçişi istemcide de uygular — el modeli orada yaşıyor.</summary>
+        [TargetRpc]
+        private void TargetEquipMelee(NetworkConnection target, string meleeId)
+        {
+            if (isServer) return;
+
+            MeleeDefinition definition = FindInCatalog(meleeId);
+            if (definition.IsValid && Owns(meleeId)) Equip(definition);
+        }
+
+        /// <summary>
+        /// Bıçağı <b>istemcide de</b> envantere ekler.
+        ///
+        /// <para>Envanter iki tarafta da yaşar: sunucu hasarın, istemci elindeki
+        /// modelin sahibi. Yalnızca sunucuda eklenseydi, satın alan oyuncu bıçağı kendi
+        /// ekranında hiç görmezdi (<c>PlayerWeapon.TargetGrantWeapon</c> ile aynı
+        /// gerekçe).</para>
+        /// </summary>
+        [TargetRpc]
+        private void TargetGrantMelee(NetworkConnection target, string meleeId, bool equip)
+        {
+            if (isServer) return;   // host: sunucu tarafi zaten ekledi
+
+            MeleeDefinition definition = FindInCatalog(meleeId);
+            if (!definition.IsValid) return;
+
+            if (!AddMelee(definition)) return;
+            if (equip) Equip(definition);
+        }
+
+        private void OnEnable() => RunSignals.RunRestarted += OnRunRestarted;
+
+        private void OnDisable() => RunSignals.RunRestarted -= OnRunRestarted;
+
+        /// <summary>
+        /// Yeni run: envanter <b>başlangıç bıçağına döner</b>.
+        ///
+        /// <para>Puanla alınmış bir balta yeni run'a taşınsaydı, ikinci run'un ilk
+        /// turu birincinin sonundaki güçle başlardı — <c>CardLoadout.Reset</c> ve
+        /// <c>ShopState</c> ile aynı kural, aynı sebep.</para>
+        /// </summary>
+        private void OnRunRestarted()
+        {
+            _owned.Clear();
+
+            MeleeDefinition starter = FindInCatalog(StarterMeleeId);
+            if (!starter.IsValid && _catalog != null && _catalog.Count > 0) starter = _catalog[0];
+
+            AddMelee(starter);
+            Equip(starter);
+
+            _localCooldown = 0f;
+        }
+
+        // ---------------------------------------------------------------- girdi
 
         private void Update()
         {
-            if (_config == null) return;
+            if (_base == null) return;
 
             float dt = Time.deltaTime;
             if (_localCooldown > 0f) _localCooldown -= dt;
@@ -101,7 +312,6 @@ namespace Bunker.Gameplay
 
             if (!isLocalPlayer) return;
 
-            // Run bitti: girdi kesilir (M1-11, AC-3).
             // Run bitti YA DA tur arasi ekrani acik: girdi kesilir. Ekran acikken
             // ates etmek, bakis cevirmek ya da satin almak, fareyle kart secmeyi
             // imkansiz kilardi.
@@ -119,12 +329,13 @@ namespace Bunker.Gameplay
         {
             if (_localCooldown > 0f) return;
             if (_swingPending) return;
+            if (!_current.IsValid) return;
 
-            _localCooldown = _config.SwingCooldownSeconds;
+            _localCooldown = _current.CooldownSeconds;
 
             // Hazirlik suresi bicagin AGIRLIGIDIR: hasar aninda degil, savurus
             // tamamlanınca iner. Sifir olsaydi bicak bir tusa basmaktan ibaret olurdu.
-            _pendingSwingDelay = _config.SwingWindupSeconds;
+            _pendingSwingDelay = _current.WindupSeconds;
             _swingPending = true;
 
             SwingStarted?.Invoke();
@@ -172,7 +383,8 @@ namespace Bunker.Gameplay
         [Command]
         private void CmdSwing(Vector3 origin, Vector3 forward)
         {
-            if (!_serverLimiter.TryAccept(Time.time)) return;
+            if (_serverLimiter == null || !_serverLimiter.TryAccept(Time.time)) return;
+            if (!_current.IsValid) return;
 
             if (forward.sqrMagnitude < 0.001f) return;
             forward.Normalize();
@@ -200,11 +412,11 @@ namespace Bunker.Gameplay
             // Bicak bir isin degil bir KONI: kalabalikta savurmak ise yaramali, ama
             // arkani donup vurmak yaramamali. Isin bosa gittiginde koni yedege gecer -
             // yoksa kalabaligin ortasinda savurmak bosa dusebilirdi.
-            int count = Physics.OverlapSphereNonAlloc(origin, _config.SwingRangeMeters, SwingHits,
-                                                      ~0, QueryTriggerInteraction.Ignore);
+            int count = Physics.OverlapSphereNonAlloc(origin, _current.RangeMeters, SwingHits,
+                                                      Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore);
             if (count == 0) return;
 
-            float cosLimit = Mathf.Cos(_config.SwingArcDegrees * 0.5f * Mathf.Deg2Rad);
+            float cosLimit = Mathf.Cos(_current.ArcDegrees * 0.5f * Mathf.Deg2Rad);
             IDamageable best = null;
             float bestDistance = float.MaxValue;
 
@@ -249,8 +461,8 @@ namespace Bunker.Gameplay
         private IDamageable FindAimedTarget(Vector3 origin, Vector3 forward)
         {
             int count = Physics.SphereCastNonAlloc(origin, SwingProbeRadiusMeters, forward,
-                                                   SwingRayHits, _config.SwingRangeMeters,
-                                                   ~0, QueryTriggerInteraction.Ignore);
+                                                   SwingRayHits, _current.RangeMeters,
+                                                   Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore);
             if (count == 0) return null;
 
             IDamageable best = null;
@@ -296,10 +508,17 @@ namespace Bunker.Gameplay
         {
             // Kafa kutusuna bicak carpani uygulanmaz: bicak zaten en yuksek puani
             // veriyor, ustune kafa carpani vermek silahi tamamen gereksiz kilardi.
+            // Kaynak konumu: itme yonu bicakta da savuranin YONUNDE olmali
+            // (2026-09-06). Yon tasinmasaydi zombi bicaklandiginda kendi baktigi
+            // yonun tersine, yani oyuncuya DOGRU itilirdi.
+            Vector3 from = transform.position;
+
             DamageResult result = target.ApplyDamage(
-                new DamageInfo(_config.SwingDamage *
+                new DamageInfo(_current.Damage *
                                RunModifiers.Multiplier(CardStat.MeleeDamage),
-                               DamageKind.Melee));
+                               DamageKind.Melee, headshot: false,
+                               sourceX: from.x, sourceZ: from.z,
+                               source: _logSource));
 
             // Isabet geri bildirimi YALNIZCA savurana gider: kisisel bir bilgidir
             // (silahtaki TargetReportHit ile ayni gerekce).

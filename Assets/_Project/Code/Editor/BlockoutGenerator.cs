@@ -107,6 +107,55 @@ namespace Bunker.Editor
             return 1;
         }
 
+        /// <summary>
+        /// <b>Dünyayı sıfırdan kurar</b>: harita, yüzeyler, kurulum, NavMesh.
+        /// 2026-09-08.
+        ///
+        /// <para><b>Neden tek bir giriş noktası</b> (<c>CLAUDE.md</c> 10, ve
+        /// geliştiricinin çalışma biçimi): bu dört adım <i>ayrı ayrı</i> ve <b>doğru
+        /// sırada</b> çalıştırılmak zorunda — harita üretilmeden yüzey uygulanamaz,
+        /// yüzeyler uygulanmadan kurulum haritayı korumaya alır, NavMesh en sonda
+        /// bake edilmeli çünkü üreteç kökün tamamını yeniden kuruyor. Dört menü
+        /// maddesini sırayla tıklamak bir adım değil, hatırlanması gereken bir
+        /// prosedürdür; ve unutulan bir adım sessizce yanlış bir harita üretir.</para>
+        ///
+        /// <para><b>YIKICIDIR ve öyle kalmalı:</b> haritayı sıfırdan üretir, yani elle
+        /// yapılmış her düzenlemeyi siler. Bu yüzden <c>SetupTestbed</c> haritaya
+        /// dokunmuyor ve bu ayrı bir giriş; yıkıcı olan şey, yıkıcı olduğunu söyleyen
+        /// bir kapının arkasında durmalı.</para>
+        /// </summary>
+        [MenuItem("Bunker/Level/DUNYAYI SIFIRDAN KUR (harita + yuzey + kurulum)", false, 103)]
+        public static void RebuildWorld()
+        {
+            Generate(LoadOrCreateSettings());
+
+            // Yuzeyler haritadan SONRA: uretec kokun tamamini yeniden kurdugu icin
+            // materyaller her uretimde yeniden atanmali.
+            GreyboxLook.Apply();
+
+            // Kurulum en sonda: haritayi zaten var buldugu icin ona dokunmaz, ama
+            // zombi prefab'ini, HUD'u, barikatlari ve NavMesh'i tazeler.
+            ZombieSetup.SetupTestbed();
+        }
+
+        /// <summary>Başsız giriş: <see cref="RebuildWorld"/>.</summary>
+        public static void RebuildWorldBatch()
+        {
+            const string scenePath = "Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity";
+
+            try
+            {
+                EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                RebuildWorld();
+                EditorApplication.Exit(0);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Blockout] Dunya kurulamadi: {e}");
+                EditorApplication.Exit(1);
+            }
+        }
+
         /// <summary>Başsız giriş: ayar güncellemesi + harita üretimi.</summary>
         public static void ApplyOutdoorLayoutBatch()
         {
@@ -240,6 +289,39 @@ namespace Bunker.Editor
             BuildPartitions(root.transform, s);
             BuildMarkers(root.transform, s);
 
+            // "Icerisi neresi" sorusunun calisma anindaki cevabi (2026-09-07). Esya
+            // dusme kurali bunu okur; ayak izi burada, ayarlarla ayni sayilardan
+            // kuruluyor - ikinci bir yere kopyalanmis sinir, harita degistigi gun
+            // sessizce yanlis cevap verirdi.
+            var interior = root.AddComponent<Bunker.Config.BunkerInterior>();
+            interior.Configure(s.West, s.East, s.South, s.North,
+                               -0.5f, s.UpperFloorY + s.WallHeight + 1f);
+
+            // Pencere tikaclari: zombi girer, oyuncu cikamaz (2026-09-07).
+            int blockers = InstallWindowBlockers(root.transform, s);
+
+            // Disarisi: The Wasteland LITE parcalari. NavMesh'in disinda kalir.
+            int decor = ArtIntegration.DecorateOutside(s, root.transform);
+
+            // ...ve uzerine bitki ortusu, toprak yollar, kara bulut tavani
+            // (2026-09-08). AYRI bir adim: Wasteland parcalari SINIRI kuruyor
+            // (tahkimat duvarlari, bariyerler), Toby parcalari ise ARAZIYI. Ikisini
+            // tek metotta toplamak, birini kapatmak istediginde digerini de
+            // kapatmak demekti.
+            //
+            // Yollar GERCEK pencere konumlarindan turuyor: ayri hesaplanmis bir yol,
+            // ayak izi degistigi gun barikatin yanindan gecerdi.
+            var groundWindows = new List<(Vector3, Vector3)>(Windows.Count);
+
+            for (int i = 0; i < Windows.Count; i++)
+            {
+                if (!Windows[i].GroundFloor) continue;
+
+                groundWindows.Add((Windows[i].Position, Windows[i].Outward));
+            }
+
+            int scenery = OutdoorScenery.Decorate(s, root.transform, groundWindows);
+
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             Selection.activeGameObject = root;
 
@@ -250,8 +332,108 @@ namespace Bunker.Editor
                 $"  pencere     : {Windows.Count} adet\n" +
                 $"  ic bolme    : {(s.Partitions?.Length ?? 0)} adet\n" +
                 $"  disarida serit: {s.ApronWidth:F0} m (zombiler pencereye buradan yurur)\n" +
+                $"  pencere tikaci: {blockers} adet (oyuncu cikamaz, mermi gecer)\n" +
+                $"  dis dekor   : {decor} parca (Wasteland: sinir)\n" +
+                $"  dis arazi   : {scenery} parca (Toby: yol, bitki, bulut)\n" +
                 $"  SIRADAKI ADIM: 'Bunker/Zombi/NavMesh Bake' - uretec kokun tamamini " +
                 $"yeniden kurdugu icin eski bake gecersizdir.");
+        }
+
+        /// <summary>
+        /// Her zemin kat penceresine <b>oyuncu tıkacı</b> koyar. 2026-09-07.
+        ///
+        /// <para><b>Neden gerekti</b> (geliştirici): <i>"barikat penceresinden dışarı
+        /// çıkabiliyorum, bunu engelle."</i> Pencere duvarda gerçek bir delik ve oyuncu
+        /// zıplayınca dışarı düşüyor. Dışarısı savunulacak yer değil — orada oyuncunun
+        /// arkası, yanı ve önü açık, ve bütün tur tasarımı "içeride tutunmak" üzerine
+        /// kurulu.</para>
+        ///
+        /// <para><b>Neden özel bir katman</b> (<c>GameLayers.PlayerBlocker</c>): sıradan
+        /// bir kutu mermiyi de durdururdu, yani pencereden ateş etmek imkânsız olurdu —
+        /// çözdüğünden büyük bir hata. Bu katman her nişan sorgusunun maskesinin
+        /// dışında; yalnızca <c>CharacterController</c> ona çarpar. Zombiler ışın
+        /// kullanmadan, <c>NavMeshAgent</c> ve elle sürülen tırmanışla geçtiği için
+        /// onları hiç etkilemez.</para>
+        ///
+        /// <para><b>Görünmez:</b> Renderer yok. Oyuncunun gördüğü şey barikat tahtaları
+        /// ve duvar; tıkaç bir fizik nesnesi, bir görsel değil.</para>
+        /// </summary>
+        private static int InstallWindowBlockers(Transform root, BlockoutSettings s)
+        {
+            int layer = EnsurePlayerBlockerLayer();
+
+            // HER pencere, yalnizca zemin kat degil: ust kattaki bir pencereden
+            // dusmek de disari cikmaktir, ustelik dusme hasariyla birlikte.
+            Transform windows = root.Find("Markers/Windows");
+            if (windows == null) return 0;
+
+            float height = Mathf.Max(0.4f, s.WindowTop - s.WindowSill);
+            int count = 0;
+
+            foreach (Transform window in windows)
+            {
+                var blocker = new GameObject("PlayerBlocker");
+                blocker.transform.SetParent(window, false);
+                blocker.transform.localPosition = Vector3.zero;
+                blocker.transform.localRotation = Quaternion.identity;
+
+                if (layer >= 0) blocker.layer = layer;
+
+                var box = blocker.AddComponent<BoxCollider>();
+
+                // Pencere agzindan GENIS ve KALIN: kenarindan sizmak, tikacin hic
+                // olmamasiyla ayni sey. Kalinlik duvarin iki kati - yuksek hizda
+                // hareket eden bir CharacterController ince bir kutunun icinden gecer.
+                box.size = new Vector3(s.WindowWidth + 0.4f, height + 0.3f,
+                                       Mathf.Max(0.6f, s.WallThickness * 2f));
+
+                count++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// <c>PlayerBlocker</c> katmanını proje ayarlarında garantiler.
+        ///
+        /// <para><b>Neden araç açıyor, elle değil:</b> katman yoksa tıkaçlar mermiyi de
+        /// durdurur ve bu <i>sessiz</i> bir hatadır — oyun çalışır, sadece pencereden
+        /// ateş edilemez ve kimse sebebini bulamaz. Kurulumun bir adımının insan
+        /// hafızasına bırakılması, bu projedeki hataların en sık kaynağı.</para>
+        /// </summary>
+        private static int EnsurePlayerBlockerLayer()
+        {
+            int existing = LayerMask.NameToLayer(Bunker.Config.GameLayers.PlayerBlockerName);
+            if (existing >= 0) return existing;
+
+            var asset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset");
+            if (asset == null || asset.Length == 0)
+            {
+                Debug.LogError("[Blockout] TagManager.asset okunamadi; " +
+                               $"'{Bunker.Config.GameLayers.PlayerBlockerName}' katmani acilamadi.");
+                return -1;
+            }
+
+            var tagManager = new SerializedObject(asset[0]);
+            SerializedProperty layers = tagManager.FindProperty("layers");
+
+            // 0-7 Unity'nin ayirdigi katmanlar; kullanicinin ilki 8.
+            for (int i = 8; i < layers.arraySize; i++)
+            {
+                SerializedProperty slot = layers.GetArrayElementAtIndex(i);
+                if (!string.IsNullOrEmpty(slot.stringValue)) continue;
+
+                slot.stringValue = Bunker.Config.GameLayers.PlayerBlockerName;
+                tagManager.ApplyModifiedProperties();
+                AssetDatabase.SaveAssets();
+
+                Debug.Log($"[Blockout] '{slot.stringValue}' katmani acildi (index {i}).");
+                return i;
+            }
+
+            Debug.LogError("[Blockout] Bos katman yuvasi kalmamis; pencere tikaclari " +
+                           "mermiyi de durduracak.");
+            return -1;
         }
 
         private static void BuildGroundFloor(Transform parent, BlockoutSettings s)
@@ -680,14 +862,26 @@ namespace Bunker.Editor
             //
             // Dagiticidan (MysteryBox) uzak bir duvarda: yan yana olsalardi hangi tusun
             // ne actigi karisirdi.
-            // Ucuncu satin alma noktasi: TUFEK, ust katta (2026-09-06). Uc silahin
-            // ucunun de bir yeri olmali - yeri olmayan silah, oyuncunun varligindan
-            // haberi olmayan silahtir.
-            BuyMarker(buys, "WallBuy_C_Rifle",
-                      new Vector3(s.East - 0.5f, s.UpperFloorY + 1.4f, midZ), faceWest);
-
+            // SILAH TEZGAHI: ust katta (2026-09-06, gelistirici karari).
+            //
+            // Onceki hal uc AYRI duvar noktasiydi (WallBuy_C_Rifle bunlardan biri) ve
+            // her biri tek bir silah satiyordu. Gelistirici: "silah secimini yukarida
+            // tezgah gibi ekle, oradan alalim; alt katta sadece mermi alinsin."
+            //
+            // Dogru ayrim: duvardaki nokta bir MUSLUK (mermin bitti, kostun, aldin,
+            // dondun - dusunmedin), tezgah bir KARAR (dort secenek yan yana). Uc ayri
+            // duvara dagilmis silah, karsilastirilamayan silahtir.
+            // IKI TEZGAH YAN YANA (2026-09-06, gelistirici karari). Onceki hal onlari
+            // haritanin iki ucuna koyuyordu ("yan yana olsalardi hangi tusun ne actigi
+            // karisirdi") - ama oyun testi bunun tersini gosterdi: mola 20 saniye ve
+            // iki tezgah arasinda kosmak, molanin yarisini yurumeye harciyordu.
+            // Ikisi de MOLADA acilan harcama noktalari; ayni durak olmalari dogru.
+            // Karisiklik riski, ipuclarinin farkli metin yazmasiyla cozuluyor.
             BuyMarker(buys, "Shop_Station",
                       new Vector3(s.West + 0.5f, s.UpperFloorY + 1.4f, s.North - 3f), faceEast);
+
+            BuyMarker(buys, "Weapon_Station",
+                      new Vector3(s.West + 0.5f, s.UpperFloorY + 1.4f, s.North - 5f), faceEast);
             Marker(buys, "MysteryBox", new Vector3(s.Divider + 2f, s.UpperFloorY + 0.5f, midZ));
         }
 

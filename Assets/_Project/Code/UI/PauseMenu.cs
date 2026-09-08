@@ -1,5 +1,6 @@
 using Bunker.Systems.Cards;
 using Bunker.Systems.Net;
+using Bunker.Systems.Rounds;
 using Bunker.Systems.Ui;
 using Mirror;
 using UnityEngine;
@@ -25,7 +26,7 @@ namespace Bunker.UI
     {
         private bool _settingsOpen;
         private bool _cursorWasLocked;
-        private bool _timeFrozen;
+
 
         private GUIStyle _titleStyle;
         private GUIStyle _labelStyle;
@@ -59,6 +60,12 @@ namespace Bunker.UI
 
             if (!keyboard.escapeKey.wasPressedThisFrame) return;
 
+            // OLUM EKRANI ACIKKEN DURAKLATMA YOK (2026-09-06). Skor ekraninin
+            // ustune ikinci bir menu acmak, oyuncunun hangi "ANA MENU" dugmesine
+            // bastigini belirsiz kilar ve solo'da Time.timeScale'i sifirlar - yeniden
+            // baslatma o noktadan sonra donmus bir dunyaya doner.
+            if (RunSignals.IsRunOver) return;
+
             // Kart ekrani acikken ESC duraklatmaz: kart secimi turun zorunlu bir
             // adimi ve arkasinda ikinci bir menu acmak, hangi ekranin canli oldugunu
             // okunmaz yapardi.
@@ -80,12 +87,10 @@ namespace Bunker.UI
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
 
-            // Solo ise dunya durur. Co-op'ta durmaz - bkz. sinif aciklamasi.
-            if (BunkerIsSolo())
-            {
-                Time.timeScale = 0f;
-                _timeFrozen = true;
-            }
+            // ZAMANIN TEK SAHIBI WorldClock (2026-09-07): tezgahlar da durduruyor
+            // ve iki sahip olsaydi tezgahi kapatmak, hala acik olan menunun
+            // arkasinda dunyayi yeniden akitirdi.
+            WorldClock.Set(WorldClock.Reason.PauseMenu, true);
         }
 
         private void Close()
@@ -102,13 +107,11 @@ namespace Bunker.UI
             Cursor.visible = false;
         }
 
-        private void RestoreTime()
-        {
-            if (!_timeFrozen) return;
-
-            Time.timeScale = 1f;
-            _timeFrozen = false;
-        }
+        /// <summary>
+        /// Bu menünün zaman üzerindeki hakkını bırakır. <b>Saati doğrudan yazmaz</b>
+        /// (2026-09-07): tezgâh hâlâ açıksa dünya durmaya devam etmeli.
+        /// </summary>
+        private void RestoreTime() => WorldClock.Set(WorldClock.Reason.PauseMenu, false);
 
         private void OnGUI()
         {
@@ -126,7 +129,7 @@ namespace Bunker.UI
             GUI.Label(new Rect(cx - 300f, y, 600f, 44f), "DURAKLATILDI", _titleStyle);
             y += 60f;
 
-            if (!_timeFrozen)
+            if (!WorldClock.IsFrozen)
             {
                 // Co-op: dunya donmuyor. Bunu SOYLEMEK sart - menunun arkasinda
                 // olmek, oyuncunun haksizliga ugradigini hissettigi olum turudur.
@@ -196,12 +199,8 @@ namespace Bunker.UI
             }
         }
 
-        /// <summary>
-        /// Tek kişilik oturum mu. <c>Bunker.Net</c>'e bakmadan, Mirror'ın kendi
-        /// durumundan okunur — UI'nin oyun tarafını bilmesi gerekmez.
-        /// </summary>
-        private static bool BunkerIsSolo() =>
-            NetworkServer.active && NetworkServer.connections.Count <= 1;
+        // Solo kararini artik WorldClock veriyor (2026-09-07): zamani durdurmaya kim
+        // karar veriyorsa "durdurulabilir mi" sorusunu da o cevaplamali.
 
         private void EnsureStyles()
         {

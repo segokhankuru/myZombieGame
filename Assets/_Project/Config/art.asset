@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aeb11a141ead5f4db285f3dac05d3e2, type: 3}
+  m_Name: art
+  m_EditorClassIdentifier: Bunker.Config::Bunker.Config.ArtCatalogAsset
+  weapons:
+  - id: weapon.pistol
+    prefab: {fileID: 7109340728191115283, guid: ccfdadc9ddba7e34287081776467b6bf, type: 3}
+    localPosition: {x: 0, y: 0.037234604, z: 0.0588005}
+    localEulerAngles: {x: -0, y: 0, z: 0}
+    localScale: 0.9929229
+    muzzleLocal: {x: -1.0508313e-10, y: 0.07362542, z: 0.20348616}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - id: weapon.smg
+    prefab: {fileID: 8956439956424741665, guid: a0e992a8d281bb442966f02777b87039, type: 3}
+    localPosition: {x: 0, y: 0, z: 0.16639999}
+    localEulerAngles: {x: -0, y: 90, z: 0}
+    localScale: 0.7686243
+    muzzleLocal: {x: 0.0014110791, y: 0.060272407, z: 0.39401835}
+    tint: {r: 0.23529412, g: 0.24313726, b: 0.26666668, a: 1}
+  - id: weapon.shotgun
+    prefab: {fileID: 1729602111867954032, guid: ec1e16f5d7ea7dc4a8559de49c4cd1a4, type: 3}
+    localPosition: {x: 0, y: -0.0033253962, z: 0.16993873}
+    localEulerAngles: {x: -0, y: 0, z: 0}
+    localScale: 0.8275861
+    muzzleLocal: {x: 0.0000000019323794, y: 0.048955876, z: 0.6200787}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - id: weapon.rifle
+    prefab: {fileID: 4403840822553857383, guid: 78b1a2db84534a049a9c9cca8b4dd782, type: 3}
+    localPosition: {x: -0.0000000017939633, y: 0, z: 0.2944}
+    localEulerAngles: {x: -0, y: 90, z: 0}
+    localScale: 0.9631266
+    muzzleLocal: {x: -0.000010857653, y: 0.034173828, z: 0.7276752}
+    tint: {r: 0.11320752, g: 0.10424454, b: 0.099857576, a: 1}
+  meleeWeapons:
+  - id: melee.dagger
+    prefab: {fileID: 4114314494923399715, guid: 9002539a4b4402345b72cb6caed9ad94, type: 3}
+    localPosition: {x: 0.0000000019910114, y: -0.005274038, z: 0.04028503}
+    localEulerAngles: {x: -0, y: 270, z: 90}
+    localScale: 0.53445804
+    muzzleLocal: {x: 0.000000017097811, y: -0.0052740383, z: 0.28422216}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - id: melee.sword
+    prefab: {fileID: 2092738202737299503, guid: daf24bb6fa50b384c8f30793e40553ed, type: 3}
+    localPosition: {x: 0.000000027813389, y: 0, z: 0.33058935}
+    localEulerAngles: {x: -0, y: 90, z: 90}
+    localScale: 0.74661
+    muzzleLocal: {x: 0.000000096576585, y: 0, z: 0.7525004}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - id: melee.axe
+    prefab: {fileID: 5007603960733871978, guid: 2ffd2b32665a3cf4385feeb09ee760bb, type: 3}
+    localPosition: {x: 0.000000087323684, y: 0.0036305462, z: 0.017449558}
+    localEulerAngles: {x: -0, y: 90, z: 90}
+    localScale: 0.7813591
+    muzzleLocal: {x: 0.000000107430154, y: 0.062001828, z: 0.5993254}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  zombiePrefab: {fileID: 4949834682717344509, guid: 9cc4f48164dd0a447bac1050f24e359e, type: 3}
+  zombieLocalPosition: {x: -0, y: 0.0074406248, z: -0.02803717}
+  zombieScale: 0.861642
+  zombieYawDegrees: 0

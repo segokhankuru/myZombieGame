@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "_meta": {
+    "owner": "systems-designer",
+    "system": "SYS-bicak",
+    "lastTuned": "2026-09-08"
+  },
+
+  "_note": "2026-09-08, gelistirici: 'varsayilan olarak dagger bicagi karaktere ekle, V'ye basinca bu bicagi sallasin. Tezgaha kilic ve axe yi de ekle, puanla alinabilir olacak. Kilic daggerin 1.5x kati hasari olsun. Axe daggera gore 2.5x hasarli olsun ama savurmasi da daggera gore 2x uzun sursun.' Uc yakin dovus silahi, uc AYRI RITIM - ayni bicagin daha guclusu degil. Hancer hizli ve affedici, balta agir ve taahhutlu; kilic ikisinin arasi.",
+
+  "_carpan": "Sayilar CARPAN, mutlak deger degil (config-data.md: 'B her zaman A'nin iki katiysa A'yi sakla, B'yi kodda hesapla'). Taban knife.json'daki savurus: hasar 160, bekleme 0.85 sn, hazirlik 0.12 sn, menzil 2.2 m, koni 70 derece. Bicagin dengesini ayarlamak icin TEK dosyaya dokunulur ve uc silah birlikte kayar; mutlak deger yazilsaydi bir ayar uc yerde tekrarlanir ve zamanla ayrisirdi.",
+
+  "_savurusSuresi": "swingTimeMultiplier HEM hazirligi HEM beklemeyi carpar. Yalnizca beklemeyi carpsaydi balta ayni hizda savurup daha uzun dinlenirdi - oyuncunun okudugu sey 'agir bir silah' degil 'gecikmeli bir silah' olurdu. Agirlik, savurusun KENDISINDE hissedilmeli (gameplay-code.md: hizlanma ve toparlanma egrileri nesnenin kutlesine uymali).",
+
+  "_menzil": "rangeMultiplier bir DENGE karari degil, bir OKUNABILIRLIK karari: ekranda daggerden bir bucuk kat uzun duran bir kilic ayni mesafeden vuruyorsa oyuncu bunu bir hata olarak okur ('vurdum ama saymadi'). Silüet ne kadar uzunsa erisim de o kadar. Sayilar hipotez, oynanarak ayarlanacak.",
+
+  "_ids": "Id'ler KALICIDIR: kaydedilen silah, telemetri ve savas gunlugu bunlara baglanir. Yeniden adlandirmak yerine 'name' degistirilir.",
+
+  "melee": [
+    {
+      "id": "melee.dagger",
+      "name": "HANCER",
+      "damageMultiplier": 1.0,
+      "swingTimeMultiplier": 1.0,
+      "rangeMultiplier": 1.0,
+      "price": 0,
+      "text": "Baslangic bicagi. Hizli ve affedici; mermi biriktirmenin yolu."
+    },
+    {
+      "id": "melee.sword",
+      "name": "KILIC",
+      "damageMultiplier": 1.5,
+      "swingTimeMultiplier": 1.0,
+      "rangeMultiplier": 1.2,
+      "price": 1250,
+      "text": "Hancerin ritmi, bir bucuk kati hasar ve daha uzun erisim."
+    },
+    {
+      "id": "melee.axe",
+      "name": "BALTA",
+      "damageMultiplier": 2.5,
+      "swingTimeMultiplier": 2.0,
+      "rangeMultiplier": 1.1,
+      "price": 2000,
+      "text": "Agir. Iki bucuk kat hasar, iki kat savurus suresi - iskalamak pahali."
+    }
+  ]
+}

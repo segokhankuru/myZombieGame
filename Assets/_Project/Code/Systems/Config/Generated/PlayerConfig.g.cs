@@ -52,12 +52,32 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0 .. 3 | JSON: sprint.minSecondsToStart</remarks>
         public readonly float SprintMinSecondsToStart;
 
+        /// <summary>Comelmisken yurume hizinin carpani. Comelmenin BEDELI budur: nisan ve hasar kazanirsin, hareket kaybedersin. 0.8'in ustunde bedel hissedilmez ve comelmek her an dogru olur - yani bir karar olmaktan cikar. 0.3'un altinda comelmis oyuncu bir hedef tahtasidir ve tus hic kullanilmaz.</summary>
+        /// <remarks>Aralik: 0.2 .. 0.9 | JSON: crouch.speedMultiplier</remarks>
+        public readonly float CrouchSpeedMultiplier;
+
+        /// <summary>Comelmisken carpisan boyunun carpani. Yalnizca gorsel degil: zombinin dikey vurus siniri govdenin BOYUYLA olculuyor, yani alcalmak gercekten saklanmak demek. Cok kucultursen kamera yere gomulur.</summary>
+        /// <remarks>Aralik: 0.4 .. 0.95 | JSON: crouch.heightMultiplier</remarks>
+        public readonly float CrouchHeightMultiplier;
+
+        /// <summary>Comelmisken silahin dagilim acisinin carpani. ASIL ODUL bu. 1 yaparsan comelmek nisana hicbir sey katmaz; 0.2'nin altinda her silah keskin nisanci tufegine doner ve silahlarin karakter farki (weapons.json spreadDegrees) silinir.</summary>
+        /// <remarks>Aralik: 0.1 .. 1 | JSON: crouch.spreadMultiplier</remarks>
+        public readonly float CrouchSpreadMultiplier;
+
+        /// <summary>Comelmisken hasar carpani. Kucuk tutulmali: comelmek NISAN odulu vermeli, guc odulu degil. 1.2'nin ustunde 'her zaman comel' dogru cevap olur ve hareket etmek cezalanir - PILLAR-03'un ritmi biter.</summary>
+        /// <remarks>Aralik: 1 .. 1.25 | JSON: crouch.damageMultiplier</remarks>
+        public readonly float CrouchDamageMultiplier;
+
+        /// <summary>Ayakta ile comelmis arasindaki gecis suresi. Sifir olursa kamera ziplar ve okunmaz; uzatirsan comelmek bir tepki araci olmaktan cikar ve oyuncu tehlike aninda kullanamaz.</summary>
+        /// <remarks>Aralik: 0 .. 0.6 | JSON: crouch.transitionSeconds</remarks>
+        public readonly float CrouchTransitionSeconds;
+
         /// <summary>
         /// Varsayilanlar <c>config/balance/player.json</c> dosyasindan URETILDI.
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public PlayerConfig(
-            int version = 2,
+            int version = 3,
             float healthMaxPoints = 100f,
             float healthRegenDelaySeconds = 4f,
             float healthRegenPerSecond = 25f,
@@ -65,7 +85,12 @@ namespace Bunker.Systems.Config
             float sprintSpeedMultiplier = 1.5f,
             float sprintMaxSeconds = 4.5f,
             float sprintRechargePerSecond = 0.5f,
-            float sprintMinSecondsToStart = 0.6f)
+            float sprintMinSecondsToStart = 0.6f,
+            float crouchSpeedMultiplier = 0.5f,
+            float crouchHeightMultiplier = 0.6f,
+            float crouchSpreadMultiplier = 0.45f,
+            float crouchDamageMultiplier = 1.08f,
+            float crouchTransitionSeconds = 0.12f)
         {
             Version = version;
             HealthMaxPoints = healthMaxPoints;
@@ -76,6 +101,11 @@ namespace Bunker.Systems.Config
             SprintMaxSeconds = sprintMaxSeconds;
             SprintRechargePerSecond = sprintRechargePerSecond;
             SprintMinSecondsToStart = sprintMinSecondsToStart;
+            CrouchSpeedMultiplier = crouchSpeedMultiplier;
+            CrouchHeightMultiplier = crouchHeightMultiplier;
+            CrouchSpreadMultiplier = crouchSpreadMultiplier;
+            CrouchDamageMultiplier = crouchDamageMultiplier;
+            CrouchTransitionSeconds = crouchTransitionSeconds;
         }
     }
 }

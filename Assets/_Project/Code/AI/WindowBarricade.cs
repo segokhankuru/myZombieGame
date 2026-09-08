@@ -165,6 +165,13 @@ namespace Bunker.AI
             // gormeden bilmeli, yoksa savunma yalnizca BAKTIGIN pencerede olur.
             GameAudio.PlayAt(SfxId.BarricadeTear, transform.position);
 
+            // SAVAS GUNLUGU (2026-09-08): barikat da bir hedef ve "kimden kime"
+            // sorusunun bir parcasi. Tek tek SOKME adimlari degil, TAHTA DUSMESI
+            // yaziliyor - sokme kare basina ilerleyen surekli bir is ve her adimi
+            // loglamak dosyayi kullanilmaz yapardi.
+            Systems.Telemetry.CombatLog.Event(
+                "BARIKAT", $"{name}: tahta dustu, kalan {_barricade.Boards}");
+
             BoardTorn?.Invoke(this);
             return true;
         }

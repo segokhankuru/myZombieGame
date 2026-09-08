@@ -6,11 +6,19 @@
     "lastTuned": "2026-09-06"
   },
 
+  "_menzil": "2026-09-06, gelistirici: 'pompali uzak mesafeye isabet edemiyor, en azindan o mesafeye gidebilmeli, ust katin bir ucundan digerine yetismeli.' Dogru: mermi 18 metrede HAVADA KAYBOLUYORDU - bu bir denge kurali degil, gorunmeyen bir duvar. Menzil 45'e cikti; pompaliyi yakin mesafe silahi yapan sey artik SADECE dagilim. Uzakta koni genisler, sekiz sacmadan bir ikisi tutar ve TABAN hasarini verir. Ceza kendiliginden geliyor, bir sayiyla dayatilmiyor - oyuncu mesafeyi gozuyle ogreniyor.",
+
+  "_reload": "reloadSeconds normalde BUTUN sarjorun suresi. reloadPerShell true ise TEK BIR MERMININ suresidir ve dolum mermi mermi ilerler: her adimda bir fisek girer, oyuncu istedigi an kesip ates edebilir. Pompali icin dogru olan bu (2026-09-06, gelistirici: 'tek sarjor dolduruyormus dusuncesi pompali metasina aykiri'). Bos sarjordan tam dolum 6 x 0.45 = 2.7 sn - eski tek parca 2.8 sn ile ayni; fark, artik ikinci fisekten sonra ates edebiliyor olman.",
+
   "_note": "2026-09-06, gelistirici: 'farkli silahlar ekle cunku atis hizini test edemiyorum.' Dort silah, dort AYRI RITIM - ayni silahin daha guclusu degil. Tabanca referanstir (weapon.json'daki denge silahi); digerleri ona GORE tanimlandi. Saniyedeki hasar (DPS) bilerek birbirine yakin: silahi secen sey guc degil, RITIM ve MENZIL olmali. Hicbiri kanit degil, hepsi hipotez - oynanarak ayarlanacak.",
 
   "_ids": "Id'ler KALICIDIR: duvar satin alma noktalari, kaydedilen silah ve telemetri bunlara baglanir.",
 
-  "_dps": "Tur 1 zombisi 150 can. Tabanca 55x6.7/sn = 367 DPS, MP 32x12.5/sn = 400 DPS, pompali 8x24 = 192/atis x1.5/sn = 288 DPS (yakin), tufek 130x2.5/sn = 325 DPS. Pompali yakinda en yuksek TEK ATIS hasarini verir ama uzakta ise yaramaz.",
+  "_reserveCapacity": "2026-09-07: BU ARTIK BIR TAVAN DEGIL. Yedek merminin tavani kaldirildi (gelistirici: 'yedek mermi konusu bir tik gereksiz'); tavanin oyuncuya gorunen tek sonucu, satin alinan ya da yerden toplanan merminin sessizce yok olmasiydi. Sayi duruyor cunku hala bir soruya cevap veriyor: TUR SONU IKMALI ne kadar olsun (rounds.json roundEnd.reserveAmmoFraction01 bunun orani kadarini verir). Yani 'silahin bir tur sonunda kazandigi mermi' olcusudur - pompalida 90, SMG'de 480 olmasi bundan.",
+
+  "_dps": "Tur 1 zombisi 150 can. Tabanca 55x6.7/sn = 367 DPS, MP 55x12.5/sn = 687 DPS, pompali 8x24 = 192/atis x1.5/sn = 288 DPS (yakin), tufek 130x2.5/sn = 325 DPS. Pompali yakinda en yuksek TEK ATIS hasarini verir ama uzakta ise yaramaz.",
+
+  "_mpHasari": "2026-09-08, gelistirici: 'mp kisa diye koydugun taramali, tabancayla ayni hasari vermeli, az olmasi sacma.' Hasar 32 -> 55, yani tabancanin AYNISI. DENGE SONUCU ACIK VE BILEREK KABUL EDILDI: MP artik en yuksek DPS'li silah (687, tabancanin 1.9 kati) ve 900 puana aliniyor. Silahi ayiran sey artik guc degil MERMI TUKETIMI ve MENZIL: 30 mermilik sarjor 2.4 saniyede bitiyor, menzil 35 m ve dagilim 2.2 derece - yani uzakta ise yaramiyor ve mermi ekonomisi cezayi kendisi kesiyor. Ilk oyun testinde MP tek dogru cevap gibi okunuyorsa dusecek yer roundsPerMinute ya da reserveCapacity, hasar degil.",
 
   "weapons": [
     {
@@ -28,26 +36,26 @@
     {
       "id": "weapon.smg",
       "name": "MP-KISA",
-      "damage": 32, "roundsPerMinute": 750, "headshotMultiplier": 1.6,
+      "damage": 55, "roundsPerMinute": 750, "headshotMultiplier": 1.6,
       "rangeMeters": 35, "spreadDegrees": 2.2, "pelletCount": 1,
       "magazineCapacity": 30, "reserveCapacity": 480, "startingReserve": 180,
       "reloadSeconds": 2.0,
       "recoilPitchPerShot": 0.55, "recoilYawPerShot": 0.45,
       "recoilRecoveryPerSecond": 20, "recoilMaxPitch": 9,
-      "price": 900, "ammoPrice": 350,
+      "price": 900, "ammoPrice": 250,
       "text": "Hizli ve affedici. Kalabaligi tarar, mermiyi hizla yer."
     },
     {
       "id": "weapon.shotgun",
       "name": "POMPALI",
       "damage": 24, "roundsPerMinute": 90, "headshotMultiplier": 1.4,
-      "rangeMeters": 18, "spreadDegrees": 7.0, "pelletCount": 8,
+      "rangeMeters": 45, "spreadDegrees": 3.0, "pelletCount": 8,
       "magazineCapacity": 6, "reserveCapacity": 90, "startingReserve": 36,
-      "reloadSeconds": 2.8,
+      "reloadSeconds": 0.45, "reloadPerShell": true,
       "recoilPitchPerShot": 4.0, "recoilYawPerShot": 0.8,
       "recoilRecoveryPerSecond": 16, "recoilMaxPitch": 12,
-      "price": 1200, "ammoPrice": 400,
-      "text": "Yakin mesafenin cevabi. Sekiz sacma; uzakta hicbir sey yapmaz."
+      "price": 1200, "ammoPrice": 250,
+      "text": "Yakin mesafenin cevabi. Sekiz sacma; uzakta dagilir, bir ikisi tutar."
     },
     {
       "id": "weapon.rifle",
@@ -58,7 +66,7 @@
       "reloadSeconds": 2.4,
       "recoilPitchPerShot": 3.2, "recoilYawPerShot": 0.5,
       "recoilRecoveryPerSecond": 12, "recoilMaxPitch": 10,
-      "price": 1500, "ammoPrice": 450,
+      "price": 1500, "ammoPrice": 250,
       "text": "Yavas ve agir. Kafadan vurdugun surece gec turlarin cevabi."
     }
   ]

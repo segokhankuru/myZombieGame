@@ -47,7 +47,8 @@ namespace Bunker.Systems.Tests
             speedRunMetersPerSecond: 4.6f,
             speedWalkUntilRound: 4,
             speedJogUntilRound: 8,
-            pacingBreatherSeconds: 10f,
+            pacingBreatherSecondsEarly: 10f,
+            pacingBreatherSecondsLate: 10f,
             pacingSpawnIntervalSecondsAtRoundOne: 2f,
             pacingSpawnIntervalFloorSeconds: 0.25f));
 

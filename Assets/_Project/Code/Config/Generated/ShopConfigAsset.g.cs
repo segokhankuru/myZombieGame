@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class ShopConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 1;
+        [SerializeField] private int version = 2;
 
         [Header("health")]
         [Tooltip("Ilk alimin fiyati. Tur 1-2'de ulasilabilir olmali, yoksa tezgah gec oyuna kadar hic acilmaz ve erken turlarda bir karar uretmez. Cok ucuzsa kapinin onune gecer ve harita hic buyumez.")]
@@ -82,9 +82,9 @@ namespace Bunker.Config
         [Range(1.05f, 3f)]
         [SerializeField] private float magazineCostGrowth = 1.4f;
 
-        [Tooltip("Her alimda eklenen MERMI (oran degil, adet). Sarjor kapasitesi tam sayidir.")]
-        [Range(1f, 30f)]
-        [SerializeField] private float magazineIncrement = 2f;
+        [Tooltip("Her alimda eklenen sarjor ORANI (0.10 = silahin kendi sarjorunun +%10'u). 2026-09-07'ye kadar mutlak mermiydi ve ayni kademe pompalida (6 mermi) SMG'dekinin bes kati ise yariyordu; oran, hattin vaadini butun silahlarda ayni tutar. Buyutursen dolum kararini yok eder, kucultursen kademe hissedilmez.")]
+        [Range(0.02f, 0.5f)]
+        [SerializeField] private float magazineIncrement = 0.1f;
 
         [Tooltip("Hattin tavani.")]
         [Range(1, 30)]

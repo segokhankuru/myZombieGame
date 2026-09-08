@@ -84,12 +84,68 @@ namespace Bunker.Gameplay
             RunSignals.RunRestarted -= OnRunRestarted;
         }
 
+        /// <summary>
+        /// Tur bitti — ekran <b>hemen değil, bir saniye sonra</b> açılır. 2026-09-08.
+        ///
+        /// <para><b>Neden</b> (geliştirici: <i>"tur biter bitmez değil, 1 sn sonra
+        /// belirsin"</i>): son zombi öldüğü karede açılan ekran, oyuncunun o öldürmeyi
+        /// <i>görmesine</i> izin vermiyor. Bir saniye, turun bittiğini anlamak için
+        /// gereken en kısa süre — ve ekranın bir <b>ödül</b> gibi okunmasını sağlayan
+        /// şey o boşluktur.</para>
+        ///
+        /// <para><b>Seçim kilidini değiştirmez</b> (<c>CardDraftHud.pickLockSeconds</c>):
+        /// o kilit farklı bir sorunun cevabı — basılı duran farenin kartı görmeden
+        /// seçmesi. Gecikme "ne zaman göründü", kilit "ne zaman tıklanabilir"
+        /// sorusudur; ikisi ayrı kalmalı, yoksa birini ayarlamak diğerini bozar.</para>
+        /// </summary>
+        [Tooltip("Tur temizlendikten sonra kart ekranini acmadan once beklenen sure.")]
+        [SerializeField] private float openDelaySeconds = 1f;
+
+        private float _openTimer = -1f;
+        private int _pendingRound;
+
         private void OnRoundCleared(int round)
         {
             // Run bittiyse draft acilmaz: skor ekraninin arkasinda kart secmek
             // anlamsiz.
             if (RunSignals.IsRunOver) return;
 
+            _pendingRound = round;
+
+            if (openDelaySeconds <= 0f)
+            {
+                OpenNow(round);
+                return;
+            }
+
+            _openTimer = openDelaySeconds;
+        }
+
+        /// <summary>
+        /// Gecikmeyi sayar. <b><c>unscaledDeltaTime</c></b>: tur biter bitmez
+        /// <c>WorldClock</c> dünyayı durduran bir menü açarsa (tezgâh) ölçekli zaman
+        /// akmaz ve ekran hiç gelmezdi.
+        /// </summary>
+        private void Update()
+        {
+            if (_openTimer < 0f) return;
+
+            // Bu arada run bittiyse (yerdeki oyuncu kurtarilamadi) ekran acilmaz.
+            if (RunSignals.IsRunOver)
+            {
+                _openTimer = -1f;
+                return;
+            }
+
+            _openTimer -= Time.unscaledDeltaTime;
+            if (_openTimer > 0f) return;
+
+            _openTimer = -1f;
+            OpenNow(_pendingRound);
+        }
+
+        private void OpenNow(int round)
+        {
             _round = round < 1 ? 1 : round;
 
             // Solo host: uzak istemci sifir. Co-op geldiginde bu bayrak
@@ -108,6 +164,11 @@ namespace Bunker.Gameplay
 
         private void OnRunRestarted()
         {
+            // Bekleyen bir acilis varsa iptal: yeni run'in ilk saniyesinde onceki
+            // run'in kart ekraninin acilmasi, havuzun sifirlanmasindan once secim
+            // yapmak demekti.
+            _openTimer = -1f;
+
             CardSignals.ResetRun();
         }
 

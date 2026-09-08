@@ -1,4 +1,5 @@
 using Bunker.Audio;
+using Bunker.Systems.Combat;
 using Bunker.Systems.Economy;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Rounds;
@@ -32,6 +33,9 @@ namespace Bunker.Gameplay
         [SerializeField] private PlayerScore score;
         [SerializeField] private PlayerWeapon weapon;
 
+        [Tooltip("Yakin dovus. Tezgahtan kilic/balta alimi buradan gecer (2026-09-08).")]
+        [SerializeField] private PlayerMelee melee;
+
         [Tooltip("Etkilesim menzili. Denge degeri degil ergonomi: oyuncunun 'buna " +
                  "bakiyorum' dedigi mesafe.")]
         [SerializeField] private float rangeMeters = 3f;
@@ -50,6 +54,7 @@ namespace Bunker.Gameplay
             if (playerCamera == null) playerCamera = GetComponentInChildren<Camera>(true);
             if (score == null) score = GetComponent<PlayerScore>();
             if (weapon == null) weapon = GetComponent<PlayerWeapon>();
+            if (melee == null) melee = GetComponent<PlayerMelee>();
         }
 
         private void Update()
@@ -84,6 +89,23 @@ namespace Bunker.Gameplay
                 return;
             }
 
+            // Silah tezgahi (2026-09-06). Tezgah istasyonuyla ayni kalip ve ayni tus:
+            // ucuncu bir etkilesim kurali yok.
+            WeaponStation weaponStation = LookedAt<WeaponStation>();
+
+            if (weaponStation != null)
+            {
+                CurrentPrompt = weaponStation.Prompt;
+                CanAfford = true;
+
+                if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                {
+                    weaponStation.Open();
+                }
+
+                return;
+            }
+
             IPurchasable target = FindTarget();
 
             if (target == null)
@@ -111,7 +133,7 @@ namespace Bunker.Gameplay
             Transform cam = playerCamera != null ? playerCamera.transform : transform;
 
             if (!Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, rangeMeters,
-                                 ~0, QueryTriggerInteraction.Collide))
+                                 Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Collide))
             {
                 return null;
             }
@@ -121,17 +143,217 @@ namespace Bunker.Gameplay
         }
 
         /// <summary>Bakilan tezgah istasyonu, yoksa null.</summary>
-        private ShopStation FindStation()
+        private ShopStation FindStation() => LookedAt<ShopStation>();
+
+        /// <summary>Bakılan nesnedeki <typeparamref name="T"/>; yoksa <c>null</c>.</summary>
+        private T LookedAt<T>() where T : Component
         {
             Transform cam = playerCamera != null ? playerCamera.transform : transform;
 
             if (!Physics.Raycast(cam.position, cam.forward, out RaycastHit hit, rangeMeters,
-                                 ~0, QueryTriggerInteraction.Collide))
+                                 Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Collide))
             {
                 return null;
             }
 
-            return hit.collider.GetComponentInParent<ShopStation>();
+            return hit.collider.GetComponentInParent<T>();
+        }
+
+        // ------------------------------------------------------- silah tezgahi
+
+        /// <summary>
+        /// Tezgâhtan silah ya da mermi ister. <b>Arayüz çağırır, sunucu karar
+        /// verir.</b>
+        /// </summary>
+        public void RequestBuyWeapon(string weaponId)
+        {
+            if (!isLocalPlayer || string.IsNullOrEmpty(weaponId)) return;
+
+            CmdBuyWeapon(weaponId);
+        }
+
+        /// <summary>
+        /// Tezgâh alımı. <b>Her RPC bir güven sınırıdır</b> (netcode.md) — burada
+        /// doğrulanan üç şey var ve üçü de gerekli:
+        ///
+        /// <list type="number">
+        /// <item>İstemci gerçekten bir <see cref="WeaponStation"/>'ın <b>yanında</b> mı.
+        /// Işın yerine yarıçap kullanılıyor: menü açıkken oyuncu başka yöne bakıyor
+        /// olabilir, ama tezgâhtan uzaklaşmış olamaz.</item>
+        /// <item>Tezgâh <b>açılabilir durumda</b> mı (mola). İstemcinin menüyü açık
+        /// tutup tur ortasında satın alması engellenir.</item>
+        /// <item>İstenen id <b>katalogda</b> var mı. Uydurulan bir id bulunamaz ve
+        /// istek sessizce düşer.</item>
+        /// </list>
+        /// </summary>
+        [Command]
+        private void CmdBuyWeapon(string weaponId)
+        {
+            // SESSIZ REDDETME YOK (2026-09-06). Onceki surum uc ayri sebeple hicbir
+            // sey soylemeden donuyordu ve gelistirici "yedek mermi gelmiyor" diye
+            // okudu - hangi sebep oldugunu kimse bilemedi. Sunucuda kalan bir uyari,
+            // bir sonraki oyun testini tahmin olmaktan cikarir.
+            if (weapon == null || score == null)
+            {
+                Debug.LogWarning("[Tezgah] Alim reddedildi: oyuncuda silah ya da puan " +
+                                 "bileseni yok.", this);
+                return;
+            }
+
+            if (!IsNearOpenWeaponStation())
+            {
+                Debug.LogWarning("[Tezgah] Alim reddedildi: acik bir silah tezgahinin " +
+                                 "yaninda degilsin (mola bitmis olabilir).", this);
+                return;
+            }
+
+            WeaponDefinition definition = weapon.FindInCatalog(weaponId);
+
+            if (!definition.IsValid)
+            {
+                Debug.LogWarning($"[Tezgah] Alim reddedildi: '{weaponId}' katalogda yok. " +
+                                 "'Bunker/Config/Silahlari Ice Aktar' calistir.", this);
+                return;
+            }
+
+            bool owned = weapon.Owns(definition.Id);
+
+            // Sahip olunan silah MERMI satar - tezgah, duvardaki muslugun ayni
+            // kuralini kullanir; oyuncu iki farkli kural ogrenmez.
+            int cost = owned
+                ? (definition.AmmoPrice > 0 ? definition.AmmoPrice : definition.Price)
+                : definition.Price;
+
+            if (score.TrySpend(cost) != PurchaseResult.Success)
+            {
+                TargetReportPurchase(connectionToClient, false);
+                return;
+            }
+
+            // Mermi SATIN ALINAN SILAHA yazilir, eldekine degil: katalogdan pompali
+            // mermisi alan oyuncunun elinde tabanca olabilir.
+            if (owned) weapon.ServerAddReserveTo(definition.Id, AmmoPerPurchase(definition));
+            else weapon.ServerGrantWeapon(definition, equip: true);
+
+            TargetReportPurchase(connectionToClient, true);
+        }
+
+        // -------------------------------------------------- tezgah: yakin dovus
+
+        /// <summary>
+        /// Tezgâhtan kılıç ya da balta ister. <b>Arayüz çağırır, sunucu karar
+        /// verir.</b> 2026-09-08.
+        /// </summary>
+        public void RequestBuyMelee(string meleeId)
+        {
+            if (!isLocalPlayer || string.IsNullOrEmpty(meleeId)) return;
+
+            CmdBuyMelee(meleeId);
+        }
+
+        /// <summary>
+        /// Bıçak alımı. Doğrulama <see cref="CmdBuyWeapon"/> ile <b>aynı üç adım</b>:
+        /// tezgâhın yanında mısın, tezgâh açık mı, id katalogda var mı.
+        ///
+        /// <para><b>Sahip olunan bıçak yeniden satılmaz.</b> Silahta ikinci alım mermi
+        /// getiriyor; bıçağın mermisi yok, yani ikinci alımın verecek bir şeyi de yok.
+        /// Düğme zaten "elinde" yazacak — burası o kuralın sunucu tarafı, çünkü
+        /// arayüze güvenilmez (netcode.md).</para>
+        /// </summary>
+        [Command]
+        private void CmdBuyMelee(string meleeId)
+        {
+            // SESSIZ REDDETME YOK (CmdBuyWeapon ile ayni ders): reddin sebebi
+            // sunucuda yazili kalmali, yoksa "para gitti bicak gelmedi" tahmin olur.
+            if (melee == null || score == null)
+            {
+                Debug.LogWarning("[Tezgah] Bicak alimi reddedildi: oyuncuda bicak ya da " +
+                                 "puan bileseni yok.", this);
+                return;
+            }
+
+            if (!IsNearOpenWeaponStation())
+            {
+                Debug.LogWarning("[Tezgah] Bicak alimi reddedildi: acik bir silah " +
+                                 "tezgahinin yaninda degilsin (mola bitmis olabilir).", this);
+                return;
+            }
+
+            MeleeDefinition definition = melee.FindInCatalog(meleeId);
+
+            if (!definition.IsValid)
+            {
+                Debug.LogWarning($"[Tezgah] Bicak alimi reddedildi: '{meleeId}' katalogda " +
+                                 "yok. 'Bunker/Config/Yakin Dovus Ice Aktar' calistir.", this);
+                return;
+            }
+
+            if (melee.Owns(definition.Id))
+            {
+                // Elinde zaten var: ELINE AL, puan alma. Tezgahta iki bicagi olan
+                // oyuncunun aralarinda gecis yapabilmesi gerek ve buradan ucuz.
+                melee.ServerEquipOwned(definition.Id);
+                TargetReportPurchase(connectionToClient, true);
+                return;
+            }
+
+            if (definition.Price <= 0)
+            {
+                Debug.LogWarning($"[Tezgah] '{meleeId}' bedava ama envanterde yok - " +
+                                 "baslangic bicagi kurulmamis olabilir.", this);
+                return;
+            }
+
+            if (score.TrySpend(definition.Price) != PurchaseResult.Success)
+            {
+                TargetReportPurchase(connectionToClient, false);
+                return;
+            }
+
+            melee.ServerGrantMelee(definition, equip: true);
+            TargetReportPurchase(connectionToClient, true);
+        }
+
+        /// <summary>
+        /// Bir alışta gelen yedek mermi: <b>şarjörün üç katı</b>.
+        ///
+        /// <para><b>Neden şarjöre bağlı, sabit bir sayı değil</b> (config-data.md):
+        /// pompalıya 60, tabancaya 60 mermi vermek birine cömert, diğerine cimri
+        /// olurdu. Şarjör kapasitesi silahın ritmini zaten taşıyor.</para>
+        ///
+        /// <para><b>Neden üç</b>: pompalıda 18 mermi (üç dolum), tabancada 36. Bir
+        /// alış, oyuncuyu bir sonraki molaya kadar taşımalı; taşımıyorsa tezgâh bir
+        /// musluk değil bir kuyruk olur.</para>
+        /// </summary>
+        private static int AmmoPerPurchase(in WeaponDefinition definition) =>
+            definition.MagazineCapacity * 3;
+
+        /// <summary>
+        /// Sunucunun konum doğrulaması: açık bir silah tezgâhının yanında mıyız.
+        ///
+        /// <para><c>FindObjectsByType</c> burada kabul edilebilir çünkü <b>kare başına
+        /// değil</b>, yalnızca bir satın alma komutunda çalışır (csharp-code.md'nin
+        /// yasağı sıcak yollar içindir).</para>
+        /// </summary>
+        private bool IsNearOpenWeaponStation()
+        {
+            const float maxDistanceMeters = 5f;
+
+            Vector3 position = transform.position;
+
+            foreach (WeaponStation candidate in
+                     FindObjectsByType<WeaponStation>(FindObjectsSortMode.None))
+            {
+                if (!candidate.CanOpen) continue;
+
+                if ((candidate.transform.position - position).sqrMagnitude <=
+                    maxDistanceMeters * maxDistanceMeters)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         [Command]
@@ -146,7 +368,7 @@ namespace Bunker.Gameplay
 
             if (!Physics.Raycast(cam.position, cam.forward, out RaycastHit hit,
                                  rangeMeters + serverRangeSlackMeters,
-                                 ~0, QueryTriggerInteraction.Collide))
+                                 Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Collide))
             {
                 return;
             }

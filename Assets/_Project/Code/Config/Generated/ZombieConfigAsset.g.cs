@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class ZombieConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 5;
+        [SerializeField] private int version = 7;
 
         [Header("spawn")]
         [Tooltip("Zombi dogduktan sonra hareket etmeden once bekledigi sure. Sifir olursa zombiler dogar dogmaz kosar ve oyuncu belirme anini goremez - PILLAR-04 (kaosta okunabilirlik) burada kirilir. Cok uzun olursa surunun temposu duser ve pencere savunmasi kolaylasir.")]
@@ -37,13 +37,13 @@ namespace Bunker.Config
         [SerializeField] private float windowEntryVaultSeconds = 1.4f;
 
         [Header("attack")]
-        [Tooltip("Zombinin vurus icin yaklasmasi gereken mesafe. Buyutursen zombi degmeden vurur ve oyuncu haksizliga ugradigini hisseder; kucultursen zombi icine girip vuramaz.")]
-        [Range(0.8f, 3f)]
-        [SerializeField] private float attackRangeMeters = 1.6f;
+        [Tooltip("Zombinin KOL UZUNLUGU: iki GOVDE YUZEYI arasinda en fazla bu kadar bosluk varken vurabilir. 2026-09-06'ya kadar merkezler arasi olculuyordu; 1.6 degeri govdeler arasinda 0.9 m bosluk varken vurmak demekti ve oyun testinde 'en oendekiyle mesafem varken vurmus oluyor' diye okundu. Buyutursen zombi yine degmeden vurur ve oyuncu haksizliga ugradigini hisseder; kucultursen zombi oyuncunun icine girip vuramaz.")]
+        [Range(0.15f, 1.5f)]
+        [SerializeField] private float attackRangeMeters = 0.5f;
 
-        [Tooltip("Telegraf sirasinda oyuncu bu kadar uzaklasirsa vurus HALA isabet eder. Sifir yaparsan geri geri yuruyerek hasar almadan sonsuza kadar oynanir; cok buyutursen telegrafi okumanin odulu kalmaz ve geri cekilme hissi olur.")]
-        [Range(0f, 2f)]
-        [SerializeField] private float attackRangeToleranceMeters = 0.6f;
+        [Tooltip("Telegraf sirasinda oyuncu bu kadar uzaklasirsa vurus HALA isabet eder. Bu da GOVDE BOSLUGU olcusundedir (bkz. rangeMeters). Sifir yaparsan geri geri yuruyerek hasar almadan sonsuza kadar oynanir; cok buyutursen telegrafi okumanin odulu kalmaz ve geri cekilme hissi olur.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float attackRangeToleranceMeters = 0.3f;
 
         [Tooltip("Vurus hazirligi - oyuncunun goreceği telegraf. Kisaltirsan vurus habersiz gelir, oyuncu 'nereden yedim' der ve oyun adaletsiz hissettirir (ai-code.md). Uzatirsan zombiler zararsizlasir ve gerilim biter.")]
         [Range(0.15f, 1.5f)]
@@ -121,6 +121,59 @@ namespace Bunker.Config
         [Range(0f, 1f)]
         [SerializeField] private float cardsExplosionSelfDamageFraction01 = 0f;
 
+        [Header("drops")]
+        [Tooltip("Bir zombinin olunce esya birakma ihtimali (Ganimet karti bunu carpar). Buyutursen mermi ve can bedava olur, tezgahin ve nisan almanin anlami kalmaz; kucultursen oyuncu esyayi almaya gitmeyi hic ogrenemez ve mekanik yok sayilir.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float dropsChance01 = 0.07f;
+
+        [Tooltip("Esyanin yerde durma suresi. Bu sure BASKI demektir: kisa olursa esya, alinmasi imkansiz bir yem olur ve oyuncu her seferinde geç kalir; uzun olursa oyuncu turu temizleyip guvenle toplar ve risk-odul karari kaybolur.")]
+        [Range(5f, 120f)]
+        [SerializeField] private float dropsLifetimeSeconds = 25f;
+
+        [Tooltip("Uzerinden gecince toplanma yaricapi. Kucultursen oyuncu esyanin ustunde durup alamadigini sanir - arayuzun soyleyemedigi en sinir bozucu hata; buyutursen esya uzaktan kendiliginden gelir ve gitme karari ortadan kalkar.")]
+        [Range(0.5f, 4f)]
+        [SerializeField] private float dropsPickupRadiusMeters = 1.4f;
+
+        [Tooltip("Can esyasinin iyilestirdigi miktar, maksimum canin orani. Kucuk olursa esyayi almaya gitmek riske degmez; 1 yapilirsa can yonetimi biter - tam can, kalabaligin ortasindaki tek bir kutuya indirgenir.")]
+        [Range(0.05f, 1f)]
+        [SerializeField] private float dropsHealthFraction01 = 0.35f;
+
+        [Tooltip("Mermi esyasinin verdigi yedek, SARJOR cinsinden (elindeki silahin sarjoru kadar). Sarjor cinsinden olmasi sart: mutlak bir sayi, 6 mermilik pompaliyla 30 mermilik SMG'de bambaska iki odul olurdu.")]
+        [Range(0.5f, 10f)]
+        [SerializeField] private float dropsAmmoMagazines = 3f;
+
+        [Tooltip("Yavaslatma esyasinin butun zombilerden dusurdugu hiz orani. Kucuk olursa oyuncu farki hic goremez ve esya bos hisseder; buyutursen 'dondurma' esyasindan farksizlasir ve iki esya tek esyaya doner.")]
+        [Range(0.05f, 0.9f)]
+        [SerializeField] private float dropsSlowFraction01 = 0.1f;
+
+        [Tooltip("Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez.")]
+        [Range(2f, 30f)]
+        [SerializeField] private float dropsSlowSeconds = 10f;
+
+        [Tooltip("Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir.")]
+        [Range(1f, 15f)]
+        [SerializeField] private float dropsFreezeSeconds = 5f;
+
+        [Tooltip("Can esyasinin cikma agirligi. Agirliklar birbirine gore okunur: toplamin icindeki payi kadar cikar. Hepsini esitlemek, en guclu esyayi (nuke) en sik esyayla ayni sikliga getirir.")]
+        [Range(0, 100)]
+        [SerializeField] private int dropsWeightHealth = 25;
+
+        [Tooltip("Mermi esyasinin cikma agirligi. En sik cikmasi beklenen esya budur: mermi, oyuncunun her turda tukettigi tek kaynak.")]
+        [Range(0, 100)]
+        [SerializeField] private int dropsWeightAmmo = 40;
+
+        [Tooltip("Yavaslatma esyasinin cikma agirligi.")]
+        [Range(0, 100)]
+        [SerializeField] private int dropsWeightSlow = 18;
+
+        [Tooltip("Dondurma esyasinin cikma agirligi. Yavaslatmadan nadir olmali - ayni ise yarayan iki esyadan gucli olani sik cikarsa zayif olani cop olur.")]
+        [Range(0, 100)]
+        [SerializeField] private int dropsWeightFreeze = 12;
+
+        [Tooltip("Nuke (sahadaki butun zombileri oldurur) agirligi. EN NADIR olmali: turu tek basina bitiren bir esya sik cikarsa oyuncu turu degil, sansi oynar. Sifir yapmak nuke'u kapatir.")]
+        [Range(0, 100)]
+        [SerializeField] private int dropsWeightNuke = 5;
+
         [Header("swarm")]
         [Tooltip("Her zombinin hedefe giderken tuttugu yanal serit. Sifir yaparsan hepsi tek sira dizilir (eski hali). Cok buyutursen zombiler oyuncuya gelmek yerine yanlardan dolasir ve tehdit dagilir; dar koridorlarda da bosuna yol arar.")]
         [Range(0f, 6f)]
@@ -171,6 +224,19 @@ namespace Bunker.Config
                 cardsExplosionRadiusMeters,
                 cardsExplosionShrapnelCount,
                 cardsExplosionSelfDamageFraction01,
+                dropsChance01,
+                dropsLifetimeSeconds,
+                dropsPickupRadiusMeters,
+                dropsHealthFraction01,
+                dropsAmmoMagazines,
+                dropsSlowFraction01,
+                dropsSlowSeconds,
+                dropsFreezeSeconds,
+                dropsWeightHealth,
+                dropsWeightAmmo,
+                dropsWeightSlow,
+                dropsWeightFreeze,
+                dropsWeightNuke,
                 swarmLateralSpreadMeters,
                 swarmSpreadFadeDistanceMeters,
                 swarmSpeedJitter01,

@@ -72,6 +72,32 @@ namespace Bunker.Gameplay
         private bool _sprinting;
         private bool _sprintToggled;
 
+        // --- comelme (2026-09-06)
+        // Ayakta duran halin olculeri BIR KEZ okunur: comelmeden kalkarken geri
+        // yazilacak degerler bunlar (zombinin surunme kaliba ayni gerekce).
+        private bool _crouching;
+        private float _crouch01;              // 0 ayakta, 1 tam comelmis
+        private float _standHeight;
+        private Vector3 _standCenter;
+        private Vector3 _cameraStandPosition;
+
+        /// <summary>
+        /// Çömelmiş mi. <b>Silah bunu okur</b>: dağılım ve hasar çarpanı buradan gelir.
+        ///
+        /// <para><b>Neden bir oran, bir boolean değil:</b> geçiş süresi boyunca ödül de
+        /// kademeli gelmeli. Yarı çömelmişken tam nişan ödülü almak, Ctrl'e basıp
+        /// hemen ateş etmeyi bedava bir isabet hilesine çevirirdi.</para>
+        /// </summary>
+        public float Crouch01 => _crouch01;
+
+        /// <summary>Dağılım çarpanı: 1 ayakta, config'teki değer tam çömelmişken.</summary>
+        public float CrouchSpreadMultiplier =>
+            _config == null ? 1f : Mathf.Lerp(1f, _config.CrouchSpreadMultiplier, _crouch01);
+
+        /// <summary>Hasar çarpanı: 1 ayakta, config'teki değer tam çömelmişken.</summary>
+        public float CrouchDamageMultiplier =>
+            _config == null ? 1f : Mathf.Lerp(1f, _config.CrouchDamageMultiplier, _crouch01);
+
         private void Awake()
         {
             // Referanslar bir kez cozulur; kare basina GetComponent yasak (csharp-code.md).
@@ -80,6 +106,12 @@ namespace Bunker.Gameplay
 
             _spawnPosition = _transform.position;
             _spawnRotation = _transform.rotation;
+
+            // Ayakta duran halin olculeri: comelmeden kalkarken buraya donulur.
+            _standHeight = _controller.height;
+            _standCenter = _controller.center;
+
+            if (playerCamera != null) _cameraStandPosition = playerCamera.transform.localPosition;
 
             if (playerConfig == null)
             {
@@ -98,14 +130,32 @@ namespace Bunker.Gameplay
         }
 
         /// <summary>
-        /// Kalan koşu süresinin oranı (0..1). HUD bunu okur — 4,5 saniyelik bir
+        /// Koşabileceğin en uzun süre — <b>kart çarpanı dahil</b> (2026-09-07,
+        /// "Maratoncu" kartı).
+        ///
+        /// <para><b>Her yerde bu kullanılır</b>, <c>_config.SprintMaxSeconds</c>
+        /// doğrudan değil: dolum tavanı ile göstergenin tavanı farklı olsaydı, kartı
+        /// alan oyuncunun çubuğu hiç dolmazdı ya da hep dolu görünürdü. Tek tavan,
+        /// üç tüketici.</para>
+        /// </summary>
+        private float SprintCapSeconds =>
+            _config == null
+                ? 0f
+                : _config.SprintMaxSeconds * RunModifiers.Multiplier(CardStat.SprintDuration);
+
+        /// <summary>
+        /// Kalan koşu süresinin oranı (0..1). HUD bunu okur — birkaç saniyelik bir
         /// kaynağın göstergesi olmadan oyuncu ne zaman koşabileceğini tahmin etmek
         /// zorunda kalır.
         /// </summary>
-        public float SprintFraction01 =>
-            _config == null || _config.SprintMaxSeconds <= 0f
-                ? 0f
-                : Mathf.Clamp01(_sprintSecondsLeft / _config.SprintMaxSeconds);
+        public float SprintFraction01
+        {
+            get
+            {
+                float cap = SprintCapSeconds;
+                return cap <= 0f ? 0f : Mathf.Clamp01(_sprintSecondsLeft / cap);
+            }
+        }
 
         /// <summary>Şu an koşuyor mu. HUD ve ileride ses/animasyon buna bakar.</summary>
         public bool IsSprinting => _sprinting;
@@ -334,6 +384,16 @@ namespace Bunker.Gameplay
             // 1 donmek dogru davranis - oyun kosusuz ama calisir.
             if (_config == null) return 1f;
 
+            // Comelmisken kosu YOK: ikisi de hiz carpani ve carpimlari "yavas kosma"
+            // gibi okunmaz bir hal uretirdi. Comelmek bir DURMA karari.
+            if (_crouching)
+            {
+                _sprinting = false;
+                _sprintToggled = false;
+                RechargeSprint(dt);
+                return 1f;
+            }
+
             // Kosu tusu AC/KAPAT modunda olabilir (M-04 ayari): uzun oturumlarda
             // Shift'i basili tutmak fiziksel bir yuk - bir zevk meselesi degil.
             bool pressed = keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
@@ -387,11 +447,112 @@ namespace Bunker.Gameplay
         /// <summary>Koşmadığın her saniyede biraz koşu süresi geri gelir.</summary>
         private void RechargeSprint(float dt)
         {
-            if (_config == null || _sprintSecondsLeft >= _config.SprintMaxSeconds) return;
+            float cap = SprintCapSeconds;
+            if (_config == null || _sprintSecondsLeft >= cap) return;
 
-            _sprintSecondsLeft = Mathf.Min(_config.SprintMaxSeconds,
+            _sprintSecondsLeft = Mathf.Min(cap,
                                            _sprintSecondsLeft + _config.SprintRechargePerSecond * dt);
         }
+
+        /// <summary>
+        /// Çömelmeyi bir adım ilerletir ve hız çarpanını döner (2026-09-06).
+        ///
+        /// <para><b>Ödülün büyük kısmı nişanda, hasarda değil</b> (geliştirici: "daha
+        /// isabetli nişan alma ve %5-10 arası daha fazla hasar"). Dağılım yarıya
+        /// iniyor, hasar %8 artıyor. Gerekçe: büyük bir hasar ödülü "her zaman çömel"i
+        /// doğru cevap yapar ve hareket etmeyi cezalandırır. Nişan ödülü ise <b>ancak
+        /// durabildiğin anda</b> işe yarar — yani bir karar üretir.</para>
+        ///
+        /// <para><b>Kalkarken tavan kontrolü var.</b> Masanın altında çömelmiş bir
+        /// oyuncu Ctrl'ü bıraktığında geometrinin içine doğru büyürse
+        /// <c>CharacterController</c> onu bir yere fırlatır. Kalkacak yer yoksa çömelik
+        /// kalır — bu bir hata değil, kuralın kendisi.</para>
+        ///
+        /// <para><b>Basılı tutma</b>, geçiş değil: çömelmek bir tepki aracı ve tehlike
+        /// anında bırakıldığında hemen ayağa kalkmalı.</para>
+        /// </summary>
+        private float TickCrouch(Keyboard keyboard, float dt)
+        {
+            if (_config == null) return 1f;
+
+            bool wants = keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed;
+
+            if (!wants && _crouching && !CanStandUp()) wants = true;
+
+            _crouching = wants;
+
+            float step = _config.CrouchTransitionSeconds <= 0f
+                ? 1f
+                : dt / _config.CrouchTransitionSeconds;
+
+            _crouch01 = Mathf.MoveTowards(_crouch01, _crouching ? 1f : 0f, step);
+
+            ApplyCrouchHeight();
+
+            return Mathf.Lerp(1f, _config.CrouchSpeedMultiplier, _crouch01);
+        }
+
+        /// <summary>
+        /// Çarpışan ve kamera yüksekliğini <see cref="_crouch01"/>'e göre yazar.
+        ///
+        /// <para><b>Merkez de iner, yalnızca boy değil.</b> Yalnızca boyu küçültmek
+        /// kapsülü ayaklardan koparır ve oyuncu havada durur.</para>
+        /// </summary>
+        private void ApplyCrouchHeight()
+        {
+            float target = Mathf.Lerp(1f, _config.CrouchHeightMultiplier, _crouch01);
+
+            float height = _standHeight * target;
+
+            _controller.height = height;
+            _controller.center = new Vector3(_standCenter.x,
+                                             _standCenter.y - (_standHeight - height) * 0.5f,
+                                             _standCenter.z);
+
+            if (playerCamera == null) return;
+
+            playerCamera.transform.localPosition = new Vector3(
+                _cameraStandPosition.x,
+                _cameraStandPosition.y - (_standHeight - height),
+                _cameraStandPosition.z);
+        }
+
+        /// <summary>Ayağa kalkacak boşluk var mı. Tavan varsa çömelik kalınır.</summary>
+        private bool CanStandUp()
+        {
+            // Kapsul ayaktayken nereyi kaplayacaksa orasi sorulur. Yaricap birazcik
+            // kucultuluyor: duvara yaslanmis bir oyuncu, duvarin kendisi yuzunden
+            // "kalkamiyorum" durumunda kalmamali.
+            float radius = _controller.radius * 0.9f;
+
+            Vector3 bottom = _transform.position + _standCenter -
+                             Vector3.up * (_standHeight * 0.5f - radius);
+            Vector3 top = _transform.position + _standCenter +
+                          Vector3.up * (_standHeight * 0.5f - radius);
+
+            // CheckCapsule DEGIL: o, oyuncunun KENDI carpisanini da bulur ve "hicbir
+            // zaman kalkamiyorum" derdi. Ustuste binenler tek tek elenmeli.
+            int count = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, _standCheck,
+                                                       ~0, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = _standCheck[i];
+                if (hit == null) continue;
+
+                // Kendi hiyerarsisi sayilmaz: karakter carpisani, silah modeli, vurus
+                // kutulari. Baskasinin govdesi sayilir - ustunde zombi duran oyuncu
+                // ayaga kalkip onu firlatmamali.
+                if (hit.transform.IsChildOf(_transform)) continue;
+
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Ayağa kalkma kontrolünün tamponu. Bir kez ayrılır (csharp-code.md).</summary>
+        private readonly Collider[] _standCheck = new Collider[8];
 
         private void ReadMove()
         {
@@ -417,6 +578,9 @@ namespace Bunker.Gameplay
             float speed = moveSpeedMetersPerSecond *
                           RunModifiers.Multiplier(CardStat.MoveSpeed);
 
+            // Comelme ONCE: kosu, comelmis oyuncuda hic baslamamali. Ters sirada
+            // kosu carpani o kare uygulanmis olurdu (ikisi de hiz carpani).
+            speed *= TickCrouch(keyboard, Time.deltaTime);
             speed *= TickSprint(keyboard, input.sqrMagnitude > 0.01f, Time.deltaTime);
 
             Vector3 horizontal = _transform.TransformDirection(input) * speed;

@@ -1,13 +1,13 @@
 {
   "$schema": "../schema/rounds.schema.json",
-  "version": 3,
+  "version": 4,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-tur",
-    "lastTuned": "2026-09-05"
+    "lastTuned": "2026-09-06"
   },
 
-  "_note": "v3 (2026-09-06): BOSS. Her besinci turda bir tane, tek. Cok cani ve cok hasari var ama YAVAS - kacilabilir olmasi sart, yoksa boss bir savas degil bir zar atisi olur. Buyuk oldugu icin kalabaligin icinde de okunur (PILLAR-04) ve olunce alti kat puan verir: onu oldurmek bir SECIM olmali, mecburiyet degil. v2 (2026-09-05, oyun testi): iki yeni kural. (1) ANLIK CANLI TAVANI - turun butun zombileri kisa araliklarla arka arkaya doguyordu, sahada 20 zombi birikince oyuncunun barikata donup tamir etmesi imkansizdi. Artik sahada en fazla aliveCapAtRoundOne + aliveCapAddPerRound*(tur-1) zombi durur; biri olunce yenisi gelir. Tavan hem oynanabilirlik hem PERF-BUDGET icin. (2) TUR SONU KISMI YENILEME - her tur temizlendiginde yedek mermi ve barikat tahtalari %40 oraninda geri gelir; tur arasi tamamen tamir ve alisveris olmaktan cikip bir SECIM kalir. 2026-09-05 oyun testi (hiz): kademeler cok erken ve cok sert geliyordu - tur 8de zombi 4.6 m/s ile oyuncunun 5 m/s hizina yapisiyordu, kacmak imkansizdi. Kademeler geriye cekildi (yurume tur 6, tempolu tur 12), tavan hiz 3.6 (semanin alt siniri 3.5). Oyuncu hala kacabilmeli; bosluk azalarak kapanmali. Baslangic degerleri. Klon tabaninin amaci olcum referansi uretmek; bu sayilar M1'de arkadas testiyle kalibre edilecek. Hicbiri kanit degil, hepsi hipotez.",
+  "_note": "v5 (2026-09-07, gelistirici): BOSS DAHA COK ODUL VERIYOR. 'bossu oldurunce daha fazla odul versin, bunu puan olarak sagla'. pointsMultiplier 6 -> 15. Gerekce: boss 14 kat cana sahip, yani oldurmek bir turun mermisini yiyor. Alti kat puan bu bedeli karsilamiyordu ve dogru oynanis bossu GORMEZDEN GELMEKTI - yani oyunun en buyuk anini atlamak. On bes kat, bossu oldurmeyi bir tezgah ziyaretine cevirir: bedeli var, karsiligi da var. Kacmak hala mesru, ama artik bir sey birakiyorsun. v4 (2026-09-06, gelistirici): MOLA IKI DEGERLI. Tek bir breatherSeconds vardi ve 20 sn'ydi; ilk turlarda molada yapilacak hicbir sey yok (barikat saglam, puan yok) ve oyun bos bekleyerek basliyordu. Artik ilk bes turun arasi 10 sn, sonrasi 20 sn - gec turda tamir + tezgah + silah + kart okumanin hepsi ayni molaya sigmali. Anahtar ADI degisti (breatherSeconds -> breatherSecondsEarly/Late + breatherEarlyUntilRound), o yuzden surum artti. v3 (2026-09-06): BOSS. Her besinci turda bir tane, tek. Cok cani ve cok hasari var ama YAVAS - kacilabilir olmasi sart, yoksa boss bir savas degil bir zar atisi olur. Buyuk oldugu icin kalabaligin icinde de okunur (PILLAR-04) ve olunce alti kat puan verir: onu oldurmek bir SECIM olmali, mecburiyet degil. v2 (2026-09-05, oyun testi): iki yeni kural. (1) ANLIK CANLI TAVANI - turun butun zombileri kisa araliklarla arka arkaya doguyordu, sahada 20 zombi birikince oyuncunun barikata donup tamir etmesi imkansizdi. Artik sahada en fazla aliveCapAtRoundOne + aliveCapAddPerRound*(tur-1) zombi durur; biri olunce yenisi gelir. Tavan hem oynanabilirlik hem PERF-BUDGET icin. (2) TUR SONU KISMI YENILEME - her tur temizlendiginde yedek mermi ve barikat tahtalari %40 oraninda geri gelir; tur arasi tamamen tamir ve alisveris olmaktan cikip bir SECIM kalir. 2026-09-05 oyun testi (hiz): kademeler cok erken ve cok sert geliyordu - tur 8de zombi 4.6 m/s ile oyuncunun 5 m/s hizina yapisiyordu, kacmak imkansizdi. Kademeler geriye cekildi (yurume tur 6, tempolu tur 12), tavan hiz 3.6 (semanin alt siniri 3.5). Oyuncu hala kacabilmeli; bosluk azalarak kapanmali. Baslangic degerleri. Klon tabaninin amaci olcum referansi uretmek; bu sayilar M1'de arkadas testiyle kalibre edilecek. Hicbiri kanit degil, hepsi hipotez.",
 
   "count": {
     "perPlayerAtRoundOne": 6,
@@ -41,7 +41,7 @@
     "speedMultiplier": 0.75,
     "damageMultiplier": 2.0,
     "scaleMultiplier": 1.7,
-    "pointsMultiplier": 6.0
+    "pointsMultiplier": 15.0
   },
 
   "roundEnd": {
@@ -50,7 +50,9 @@
   },
 
   "pacing": {
-    "breatherSeconds": 10,
+    "breatherSecondsEarly": 10,
+    "breatherSecondsLate": 20,
+    "breatherEarlyUntilRound": 5,
     "spawnIntervalSecondsAtRoundOne": 2.0,
     "spawnIntervalFloorSeconds": 0.25
   }

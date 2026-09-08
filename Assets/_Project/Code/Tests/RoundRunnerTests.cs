@@ -27,7 +27,8 @@ namespace Bunker.Systems.Tests
                 countMaxConcurrent: maxConcurrent,
                 countAliveCapAtRoundOne: aliveCapAtRoundOne,
                 countAliveCapAddPerRound: aliveCapAddPerRound,
-                pacingBreatherSeconds: breather,
+                pacingBreatherSecondsEarly: breather,
+                pacingBreatherSecondsLate: breather,
                 pacingSpawnIntervalSecondsAtRoundOne: spawnIntervalAtRoundOne));
 
             return new RoundRunner(scaling);
@@ -42,6 +43,57 @@ namespace Bunker.Systems.Tests
         }
 
         // ---------------------------------------------------------------- mola ve baslangic
+
+        /// <summary>
+        /// Molanın uzunluğu <b>gelecek</b> tura göredir (2026-09-07): ilk turlar kısa,
+        /// sonrası uzun. Biten tura bakılsaydı, sınırın tam üstünde mola bir tur geç
+        /// uzardı ve oyuncunun hazırlık zamanı tam ihtiyaç duyduğu turda gelmezdi.
+        /// </summary>
+        [Test]
+        public void Mola_IlkTurlarda_KISA_SonraUZUN()
+        {
+            var scaling = new RoundScaling(new RoundsConfig(
+                pacingBreatherSecondsEarly: 10f,
+                pacingBreatherSecondsLate: 20f,
+                pacingBreatherEarlyUntilRound: 5));
+
+            // Tur 1..5'e girilen molalar kisa.
+            Assert.AreEqual(10f, scaling.BreatherSecondsForRound(1), 0.001f);
+            Assert.AreEqual(10f, scaling.BreatherSecondsForRound(5), 0.001f);
+
+            // Tur 6 ve sonrasi uzun.
+            Assert.AreEqual(20f, scaling.BreatherSecondsForRound(6), 0.001f);
+            Assert.AreEqual(20f, scaling.BreatherSecondsForRound(30), 0.001f);
+        }
+
+        [Test]
+        public void Mola_BesinciTurdanSonra_YirmiSaniyeSurer()
+        {
+            var scaling = new RoundScaling(new RoundsConfig(
+                countPerPlayerAtRoundOne: 1f,
+                countAliveCapAtRoundOne: 60,
+                pacingBreatherSecondsEarly: 10f,
+                pacingBreatherSecondsLate: 20f,
+                pacingBreatherEarlyUntilRound: 5));
+
+            var runner = new RoundRunner(scaling);
+            runner.JumpToRound(5);
+
+            // Tur 5 temizlendi -> mola. Siradaki tur 6, yani UZUN mola.
+            runner.ReportSpawned(runner.TotalForRound);
+            runner.Tick(0.01f, 0);
+
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase, "kurulum: tur temizlenmeliydi");
+            Assert.AreEqual(20f, runner.BreatherSeconds, 0.001f);
+
+            // On saniye YETMEZ: kisa mola artik gecerli degil.
+            runner.Tick(10.5f, 0);
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase, "gec turda mola 10 sn degil");
+
+            runner.Tick(10f, 0);
+            Assert.AreEqual(RoundPhase.Active, runner.Phase);
+            Assert.AreEqual(6, runner.Round);
+        }
 
         [Test]
         public void AC1_RunMolaIleBaslar_HemenZombiDogmaz()

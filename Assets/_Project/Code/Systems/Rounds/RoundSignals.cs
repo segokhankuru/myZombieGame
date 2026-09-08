@@ -67,6 +67,34 @@ namespace Bunker.Systems.Rounds
         public static void RaiseBossKilled(float pointsMultiplier) =>
             BossKilled?.Invoke(pointsMultiplier);
 
+        /// <summary>
+        /// <b>Silahın vurmadığı</b> bir öldürme: nuke eşyası, ölen zombinin patlaması,
+        /// barikat. 2026-09-08.
+        ///
+        /// <para><b>Neden gerekti</b> (geliştirici: <i>"nuke drobunu alınca bütün
+        /// zombiler ölüyor ama puan karşılığı yansımıyor"</i>): puanı bugüne kadar
+        /// <b>silah</b> yazıyordu (<c>PlayerWeapon.KillConfirmed</c>). Silahın
+        /// tetiklemediği her ölüm — nuke, Yıkım kartının zincirleme patlaması —
+        /// sessizce puansız kalıyordu. Öldürme puanı, öldürmenin <i>aracına</i> değil
+        /// <b>olayına</b> bağlı olmalı.</para>
+        ///
+        /// <para><b>Neden bir sinyal, doğrudan çağrı değil:</b> öldüren taraf
+        /// <c>Bunker.AI</c>'da, cüzdan <c>Bunker.Gameplay</c>'de ve Gameplay AI'ı
+        /// göremez (gameplay-code.md). <c>PowerupSignals</c> ile aynı desen.</para>
+        ///
+        /// <para><b>Yük: kaç öldürme.</b> Nuke bir seferde otuz zombi öldürür; otuz
+        /// ayrı olay yayınlamak otuz ayrı <c>SyncVar</c> yazması demekti.</para>
+        /// </summary>
+        public static event Action<int> FieldKills;
+
+        /// <summary>Yayınlar. <b>Yalnızca sunucu</b> çağırır (ADR-0004).</summary>
+        public static void RaiseFieldKills(int count)
+        {
+            if (count <= 0) return;
+
+            FieldKills?.Invoke(count);
+        }
+
         public static void RaiseRoundStarted(int round)
         {
             IsBreather = false;
@@ -104,6 +132,7 @@ namespace Bunker.Systems.Rounds
             RoundCleared = null;
             RoundEndRestock = null;
             BossKilled = null;
+            FieldKills = null;
             IsBreather = true;
         }
     }

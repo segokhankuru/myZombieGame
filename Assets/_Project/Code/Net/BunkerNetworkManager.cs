@@ -1,3 +1,4 @@
+using System;
 using Bunker.Systems.Net;
 using Bunker.Systems.Rounds;
 using Mirror;
@@ -111,32 +112,118 @@ namespace Bunker.Net
         /// </summary>
         private void EnsureUsableTransport()
         {
-            if (transport != null && transport.Available()) return;
-
             Transport[] candidates = GetComponents<Transport>();
 
-            for (int i = 0; i < candidates.Length; i++)
-            {
-                if (candidates[i] == transport) continue;
-                if (!candidates[i].Available()) continue;
-
-                Debug.LogWarning(
-                    $"[Bunker] '{(transport != null ? transport.GetType().Name : "yok")}' " +
-                    $"kullanilamiyor (Steam kapali olabilir). Tasima " +
-                    $"'{candidates[i].GetType().Name}' olarak degistirildi.\n" +
-                    "Steam daveti bu oturumda YOK; adresle katilma calisiyor (ADR-0007).");
-
-                transport = candidates[i];
-                Transport.active = candidates[i];
-                return;
-            }
-
-            if (transport == null)
+            if (candidates.Length == 0)
             {
                 Debug.LogError("[Bunker] Hicbir tasima bileseni yok. " +
                                "'Bunker/Menu/Ana Menuyu Kur' calistir.", this);
+                return;
             }
+
+            // 1) STEAM VARSA VE HAZIRSA HER ZAMAN O. Tercih sirasi bir zevk meselesi
+            //    degil: Steam daveti ve katilma kodu YALNIZCA Steam tasimasiyla
+            //    calisir. KCP hep 'Available' doner, yani "elimdeki calisiyorsa
+            //    dokunma" kurali Steam'e bir daha asla donmemek demekti.
+            Transport steam = FindSteamTransport(candidates);
+
+            if (steam != null && steam.Available())
+            {
+                Use(steam, "Steam");
+                return;
+            }
+
+            // 2) Steam yok ya da henuz hazir degil: calisan ilk tasima.
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                if (!candidates[i].Available()) continue;
+
+                Use(candidates[i], steam == null ? "Yerel ag (KCP)" : "Yerel ag (KCP) - Steam kapali");
+                return;
+            }
+
+            Debug.LogError("[Bunker] Calisabilen tasima yok.", this);
         }
+
+        /// <summary>
+        /// Taşımayı seçer ve <b>değiştiyse söyler</b>. <c>Transport.active</c> ile
+        /// <c>transport</c> birlikte yazılır — ikisi ayrışırsa Mirror birinden
+        /// gönderip diğerinden dinler.
+        /// </summary>
+        private void Use(Transport chosen, string label)
+        {
+            SessionSignals.SetTransportLabel(label);
+
+            if (transport == chosen && Transport.active == chosen) return;
+
+            Debug.Log($"[Bunker] Tasima: {chosen.GetType().Name} ({label})");
+
+            transport = chosen;
+            Transport.active = chosen;
+        }
+
+        /// <summary>
+        /// Nesnedeki Steam taşıması. <b>Yansımayla değil, KCP'yi eleyerek</b>:
+        /// <c>Bunker.Net</c> FizzyFacepunch'a referans veremiyor (üçüncü partiden elle
+        /// indiriliyor, projede olmayabilir) ama ad üzerinden tanımak yeterli ve
+        /// yanlış eşleşmesi imkânsız.
+        /// </summary>
+        private static Transport FindSteamTransport(Transport[] candidates)
+        {
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                if (candidates[i] == null) continue;
+
+                if (candidates[i].GetType().Name.IndexOf("Fizzy", StringComparison.Ordinal) >= 0)
+                {
+                    return candidates[i];
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Taşıma seçimini <b>tekrar tekrar</b> yapar. 2026-09-09.
+        ///
+        /// <para><b>Düzeltilen hata — bu, iki makineli testin çöktüğü yer:</b> seçim
+        /// yalnızca <c>Awake</c>'te BİR KEZ yapılıyordu. Ama Steam'i <b>taşımanın
+        /// kendisi</b> başlatıyor (<c>FizzyFacepunch.Awake → SteamClient.Init</c>) ve
+        /// ikisi <b>aynı nesnede</b>: Unity'nin <c>Awake</c> sırası aralarında
+        /// <b>tanımsız</b>. Sıra ters düştüğünde <c>Available()</c> henüz
+        /// <c>false</c> dönüyor, kod KCP'ye düşüyor ve <b>bir daha hiç geri
+        /// dönmüyordu</b> — çünkü KCP her zaman "kullanılabilir" der.</para>
+        ///
+        /// <para>Sonuç tam olarak yaşanan şey: Steam bir saniye sonra açılıyor, lobi
+        /// kuruluyor, davet düğmesi çiziliyor, katılma kodu görünüyor — <i>ama bağlantı
+        /// KCP üzerinden deneniyor</i>. Davet bir yere varmıyor ve 17 haneli SteamId
+        /// bir sunucu adı olarak çözülmeye çalışılıp başarısız oluyor. Her şey
+        /// yerinde görünüyor, hiçbiri çalışmıyor.</para>
+        ///
+        /// <para><b>Aynı hata sınıfı <see cref="SteamLobby"/>'de 2026-09-07'de
+        /// düzeltilmişti</b> ("bir kere sorup pes etmek"); taşıma seçimi o düzeltmenin
+        /// dışında kalmıştı. Çözüm de aynı: sor, hazır değilse pes etme.</para>
+        ///
+        /// <para><b>Oturum açıkken DOKUNULMAZ:</b> çalışan bir bağlantının altından
+        /// taşıma değiştirmek, Mirror'ın birinden gönderip diğerinden dinlemesi
+        /// demektir.</para>
+        /// </summary>
+        private void TickTransportSelection()
+        {
+            // Oturum acikken DOKUNULMAZ: calisan bir baglantinin altindan tasima
+            // degistirmek, Mirror'in birinden gonderip digerinden dinlemesi demek.
+            if (SessionActive) return;
+
+            // Saniyede bir: Steam gec acilir, tasima bizden sonra uyanmis olabilir.
+            // Kare basina sormak bedava degil, saniyede bir bedava (SteamLobby ile
+            // ayni cozunurluk).
+            if (Time.unscaledTime - _lastTransportCheck < 1f) return;
+            _lastTransportCheck = Time.unscaledTime;
+
+            EnsureUsableTransport();
+        }
+
+        private float _lastTransportCheck = -99f;
 
         /// <summary>
         /// Menu niyetlerine abone olur.
@@ -189,6 +276,11 @@ namespace Bunker.Net
         {
             if (SessionActive) return;
 
+            // TIKLAMA ANINDA BIR KEZ DAHA SEC (2026-09-09): karar verilecek an burasi.
+            // Saniyelik yoklama zaten calisiyor ama oyuncu Steam acilmadan once
+            // "ODA AC" diyebilir; o oturumun tamami yanlis tasimayla gecerdi.
+            EnsureUsableTransport();
+
             _startGameImmediately = false;
             SessionSignals.SetStatus(SessionStatus.Connecting);
             Debug.Log("[Bunker] Oda aciliyor (host) - lobi.");
@@ -198,6 +290,8 @@ namespace Bunker.Net
         private void OnJoinRequested(string address)
         {
             if (SessionActive) return;
+
+            EnsureUsableTransport();
 
             if (string.IsNullOrWhiteSpace(address))
             {
@@ -238,12 +332,29 @@ namespace Bunker.Net
             SessionSignals.SetStatus(SessionStatus.Offline);
         }
 
-        private static void OnQuitRequested()
+        /// <summary>
+        /// Çıkarken oturumu <b>düzgün kapatır</b> — çıkışın kendisini değil.
+        ///
+        /// <para>Çıkış artık <see cref="SessionSignals.RequestQuit"/>'in kendisinde ve
+        /// koşulsuz (2026-09-06). Burada kalan iş, sunucuyu kapatıp bağlı istemcilere
+        /// veda etmek: süreç öldüğünde arkadaşın ekranı "bağlantı koptu" yerine "host
+        /// ayrıldı" görsün.</para>
+        ///
+        /// <para><b>Artık statik değil</b>, ve bu önemli: statik bir yöntemi bırakan
+        /// <c>-=</c> hangi örneğin bıraktığını ayırt edemez. Sahnedeki kopya
+        /// <c>NetworkManager</c> yok edilirken kendi <c>OnDisable</c>'ında asıl
+        /// örneğin aboneliğini de silebilirdi.</para>
+        /// </summary>
+        private void OnQuitRequested()
         {
+            if (NetworkServer.active && NetworkClient.isConnected) StopHost();
+            else if (NetworkClient.isConnected) StopClient();
+            else if (NetworkServer.active) StopServer();
+
 #if UNITY_EDITOR
+            // Editorde cikis = Play'i durdurmak. Bu satir yalnizca burada olabilir:
+            // SessionSignals bir calisma zamani derlemesinde ve UnityEditor'u goremez.
             UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
 #endif
         }
 
@@ -343,6 +454,11 @@ namespace Bunker.Net
         public override void Update()
         {
             base.Update();
+
+            // Tasima secimi burada yoklanir (2026-09-09). AYRI bir Update yazilamaz:
+            // Mirror'in NetworkManager'i zaten bir Update tanimliyor ve ikincisi
+            // derlenmez - Unity mesajlari sinif basina tektir.
+            TickTransportSelection();
 
             if (!_pendingStart) return;
             if (!NetworkServer.active || !NetworkClient.isConnected) return;

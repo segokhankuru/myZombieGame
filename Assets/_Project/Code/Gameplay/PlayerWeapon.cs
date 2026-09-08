@@ -4,6 +4,7 @@ using Bunker.Config;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
+using Bunker.Systems.Pickups;
 using Bunker.Systems.Rounds;
 using Mirror;
 using UnityEngine;
@@ -79,6 +80,9 @@ namespace Bunker.Gameplay
         private int _slot = -1;
 
         private WeaponDefinition _config;
+
+        /// <summary>Savas gunlugunde vuranin adi ("Oyuncu[TUFEK]"). Silah degisince kurulur.</summary>
+        private string _logSource = "Oyuncu";
         private WeaponState _state;
 
         // Sunucunun hile denetimi. Istemcinin simulasyonunu TEKRARLAMAZ; makul olup
@@ -86,6 +90,14 @@ namespace Bunker.Gameplay
         private ServerFireGuard _guard;
 
         private float _tracerRemaining;
+
+        /// <summary>
+        /// Saçma izleri. <b>Bir kez yaratılır, yeniden kullanılır</b> — atış başına
+        /// <c>Instantiate</c> bir hitch üreticisidir (csharp-code.md). İlk eleman
+        /// silahın kendi iz çizeridir.
+        /// </summary>
+        private readonly System.Collections.Generic.List<LineRenderer> _pelletTracers =
+            new System.Collections.Generic.List<LineRenderer>(8);
         private float _hitMarkerRemaining;
         private bool _lastShotWasHeadshot;
         private float _lastRejectWarnTime = -99f;
@@ -200,6 +212,11 @@ namespace Bunker.Gameplay
             _state = _states[slot];
             _guard = _guards[slot];
 
+            // Savas gunlugunun etiketi silah DEGISINCE kurulur (2026-09-08): atis
+            // basina string birlestirmek, otomatik atista saniyede on tahsis olurdu
+            // (csharp-code.md).
+            _logSource = "Oyuncu[" + _config.DisplayName + "]";
+
             // Kart etkileri silaha OZEL hesaplanir: yeni silahin sarjoru ve dolum
             // suresi kartlarla birlikte kurulmali, yoksa gecilen silah kartsiz kalir.
             WeaponModifiers mods = BuildModifiers();
@@ -240,6 +257,14 @@ namespace Bunker.Gameplay
 
             return default;
         }
+
+        /// <summary>
+        /// Satılabilecek bütün silahlar. <b>Silah tezgâhı bunu listeler.</b>
+        ///
+        /// <para><b>Salt okunur</b>: katalog <c>config/content/weapons.json</c>'dan
+        /// gelir ve çalışma anında değiştirilemez (config-data.md).</para>
+        /// </summary>
+        public System.Collections.Generic.IReadOnlyList<WeaponDefinition> Catalog => _catalog;
 
         /// <summary>Eldeki silahın tanımı. HUD ve durum paneli okur.</summary>
         public WeaponDefinition Current => _config;
@@ -290,6 +315,7 @@ namespace Bunker.Gameplay
             RunSignals.RunRestarted += OnRunRestarted;
             CardSignals.LoadoutChanged += OnLoadoutChanged;
             RoundSignals.RoundEndRestock += OnRoundEndRestock;
+            PowerupSignals.Picked += OnPowerupPicked;
         }
 
         private void OnDisable()
@@ -297,6 +323,26 @@ namespace Bunker.Gameplay
             RunSignals.RunRestarted -= OnRunRestarted;
             CardSignals.LoadoutChanged -= OnLoadoutChanged;
             RoundSignals.RoundEndRestock -= OnRoundEndRestock;
+            PowerupSignals.Picked -= OnPowerupPicked;
+        }
+
+        /// <summary>
+        /// Yerden mermi eşyası toplandı (2026-09-07).
+        ///
+        /// <para><b>Ölçü şarjördür, mutlak sayı değil:</b> "3 şarjör" 6 mermilik
+        /// pompalıda 18, 30 mermilik SMG'de 90 eder — eşyanın vaadi ikisinde de aynı:
+        /// <i>üç dolum</i>. Mutlak bir sayı, elindeki silaha göre bambaşka bir ödül
+        /// olurdu; şarjörü oransal yapan değişiklikle (2026-09-07) aynı gerekçe.</para>
+        /// </summary>
+        private void OnPowerupPicked(PowerupKind kind, float amount, float seconds)
+        {
+            if (kind != PowerupKind.Ammo) return;
+            if (!isServer || _state == null) return;
+
+            int rounds = Mathf.RoundToInt(_state.MagazineCapacity * amount);
+            if (rounds <= 0) return;
+
+            ServerAddReserve(rounds);
         }
 
         /// <summary>
@@ -318,7 +364,11 @@ namespace Bunker.Gameplay
             if (!isServer || _state == null) return;
             if (reserveAmmoFraction01 <= 0f) return;
 
-            int amount = Mathf.RoundToInt(_state.ReserveCapacity * reserveAmmoFraction01);
+            // Olcu birimi silahin kendi yedek referansi (weapons.json reserveCapacity).
+            // 2026-09-07'de o sayi bir TAVAN olmaktan cikti; ikmalin buyuklugunu
+            // soylemeye devam ediyor, cunku "bir tur sonu ne kadar mermi eder"
+            // sorusunun silaha gore cevabi hala o.
+            int amount = Mathf.RoundToInt(_state.ReserveRestockReference * reserveAmmoFraction01);
             if (amount <= 0) return;
 
             ServerAddReserve(amount);
@@ -349,8 +399,7 @@ namespace Bunker.Gameplay
                 fireRate: RunModifiers.Total(CardStat.FireRate),
                 reloadSpeed: RunModifiers.Total(CardStat.ReloadSpeed),
                 damage: RunModifiers.Total(CardStat.WeaponDamage),
-                magazine: Mathf.RoundToInt(RunModifiers.Total(CardStat.MagazineCapacity)),
-                reserve: Mathf.RoundToInt(RunModifiers.Total(CardStat.ReserveCapacity)),
+                magazine: RunModifiers.Total(CardStat.MagazineCapacity),
                 headshotMultiplier: RunModifiers.Total(CardStat.HeadshotMultiplier));
 
         /// <summary>
@@ -521,18 +570,49 @@ namespace Bunker.Gameplay
         /// diye yerel durum da tazelenir - mermi almanin karsiligi aninda gorulmeli.
         /// </summary>
         [Server]
-        public void ServerAddReserve(int amount)
+        public void ServerAddReserve(int amount) => ServerAddReserve(_slot, amount);
+
+        /// <summary>
+        /// <b>Belirli bir silaha</b> mermi ekler.
+        ///
+        /// <para><b>Neden gerekliydi</b> (2026-09-06): tezgâhta pompalının mermisini
+        /// alırken elinde tabanca varsa, mermi <b>tabancaya</b> yazılıyordu — parayı
+        /// ödüyor, yedeğin artmıyordu. Duvardaki musluk için "eldeki silah" doğru
+        /// varsayımdı; katalogdan seçerek alınan mermi için değil.</para>
+        /// </summary>
+        [Server]
+        public void ServerAddReserveTo(string weaponId, int amount)
+        {
+            for (int i = 0; i < _owned.Count; i++)
+            {
+                if (_owned[i].Id != weaponId) continue;
+
+                // TAVAN KONTROLU KALKTI (2026-09-07): yedek merminin tavani yok artik.
+                // Odenen her mermi yedege girer; "para gitti mermi gelmedi" durumu
+                // kaynagindan kalktigi icin uyariya da gerek kalmadi.
+                ServerAddReserve(i, amount);
+                return;
+            }
+
+            Debug.LogWarning($"[Silah] '{weaponId}' envanterde yok - mermi yazilamadi.", this);
+        }
+
+        [Server]
+        private void ServerAddReserve(int slot, int amount)
         {
             if (amount <= 0) return;
+            if (slot < 0 || slot >= _guards.Count) return;
 
-            _guard.AddReserve(amount);
-            TargetAddReserve(connectionToClient, amount);
+            _guards[slot].AddReserve(amount);
+            TargetAddReserve(connectionToClient, slot, amount);
         }
 
         [TargetRpc]
-        private void TargetAddReserve(NetworkConnection target, int amount)
+        private void TargetAddReserve(NetworkConnection target, int slot, int amount)
         {
-            _state.AddReserve(amount);
+            if (slot < 0 || slot >= _states.Count) return;
+
+            _states[slot].AddReserve(amount);
         }
 
         /// <summary>
@@ -552,7 +632,27 @@ namespace Bunker.Gameplay
         private void FireLocally()
         {
             Transform origin = muzzle != null ? muzzle : playerCamera.transform;
-            Vector3 direction = ApplySpread(playerCamera.transform.forward);
+
+            // POMPALI: DAGILIMI ISTEMCI UYGULAMAZ (2026-09-06, oyun testi).
+            //
+            // <b>Bulgu:</b> <i>"pompali duzgun ates etmiyor, yakin mesafeden tek
+            // partikul isabet etti".</i> Dagilim IKI KEZ uygulaniyordu: istemci
+            // nisangahtan 7 dereceye kadar sapmis bir yon gonderiyor, sunucu da o
+            // sapmis yonun etrafina bir 7 derecelik koni daha aciyordu. Sonuc: sekiz
+            // sacmanin MERKEZI nisangahtan bagimsiz bir yere kayiyordu ve yakin
+            // mesafede bile cogu iskaliyordu.
+            //
+            // Sacmali silahta koniyi yalnizca sunucu uretir (guven siniri, netcode.md);
+            // istemcinin isi ham nisan yonunu gondermek.
+            bool pellets = _config.PelletCount > 1;
+
+            Vector3 aim = playerCamera.transform.forward;
+            Vector3 direction = pellets ? aim : ApplySpread(aim);
+
+            // Comelme dagilimi daraltir (2026-09-06). Istemci kendi izini bu carpanla
+            // ciziyor; hasari uygulayan sunucu ayni carpani KENDI okuyor (CmdFire),
+            // cunku istemcinin bildirdigi bir "ben comelmistim" iddiasi guvenilmez
+            // veridir (netcode.md).
 
             // Geri tepme atisin ayni karesinde. Bir kare sonrasi bile "gecikmis"
             // hissettirir.
@@ -562,17 +662,10 @@ namespace Bunker.Gameplay
                 controller.AddRecoil(_config.RecoilPitchPerShot, yaw);
             }
 
-            Vector3 endPoint = origin.position + direction * _config.RangeMeters;
-
             // Yerel isin YALNIZCA gorsel icindir - hasari host uygular. Iki taraf
             // farkli sonuc bulursa gecerli olan host'unkidir.
-            if (Physics.Raycast(origin.position, direction, out RaycastHit hit, _config.RangeMeters,
-                                ~0, QueryTriggerInteraction.Ignore))
-            {
-                endPoint = hit.point;
-            }
-
-            ShowTracer(origin.position, endPoint);
+            if (pellets) ShowPelletFan(origin.position, direction);
+            else ShowTracer(origin.position, TraceEnd(origin.position, direction));
 
             // El modeli ve ses ayni karede: ates ettigini gosteren sey namlu alevi ve
             // patlama sesidir, sunucunun bir kare sonra donen onayi degil.
@@ -582,14 +675,35 @@ namespace Bunker.Gameplay
             CmdFire(origin.position, direction);
         }
 
+        /// <summary>
+        /// Şu anki dağılma açısı: silahın açısı, <b>çömelme çarpanıyla</b>.
+        ///
+        /// <para><b>Hem istemci hem sunucu burayı okur</b> — iki yerde hesaplanan bir
+        /// koni, zamanla ayrışan iki koni demektir.</para>
+        /// </summary>
+        /// <summary>
+        /// Uygulanacak hasar: silahın hasarı, <b>çömelme çarpanıyla</b>.
+        ///
+        /// <para><b>Çarpanı sunucu KENDİ okur</b>, istemciden almaz (netcode.md: her
+        /// RPC bir güven sınırı). İstemcinin "ben çömelmiştim" iddiası doğrulanamaz bir
+        /// veridir; çömelme durumu zaten sunucuda da yaşıyor çünkü karakter
+        /// <c>CharacterController</c>'ıyla birlikte host'ta da simüle ediliyor.</para>
+        /// </summary>
+        private float ServerDamage(bool headshot) =>
+            _guard.DamageFor(headshot) *
+            (controller != null ? controller.CrouchDamageMultiplier : 1f);
+
+        private float CurrentSpreadDegrees =>
+            _config.SpreadDegrees * (controller != null ? controller.CrouchSpreadMultiplier : 1f);
+
         private Vector3 ApplySpread(Vector3 forward)
         {
-            if (_config.SpreadDegrees <= 0f) return forward;
+            if (CurrentSpreadDegrees <= 0f) return forward;
 
             // Koni icinde rastgele sapma. Determinizm gerekmiyor: atis tekrar
             // oynatilmiyor ve kaydedilmiyor (csharp-code.md'nin seed kurali
             // tekrarlanabilir seyler icindir).
-            float radius = Mathf.Tan(_config.SpreadDegrees * Mathf.Deg2Rad);
+            float radius = Mathf.Tan(CurrentSpreadDegrees * Mathf.Deg2Rad);
             Vector2 offset = UnityEngine.Random.insideUnitCircle * radius;
 
             Transform cam = playerCamera.transform;
@@ -662,7 +776,7 @@ namespace Bunker.Gameplay
             }
 
             if (!Physics.Raycast(origin, direction, out RaycastHit serverHit,
-                                 _config.RangeMeters, ~0, QueryTriggerInteraction.Ignore))
+                                 _config.RangeMeters, Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore))
             {
                 return;
             }
@@ -680,7 +794,8 @@ namespace Bunker.Gameplay
             bool headshot = target.CountsAsHeadshot;
 
             DamageResult result = target.ApplyDamage(
-                new DamageInfo(_guard.DamageFor(headshot), DamageKind.Bullet, headshot));
+                new DamageInfo(ServerDamage(headshot), DamageKind.Bullet, headshot,
+                                   origin.x, origin.z, _logSource));
 
             // Isabet noktasi ve GERCEKTEN EMILEN hasar birlikte gonderiliyor: hasar
             // sayisini istemcide yeniden hesaplamak, kart etkileri degistiginde iki
@@ -705,7 +820,7 @@ namespace Bunker.Gameplay
                                      NetworkConnectionToClient sender)
         {
             int count = Physics.RaycastNonAlloc(origin, direction, PenetrationHits,
-                                                _config.RangeMeters, ~0,
+                                                _config.RangeMeters, Bunker.Config.GameLayers.WorldMask,
                                                 QueryTriggerInteraction.Ignore);
             if (count == 0) return;
 
@@ -743,7 +858,8 @@ namespace Bunker.Gameplay
                 bool headshot = target.CountsAsHeadshot;
 
                 DamageResult result = target.ApplyDamage(
-                    new DamageInfo(_guard.DamageFor(headshot), DamageKind.Bullet, headshot));
+                    new DamageInfo(ServerDamage(headshot), DamageKind.Bullet, headshot,
+                                   origin.x, origin.z, _logSource));
 
                 TargetReportHit(sender, headshot, result.Killed, hit.point, result.Absorbed);
 
@@ -769,11 +885,26 @@ namespace Bunker.Gameplay
         private void FirePellets(Vector3 origin, Vector3 direction, NetworkConnectionToClient sender)
         {
             int pellets = _config.PelletCount;
-            float spreadRadius = Mathf.Tan(_config.SpreadDegrees * Mathf.Deg2Rad);
+            float spreadRadius = Mathf.Tan(CurrentSpreadDegrees * Mathf.Deg2Rad);
 
             Vector3 right = Vector3.Cross(Vector3.up, direction).normalized;
             if (right.sqrMagnitude < 0.001f) right = Vector3.right;
             Vector3 up = Vector3.Cross(direction, right);
+
+            // TEK ATIS, TEK BILDIRIM (2026-09-06).
+            //
+            // Onceki surum her sacma icin ayri bir TargetRpc yolluyordu: sekiz
+            // TargetRpc, sekiz ust uste calan isabet sesi ve neredeyse ayni noktada
+            // sekiz hasar sayisi. Oyuncunun okudugu sey "168 hasar verdim" degil,
+            // bulanik bir yigindi (audio-code.md: ayni olayin sekiz kopyasi gurultudur).
+            //
+            // Toplam gonderilir: pompalinin YAKIN mesafedeki gucunu ekranda gosteren
+            // sey tek bir buyuk sayidir.
+            float totalDamage = 0f;
+            int hits = 0;
+            bool anyHeadshot = false;
+            bool anyKill = false;
+            Vector3 firstHitPoint = Vector3.zero;
 
             for (int i = 0; i < pellets; i++)
             {
@@ -784,7 +915,7 @@ namespace Bunker.Gameplay
                     (direction + right * offset.x + up * offset.y).normalized;
 
                 if (!Physics.Raycast(origin, pelletDirection, out RaycastHit hit,
-                                     _config.RangeMeters, ~0, QueryTriggerInteraction.Ignore))
+                                     _config.RangeMeters, Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore))
                 {
                     continue;
                 }
@@ -795,12 +926,22 @@ namespace Bunker.Gameplay
                 bool headshot = target.CountsAsHeadshot;
 
                 DamageResult result = target.ApplyDamage(
-                    new DamageInfo(_guard.DamageFor(headshot), DamageKind.Bullet, headshot));
+                    new DamageInfo(ServerDamage(headshot), DamageKind.Bullet, headshot,
+                                   origin.x, origin.z, _logSource));
 
-                TargetReportHit(sender, headshot, result.Killed, hit.point, result.Absorbed);
+                if (hits == 0) firstHitPoint = hit.point;
+
+                hits++;
+                totalDamage += result.Absorbed;
+                anyHeadshot |= headshot;
+                anyKill |= result.Killed;
 
                 if (result.Killed) KillConfirmed?.Invoke(DamageKind.Bullet, headshot);
             }
+
+            if (hits == 0) return;
+
+            TargetReportHit(sender, anyHeadshot, anyKill, firstHitPoint, totalDamage);
         }
 
         /// <summary>Işın üzerindeki isabetleri mesafeye göre sıralar. Tahsissiz.</summary>
@@ -856,12 +997,106 @@ namespace Bunker.Gameplay
             _tracerRemaining = _config.TracerSeconds;
         }
 
+        /// <summary>Işının nerede bittiği. Yalnızca iz çizmek için — hasar sunucuda.</summary>
+        private Vector3 TraceEnd(Vector3 from, Vector3 direction)
+        {
+            return Physics.Raycast(from, direction, out RaycastHit hit, _config.RangeMeters,
+                                   Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore)
+                ? hit.point
+                : from + direction * _config.RangeMeters;
+        }
+
+        /// <summary>
+        /// Pompalının saçma yelpazesi: <b>her saçma için bir iz</b>.
+        ///
+        /// <para><b>Neden gerekliydi</b> (2026-09-06, oyun testi): sekiz saçma
+        /// yalnızca sunucuda vardı, istemci tek bir iz çiziyordu. Oyuncunun gördüğü
+        /// şey <i>"tek mermi gibi gidiyor"</i>du — silahın karakteri ekranda hiç
+        /// görünmüyordu. Bir mekanik, oyuncunun göremediği yerde yaşayamaz.</para>
+        ///
+        /// <para><b>Desen sunucununkiyle aynı değil ve olmak zorunda da değil:</b> iz
+        /// birkaç kare yaşayan bir çizgi. Aynı deseni paylaşmak, ya istemciye dağılımı
+        /// seçtirmeyi (hile) ya da izi ağ gidiş-dönüşü kadar geciktirmeyi gerektirirdi;
+        /// ikisi de bir görsel efekt için fazla bedel. Konisi aynı, saçmaların yeri
+        /// farklı — oyuncunun okuduğu şey zaten koninin genişliği.</para>
+        ///
+        /// <para>Çizgiler <b>bir kez</b> yaratılır ve yeniden kullanılır: atış başına
+        /// <c>Instantiate</c> bir hitch üreticisidir (csharp-code.md).</para>
+        /// </summary>
+        private void ShowPelletFan(Vector3 from, Vector3 aim)
+        {
+            if (tracer == null) return;
+
+            EnsurePelletTracers();
+
+            float radius = Mathf.Tan(CurrentSpreadDegrees * Mathf.Deg2Rad);
+
+            Vector3 right = Vector3.Cross(Vector3.up, aim).normalized;
+            if (right.sqrMagnitude < 0.001f) right = Vector3.right;
+            Vector3 up = Vector3.Cross(aim, right);
+
+            for (int i = 0; i < _config.PelletCount; i++)
+            {
+                Vector2 offset = UnityEngine.Random.insideUnitCircle * radius;
+                Vector3 direction = (aim + right * offset.x + up * offset.y).normalized;
+
+                LineRenderer line = _pelletTracers[i];
+                line.SetPosition(0, from);
+                line.SetPosition(1, TraceEnd(from, direction));
+                line.enabled = true;
+            }
+
+            _tracerRemaining = _config.TracerSeconds;
+        }
+
+        /// <summary>
+        /// Saçma izlerini hazırlar. Silah değişince sayı da değişir — pompalıdan
+        /// tabancaya geçen oyuncu, sekiz çizgiyle ateş etmemeli.
+        /// </summary>
+        private void EnsurePelletTracers()
+        {
+            int needed = _config.PelletCount;
+            if (_pelletTracers.Count >= needed) return;
+
+            // Ilk cizgi silahin kendi iz cizeri; gerisi ondan kopyalanir, boylece
+            // malzemesi, genisligi ve rengi ayni yerden gelir (asset-art.md: bir sey
+            // tek yerde tanimlanir).
+            if (_pelletTracers.Count == 0) _pelletTracers.Add(tracer);
+
+            // HAVUZ KUCULMEZ, yalnizca buyur: pompalidan tabancaya gecip geri donen
+            // oyuncu her seferinde yeni cizgi yaratmamali. Fazlasi zaten kapali durur.
+            while (_pelletTracers.Count < needed)
+            {
+                LineRenderer clone = Instantiate(tracer, tracer.transform.parent);
+                clone.name = $"{tracer.name}_Sacma{_pelletTracers.Count}";
+                clone.enabled = false;
+                _pelletTracers.Add(clone);
+            }
+        }
+
+        private void HidePelletTracers()
+        {
+            for (int i = 0; i < _pelletTracers.Count; i++)
+            {
+                if (_pelletTracers[i] != null) _pelletTracers[i].enabled = false;
+            }
+        }
+
         private void TickFeedback(float dt)
         {
             if (_tracerRemaining > 0f)
             {
                 _tracerRemaining -= dt;
-                if (_tracerRemaining <= 0f && tracer != null) tracer.enabled = false;
+
+                if (_tracerRemaining <= 0f)
+                {
+                    if (tracer != null) tracer.enabled = false;
+
+                    // Sacma izleri de sonmeli. Bu satirin yoklugu, pompaliyla tek atis
+                    // yapip birakan oyuncunun ekraninda yedi cizginin ASILI KALMASI
+                    // demek olurdu.
+                    HidePelletTracers();
+                }
             }
 
             if (_hitMarkerRemaining > 0f) _hitMarkerRemaining -= dt;

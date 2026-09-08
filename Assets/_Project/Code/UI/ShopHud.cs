@@ -57,11 +57,26 @@ namespace Bunker.UI
 
             // Menu acikken bilesen kapanirsa imlec kilitli kalirdi.
             if (_open) RestoreCursor();
+
+            // ...ve dunya DONMUS kalirdi. Bilesenin yok olmasi, oyunun bir daha hic
+            // akmamasi demek olamaz.
+            WorldClock.Set(WorldClock.Reason.Shop, false);
         }
 
         private void OnVisibilityChanged(bool open)
         {
             _open = open;
+
+            // TEZGAH ACIKKEN ZAMAN DURUR (2026-09-07, gelistirici istegi).
+            //
+            // <b>Neden:</b> tezgah bir KARAR noktasi - dort secenek yan yana,
+            // fiyatlariyla. Karar okunurken surunun gelmeye devam etmesi, karari
+            // okumayi degil ATLAMAYI odullendirir; yani menuyu acan oyuncu cezalanir
+            // ve tezgah bir tuzaga doner. (14. turda "menunun arkasinda olmek" diye
+            // yasandi.)
+            //
+            // Yalnizca solo'da: ortakli oturumda kararin sahibi tek kisi degil.
+            WorldClock.Set(WorldClock.Reason.Shop, open);
 
             if (open)
             {

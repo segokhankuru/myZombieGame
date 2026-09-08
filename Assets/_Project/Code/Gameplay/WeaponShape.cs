@@ -1,3 +1,4 @@
+using Bunker.Config;
 using UnityEngine;
 
 namespace Bunker.Gameplay
@@ -22,7 +23,207 @@ namespace Bunker.Gameplay
     public static class WeaponShape
     {
         /// <summary>
-        /// Bir silahın gövdesini <paramref name="parent"/> altına kurar.
+        /// Bir silahın gövdesini kurar — <b>varsa gerçek model, yoksa gri kutu</b>.
+        /// 2026-09-07.
+        ///
+        /// <para><b>Neden geri düşüş yolu duruyor:</b> katalog eksik ya da bir model
+        /// silinmiş olabilir. O durumda elin boş kalması, oyuncunun ne taşıdığını
+        /// göremediği <i>sessiz</i> bir hata olurdu — gri kutu çirkin ama okunur, ve
+        /// bir sorunun olduğunu söyler.</para>
+        /// </summary>
+        /// <param name="art">Model kataloğu. <c>null</c> ise gri kutu kurulur.</param>
+        /// <returns>Namlu ucunun yerel konumu.</returns>
+        public static Vector3 Build(Transform parent, string weaponId, float scale,
+                                    Material body, Material accent, ArtCatalogAsset art)
+        {
+            ArtCatalogAsset.WeaponModel model = art != null ? art.Weapon(weaponId) : null;
+            if (model == null) return Build(parent, weaponId, scale, body, accent);
+
+            GameObject instance = Object.Instantiate(model.prefab, parent);
+            instance.name = "Model";
+
+            instance.transform.localPosition = model.localPosition * scale;
+            instance.transform.localRotation = Quaternion.Euler(model.localEulerAngles);
+            instance.transform.localScale = Vector3.one * (model.localScale * scale);
+
+            Strip(instance);
+            Tint(instance, model.tint);
+
+            return model.muzzleLocal * scale;
+        }
+
+        /// <summary>
+        /// Bir bıçağın gövdesini kurar — <b>varsa gerçek model</b>. 2026-09-08.
+        ///
+        /// <para><b>Neden ayrı bir giriş:</b> bıçağın kataloğu ayrı
+        /// (<see cref="ArtCatalogAsset.Melee"/>) ve geri düşüş yolu da farklı —
+        /// bulunamayan bir bıçak modeli, gri kutu <i>bıçak</i> üretmeli, gri kutu
+        /// tabanca değil.</para>
+        /// </summary>
+        /// <returns>Gerçek model kurulduysa <c>true</c>; çağıran taraf o zaman kendi
+        /// ilkel şekillerini kurmaz.</returns>
+        public static bool BuildMelee(Transform parent, string meleeId, float scale,
+                                      ArtCatalogAsset art, out Vector3 tipLocal)
+        {
+            tipLocal = Vector3.zero;
+
+            ArtCatalogAsset.WeaponModel model = art != null ? art.Melee(meleeId) : null;
+            if (model == null) return false;
+
+            GameObject instance = Object.Instantiate(model.prefab, parent);
+            instance.name = "Model";
+
+            instance.transform.localPosition = model.localPosition * scale;
+            instance.transform.localRotation = Quaternion.Euler(model.localEulerAngles);
+            instance.transform.localScale = Vector3.one * (model.localScale * scale);
+
+            Strip(instance);
+            Tint(instance, model.tint);
+
+            tipLocal = model.muzzleLocal * scale;
+            return true;
+        }
+
+        /// <summary>
+        /// Silahın rengini uygular. 2026-09-07.
+        ///
+        /// <para><b><c>MaterialPropertyBlock</c> ile, materyali kopyalayarak değil</b>
+        /// (shader-graphics.md): <c>renderer.material</c> okumak materyalin bir
+        /// kopyasını yaratır — silah başına bir materyal, yani silah başına bir çizim
+        /// çağrısı, üstelik sızdıran bir kopya. Özellik bloğu paylaşılan materyale
+        /// dokunmaz ve bedavaya yakındır.</para>
+        ///
+        /// <para><b>Beyazsa hiç dokunulmaz:</b> beyaz "paketten geldiği gibi" demek.
+        /// Her silaha blok yazmak, hiçbir şey değiştirmeyen bir iş olurdu.</para>
+        /// </summary>
+        private static void Tint(GameObject instance, Color tint)
+        {
+            if (tint == Color.white) return;
+
+            var block = new MaterialPropertyBlock();
+            var renderers = instance.GetComponentsInChildren<Renderer>(true);
+
+            // Parca sayaci RENDERER'LAR BOYUNCA ilerler, her renderer'da sifirlanmaz:
+            // ikisi ayri nesne olan namlu ile kabza, ikisi de "0. yuva" olsaydi ayni
+            // rengi alir ve model yine duz gorunurdu.
+            int part = 0;
+
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Renderer renderer = renderers[i];
+                if (renderer == null) continue;
+
+                int slots = renderer.sharedMaterials != null ? renderer.sharedMaterials.Length : 1;
+                if (slots < 1) slots = 1;
+
+                for (int slot = 0; slot < slots; slot++)
+                {
+                    Surface surface = Surfaces[part % Surfaces.Length];
+                    part++;
+
+                    Color color = surface.Apply(tint);
+
+                    block.Clear();
+                    block.SetColor(BaseColorId, color);
+                    block.SetColor(ColorId, color);
+                    block.SetFloat(MetallicId, surface.Metallic);
+                    block.SetFloat(SmoothnessId, surface.Smoothness);
+
+                    renderer.SetPropertyBlock(block, slot);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Bir yüzey ailesi: rengin ne kadar koyulacağı ve ne kadar parlayacağı.
+        /// 2026-09-08.
+        /// </summary>
+        private readonly struct Surface
+        {
+            /// <summary>Renk çarpanı. 1 = verilen renk, 0.5 = yarı koyu.</summary>
+            public readonly float Value;
+
+            /// <summary>Doygunluk çarpanı. 0 = griye düşer (çelik), 1 = renk kalır.</summary>
+            public readonly float Saturation;
+
+            public readonly float Metallic;
+            public readonly float Smoothness;
+
+            public Surface(float value, float saturation, float metallic, float smoothness)
+            {
+                Value = value;
+                Saturation = saturation;
+                Metallic = metallic;
+                Smoothness = smoothness;
+            }
+
+            /// <summary>Verilen rengin bu yüzeydeki hâli. HSV üzerinden: koyultmak
+            /// RGB'yi çarpmakla aynı şey değil — doygunluk ayrı tutulmalı, yoksa
+            /// koyu parçalar renklerini de kaybeder.</summary>
+            public Color Apply(Color source)
+            {
+                Color.RGBToHSV(source, out float h, out float s, out float v);
+
+                return Color.HSVToRGB(h, Mathf.Clamp01(s * Saturation), Mathf.Clamp01(v * Value));
+            }
+        }
+
+        /// <summary>
+        /// Silahın yüzey ailesi. <b>Tek düz renk yerine dört yüzey.</b> 2026-09-08.
+        ///
+        /// <para><b>Neden değişti</b> (geliştirici: <i>"silahlara dümdüz renk verme,
+        /// güzelce yüzeyine parça parça renklendir"</i>): önceki hâl tek bir
+        /// <c>_BaseColor</c>'ı modelin <b>bütün</b> renderer'larına yazıyordu. Sonuç,
+        /// dokusu olsa bile tek renge boyanmış bir siluetti — plastik oyuncak. Bir
+        /// silah gerçekte tek parça değil: gövde boyalı, namlu çıplak çelik, kabza
+        /// mat ve koyu, ayrıntılar neredeyse siyah.</para>
+        ///
+        /// <para><b>Neden yuvaya göre, isme göre değil:</b> dört farklı paketten gelen
+        /// modellerin parça adları birbirini tutmuyor ("Barrel", "barrel_01",
+        /// "polySurface12"). İsimle eşleştirmek, beşinci paket geldiğinde sessizce tek
+        /// renge dönerdi. Yuva sırası her modelde vardır ve sanatçılar gövdeyi
+        /// neredeyse her zaman ilk yuvaya koyar.</para>
+        ///
+        /// <para><b>Renk hâlâ TEK bir sanat kararından türüyor</b> (katalogdaki
+        /// <c>tint</c>): dört sayı ayrı ayrı verilseydi silah başına dört karar olurdu
+        /// ve palet dağılırdı. Burada verilen renk gövdedir; kalanı ondan çıkar.</para>
+        /// </summary>
+        private static readonly Surface[] Surfaces =
+        {
+            new Surface(1.00f, 1.00f, 0.10f, 0.35f),   // govde: verilen renk, mat boya
+            new Surface(0.62f, 0.35f, 0.85f, 0.62f),   // metal: koyu, doygunlugu dusuk, parlak
+            new Surface(0.40f, 0.75f, 0.05f, 0.18f),   // kabza: koyu ve mat
+            new Surface(0.22f, 0.50f, 0.30f, 0.45f)    // ayrinti: neredeyse siyah
+        };
+
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
+        private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
+
+        /// <summary>
+        /// Modeli oyuna uygun hâle getirir: <b>çarpıştırıcı yok, gölge yok</b>.
+        ///
+        /// <para>Çarpıştırıcı bırakmak iki ayrı hata demek olurdu: el modeli oyuncunun
+        /// kendi ışınını keserdi (kendi silahına ateş etmek), duvardaki teşhir de
+        /// arkasındaki zombiye ateş etmeyi engellerdi. Paketlerden gelen prefab'lar
+        /// çarpıştırıcı taşıyabilir; varsayamayız.</para>
+        /// </summary>
+        private static void Strip(GameObject instance)
+        {
+            var colliders = instance.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++) Object.Destroy(colliders[i]);
+
+            var renderers = instance.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                renderers[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderers[i].receiveShadows = false;
+            }
+        }
+
+        /// <summary>
+        /// Bir silahın gri kutu gövdesini <paramref name="parent"/> altına kurar.
         /// </summary>
         /// <param name="weaponId">Katalog id'si (<c>weapon.pistol</c>, ...).</param>
         /// <param name="scale">Boy çarpanı. El modeli 1, duvar teşhiri daha büyük.</param>

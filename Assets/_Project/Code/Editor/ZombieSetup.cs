@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Bunker.AI;
+using Bunker.Config;
 using Bunker.Gameplay;
 using Bunker.Net;
 using Bunker.UI;
@@ -50,10 +51,30 @@ namespace Bunker.Editor
                 return;
             }
 
-            // 1) Gri kutuyu yeniden uret: pencerelere WindowEntry ve binanin cevresine
-            //    disarida yurunecek serit bu adimda geliyor.
-            BlockoutSettings settings = BlockoutGenerator.LoadOrCreateSettings();
-            BlockoutGenerator.Generate(settings);
+            // 1) HARITA: yalnizca YOKSA uretilir (2026-09-08).
+            //
+            // <b>Neden degisti</b> (gelistirici): <i>"haritayi elimle duzen yaptim,
+            // bunu bozma."</i> Uretec kokun TAMAMINI silip yeniden kuruyor - yani bu
+            // araci bir daha calistirmak, elle yapilmis her duzeni geri alinamaz
+            // sekilde silerdi. Bir kurulum araci, kullanicinin isini yok etme yetkisine
+            // sahip olmamali.
+            //
+            // Harita gercekten yeniden uretilmek istenirse bunun ayri ve ACIK bir
+            // menusu var: Bunker > Level > LVL-01 Gri Kutu Uret. Yikici olan sey,
+            // yikici oldugunu soyleyen bir dugmenin arkasinda durmali.
+            bool mapExisted = GameObject.Find("LVL-01_Blockout") != null;
+
+            if (!mapExisted)
+            {
+                BlockoutSettings settings = BlockoutGenerator.LoadOrCreateSettings();
+                BlockoutGenerator.Generate(settings);
+            }
+            else
+            {
+                Debug.Log("[Zombi] Harita zaten var - DOKUNULMADI (elle yapilmis duzen " +
+                          "korunuyor). Sifirdan uretmek icin: Bunker > Level > LVL-01 " +
+                          "Gri Kutu Uret.");
+            }
 
             // 2) Zombi prefab'i
             GameObject zombiePrefab = BuildZombiePrefab();
@@ -70,6 +91,15 @@ namespace Bunker.Editor
 
             // 4c) Kapilar ve duvar silahlari (M1-09, M1-10)
             (int doors, int wallWeapons) = InstallPurchasables();
+
+            // 4d) Yuzeyler (2026-09-07): gri kutu paleti + bunkerin kanli ahsap
+            //     duvarlari. Uretec kokun TAMAMINI yeniden kurdugu icin materyaller
+            //     her seferinde yeniden atanmali - aksi halde harita her uretimden
+            //     sonra beyaz cikar ve "malzeme uygulanmamis" diye yeniden aranir.
+            // Yuzeyler yalnizca harita YENI uretildiyse yeniden atanir. Elle
+            // duzenlenmis bir haritada materyalleri yeniden yazmak, kullanicinin
+            // bilerek degistirdigi her yuzeyi geri alirdi (2026-09-08).
+            bool look = !mapExisted && GreyboxLook.Apply();
 
             // 5) NavMesh bake - apron eklendigi icin eski bake gecersiz
             bool baked = BakeNavMesh();
@@ -95,6 +125,7 @@ namespace Bunker.Editor
                 $"  NavMesh      : {(baked ? "bake edildi" : "BAKE EDILEMEDI - asagidaki uyariya bak")}\n" +
                 $"  barikat      : {barricades} pencere\n" +
                 $"  satin alma   : {doors} kapi, {wallWeapons} duvar silahi\n" +
+                $"  yuzeyler     : {(look ? "uygulandi (duvarlar kanli ahsap)" : mapExisted ? "atlandi - harita korunuyor" : "UYGULANAMADI")}\n" +
                 $"  temizlik     : {stripped} bos bilesen kaldirildi\n" +
                 "  SIRADAKI ADIM: Play'e bas. Sol tik ates, R dolum, V bicak, " +
                 "E tamir/satin al; F7/F8 tur, F9 sahayi temizle.");
@@ -132,6 +163,14 @@ namespace Bunker.Editor
             AssetDatabase.SaveAssets();
             Debug.Log($"[Zombi] Prefab guncellendi: {ZombiePrefabPath}");
         }
+
+        /// <summary>
+        /// Bake'i dışarıya açar. <b>Sahneye başka hiçbir şey yapmaz</b> — kurulum
+        /// aracının geri kalanını çalıştırmadan yalnızca NavMesh'i tazelemek isteyen
+        /// araçlar için (<see cref="NavMeshDecor"/>). Kapı kanatlarını kapatma ve
+        /// bağlantı ölçümü dahil, bake'in bütün sözleşmesi korunuyor.
+        /// </summary>
+        public static bool BakeNavMeshPublic() => BakeNavMesh();
 
         [MenuItem("Bunker/Zombi/NavMesh Bake", false, 202)]
         public static void BakeNavMeshMenu()
@@ -178,8 +217,29 @@ namespace Bunker.Editor
                 agent.speed = 1.4f;              // dogumda turdan gelen degerle degisir
                 agent.angularSpeed = 720f;
                 agent.acceleration = 20f;
-                agent.stoppingDistance = 1.2f;   // saldiri menzilinin biraz altinda
-                agent.autoBraking = false;
+                // DURMA MESAFESI VURUS MENZILIYLE BIRLIKTE DUSTU (2026-09-07).
+                //
+                // Vurus menzili GOVDELER ARASI bosluk olarak 0.3 m'ye indi
+                // (zombie.json v8). Burasi ise MERKEZLER arasi: 1.2 m, zombi yaricapi
+                // 0.35 ve oyuncu yaricapi 0.40 dusuldugunde 0.45 m bosluk demek - yani
+                // zombi menzilin DISINDA durup hic vuramazdi. Menzili kisaltip bu
+                // sayiyi birakmak, zombileri sessizce zararsiz yapardi.
+                //
+                // 0.8: govdeler arasinda ~0.05 m. Zombi neredeyse degecek.
+                agent.stoppingDistance = 0.8f;
+                // FRENLEME ACIK (2026-09-07, oyun testi: "ileri geri haritada
+                // ucuyorlar").
+                //
+                // <b>Neden bozuldu:</b> vurus menzili kisalinca durma mesafesini de
+                // 1.2'den 0.8'e indirdim, ama frenleme KAPALIYDI. Frensiz bir ajan
+                // durma yaricapina TAM HIZLA girer ve asar; 0.35 sn'lik yol yenileme
+                // araliginda 3.6 m/s ile 1.26 m yol alir - yani durma mesafesinin
+                // kendisinden fazla. Her yenilemede hedefi asip geri donuyordu.
+                //
+                // Frenleme acikken ajan yaklasirken yavaslar ve oturur. Bedeli
+                // kalabalikta biraz daha erken yavaslamak; karsiligi zombinin
+                // oyuncunun icinden gecip gitmemesi.
+                agent.autoBraking = true;
 
                 // Pencere tirmanisi elle surulur (ZombieAgent), ama bake'in kendi
                 // urettigi baglantilar (ust kattan atlama) otomatik gecilsin - kapatmak
@@ -242,6 +302,28 @@ namespace Bunker.Editor
                                            new Vector3(0.13f, -0.43f, 0f), Quaternion.identity,
                                            new Vector3(0.22f, 0.43f, 0.22f), material, true);
 
+                // --- GERCEK MODEL (2026-09-07): gri kutu uzuvlar carpistirici olarak
+                //     kalir, gorunur olan model olur.
+                //
+                // Neden ikisi birden: vurus kutulari (kafa, bacaklar) uzuv bazli
+                // isabetin ve bacak koparmanin temeli. Modelin kendi mesh'ine
+                // carpistirici koymak, her zombide bir mesh collider demek olurdu -
+                // 40 ajanda kabul edilemez. Ilkel sekiller ucuz ve zaten ayarli;
+                // yalnizca GORUNMEZ olmalari yeterli.
+                Renderer[] greyboxRenderers = rigT.GetComponentsInChildren<Renderer>(true);
+
+                Renderer modelRenderer = InstallZombieModel(rigT, rig.transform.localPosition.y);
+
+                if (modelRenderer != null)
+                {
+                    // Model geldiginde ilkel sekiller GORUNMEZ olur, ama SILINMEZ:
+                    // silinirse carpistiricilari da gider ve kafa/bacak isabeti
+                    // biter. Renderer'i kapatmak, cizim maliyetini de sifirlar.
+                    foreach (Renderer greybox in greyboxRenderers) greybox.enabled = false;
+
+                    visualRenderer = modelRenderer;
+                }
+
                 // --- beyin
                 var zombie = root.AddComponent<ZombieAgent>();
                 SetPrivateField(zombie, "bodyRenderer", visualRenderer);
@@ -255,8 +337,22 @@ namespace Bunker.Editor
                 SetPrivateField(bodyHitbox, "part", ZombiePart.Body);
                 SetPrivateField(bodyHitbox, "owner", zombie);
 
+                // Yuruyus (2026-09-07): paket klip tasimadigi icin kemikler koddan
+                // suruluyor. Model yoksa bilesen kendini kapatir ve sebebi loglar.
+                if (modelRenderer != null) root.AddComponent<ZombieWalkAnimator>();
+
                 // Gelistirme araci: kafanin ustunde can bari (yayin oncesi kapatilir).
-                root.AddComponent<ZombieHealthBar>();
+                var healthBar = root.AddComponent<ZombieHealthBar>();
+
+                // BUILD'DE DE ACIK (2026-09-06, gelistirici: "moblarin can bari
+                // gizlenmis, geri gelsin, bunlar suan test asamasinda onemli").
+                //
+                // Bilesenin varsayilani kapali ve <c>Application.isEditor</c> ile
+                // aciliyordu - yani editorde gorunup BUILD'DE kaybolan bir arac.
+                // Oyun testleri build uzerinde yapiliyor; olculemeyen bir olcum araci
+                // arac degil. Yayin oncesi bu satir kaldirilacak (PILLAR-04: oyuncu
+                // zombinin canini sayidan degil davranisindan okumali).
+                SetPrivateField(healthBar, "showInBuild", true);
 
                 var headHitbox = head.AddComponent<ZombieHitbox>();
                 SetPrivateField(headHitbox, "part", ZombiePart.Head);
@@ -302,6 +398,60 @@ namespace Bunker.Editor
 
             go.GetComponent<Renderer>().sharedMaterial = material;
             return go;
+        }
+
+        /// <summary>
+        /// Zombinin görsel modelini rig'in altına takar. 2026-09-07.
+        ///
+        /// <para><b>Neden rig'in altına, kökün değil:</b> sürünen zombi
+        /// <c>visualRig</c>'i öne yatırır (<c>ZombieAgent.EnterCrawl</c>). Model kökte
+        /// olsaydı gövde yatarken model dimdik ayakta kalırdı — "bacağı koptu ve hâlâ
+        /// koşuyor" diye okunan tam olarak bu.</para>
+        ///
+        /// <para><b>Ayak tabanı sıfıra oturtulur:</b> rig kalça hizasında (0.85 m)
+        /// duruyor, model ise ayak tabanından ölçülüyor. Ofset üreteçte
+        /// (<c>ArtIntegration</c>) ölçülüp katalogda saklanıyor; buradaki tek iş rig'in
+        /// yüksekliğini geri almak.</para>
+        ///
+        /// <returns>Modelin ana renderer'ı (hasar parlaması buna yazılır), yoksa
+        /// <c>null</c> — o zaman gri kutu görünür kalır.</returns>
+        /// </summary>
+        private static Renderer InstallZombieModel(Transform rig, float rigLocalY)
+        {
+            ArtCatalogAsset catalog = ArtIntegration.LoadCatalog();
+            if (catalog == null || catalog.ZombiePrefab == null)
+            {
+                Debug.LogWarning("[Zombi] Model katalogu yok; zombi GRI KUTU kalacak. " +
+                                 "Duzeltmek icin: Bunker > Gorunum > Magaza Modellerini Bagla.");
+                return null;
+            }
+
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(catalog.ZombiePrefab, rig);
+            if (model == null) return null;
+
+            model.name = "Model";
+            model.transform.localPosition =
+                catalog.ZombieLocalPosition + new Vector3(0f, -rigLocalY, 0f);
+            model.transform.localRotation = Quaternion.Euler(0f, catalog.ZombieYawDegrees, 0f);
+            model.transform.localScale = Vector3.one * catalog.ZombieScale;
+
+            // Carpistirici tasimamali: uzuv isabeti ilkel sekillerde ve iki kat
+            // carpistirici, govdeye nisan alan her atisi modele yollardi.
+            foreach (Collider collider in model.GetComponentsInChildren<Collider>(true))
+            {
+                UnityEngine.Object.DestroyImmediate(collider, true);
+            }
+
+            // En cok ucgeni olan renderer govdedir: hasar parlamasi ona yazilir,
+            // boylece vurus butun zombide okunur.
+            Renderer best = null;
+            foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
+            {
+                if (best == null) best = renderer;
+                else if (renderer is SkinnedMeshRenderer) best = renderer;
+            }
+
+            return best;
         }
 
         private static Material LoadOrCreateMaterial()
@@ -470,7 +620,39 @@ namespace Bunker.Editor
                                  "Gri kutu yeniden uretilmeli.");
             }
 
-            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid", "WallBuy_C_Rifle" })
+            // --- silah tezgahi (ust kat, 2026-09-06)
+            GameObject weaponMarker = GameObject.Find("Weapon_Station");
+
+            if (weaponMarker != null)
+            {
+                if (weaponMarker.GetComponent<WeaponStation>() == null)
+                {
+                    weaponMarker.AddComponent<WeaponStation>();
+                }
+
+                EnsureInteractionTrigger(weaponMarker, new Vector3(1.4f, 1.6f, 0.8f));
+                weapons++;
+            }
+            else
+            {
+                Debug.LogWarning("[Zombi] 'Weapon_Station' isareti yok - silah tezgahi " +
+                                 "acilamaz. Gri kutu yeniden uretilmeli.");
+            }
+
+            // ESKI TUFEK DUVARI KALDIRILIR (2026-09-06). Tezgah geldiginde ayni silah
+            // iki yerden alinabilir olurdu; hangisinin dogru yer oldugu belirsiz kalir.
+            // Sahne ustune ustune uretildigi icin bu temizlik sart: aracin iki kez
+            // calismasi bir kez calismasiyla ayni sonucu vermeli (editor-tools.md).
+            GameObject rifleWall = GameObject.Find("WallBuy_C_Rifle");
+            if (rifleWall != null) UnityEngine.Object.DestroyImmediate(rifleWall);
+
+            // --- alt kat: YALNIZCA MERMI (2026-09-06, gelistirici)
+            //
+            // 'weaponId' bos birakilinca WallWeaponPurchase eldeki silaha mermi satar.
+            // Yani baslangic odasindan cikmayan oyuncu oyunu oynayabilir - sadece
+            // tabancayla oynar. Silah degistirmek ust kati acmayi gerektirir ve
+            // kapinin fiyatina bir sebep verir.
+            foreach (string name in new[] { "WallBuy_A_Cheap", "WallBuy_B_Mid" })
             {
                 GameObject marker = GameObject.Find(name);
                 if (marker == null) continue;
@@ -481,20 +663,15 @@ namespace Bunker.Editor
                 EnsureInteractionTrigger(marker, new Vector3(1.4f, 1.4f, 0.8f));
 
                 SetPrivateField(wall, "economyConfig", economy);
-
-                // Her duvar noktasi BIR silah satar (2026-09-06) ve modelini asar.
-                // Fiyat farki silahin YERINI de soyluyor: ucuz olan baslangic
-                // odasinda, digerleri kapinin arkasinda ve ust katta.
-                (string id, string label) sold = name switch
-                {
-                    "WallBuy_A_Cheap" => ("weapon.smg", "MP-KISA"),
-                    "WallBuy_B_Mid" => ("weapon.shotgun", "POMPALI"),
-                    _ => ("weapon.rifle", "TUFEK")
-                };
-
-                SetPrivateField(wall, "weaponId", sold.id);
-                SetPrivateField(wall, "displayName", sold.label);
+                SetPrivateField(wall, "weaponId", string.Empty);
+                SetPrivateField(wall, "displayName", "MERMI");
                 SetPrivateField(wall, "catalog", LoadConfigAsset("weapons"));
+                SetPrivateField(wall, "art", ArtIntegration.LoadCatalog());
+
+                // Onceki kurulumdan kalan silah modeli TEMIZLENIR: duvarda pompali
+                // asili dururken sadece mermi satmasi, oyuncuya yanlis soz verir.
+                Transform display = marker.transform.Find("WeaponDisplay");
+                if (display != null) UnityEngine.Object.DestroyImmediate(display.gameObject);
 
                 weapons++;
             }
@@ -588,6 +765,14 @@ namespace Bunker.Editor
             var interact = player.GetComponent<PlayerInteract>();
             if (interact == null) { interact = player.AddComponent<PlayerInteract>(); changed = true; }
 
+            // CO-OP: yere dusme, kaldirilma ve bir sonraki turda dirilme (2026-09-07).
+            // Ikisi de oyuncu prefabinda: ag uzerinde her oyuncuyla birlikte dogar.
+            var down = player.GetComponent<PlayerDownState>();
+            if (down == null) { player.AddComponent<PlayerDownState>(); changed = true; }
+
+            var revive = player.GetComponent<PlayerRevive>();
+            if (revive == null) { player.AddComponent<PlayerRevive>(); changed = true; }
+
             // Oyuncu kamerasi "MainCamera" etiketli olmali. Camera.main yalnizca o
             // etikete bakar; etiketsiz kalirsa null doner ve ona guvenen her sey
             // sessizce calismaz - zombi can barlari tam olarak boyle hic
@@ -618,6 +803,10 @@ namespace Bunker.Editor
             changed |= SetPrivateField(viewmodel, "weapon", weapon);
             changed |= SetPrivateField(viewmodel, "melee", melee);
 
+            // Silah MODELLERI (2026-09-07). Baglanmazsa el modeli gri kutuya duser -
+            // gorunur bir gerileme, sessiz bir hata degil.
+            changed |= SetPrivateField(viewmodel, "art", ArtIntegration.LoadCatalog());
+
             // Kosu ayari (2026-09-05): PlayerController artik player.json'i okuyor.
             // Baglanmazsa kosu SESSIZCE calismaz - bu yuzden burada baglaniyor ve
             // bilesenin kendisi eksikligi hata olarak logluyor.
@@ -634,11 +823,17 @@ namespace Bunker.Editor
             changed |= SetPrivateField(score, "weapon", weapon);
             changed |= SetPrivateField(score, "melee", melee);
             changed |= SetPrivateField(melee, "knifeConfig", LoadConfigAsset("knife"));
+
+            // Yakin dovus katalogu: hancer, kilic, balta (2026-09-08). Baglanmazsa
+            // oyun taban bicakla calisir ama tezgahta bicak SIRASI hic gorunmez -
+            // sessiz degil, PlayerMelee bunu uyari olarak yaziyor.
+            changed |= SetPrivateField(melee, "meleeCatalog", LoadConfigAsset("melee"));
             changed |= SetPrivateField(repair, "barricadeConfig", LoadConfigAsset("barricade"));
             changed |= SetPrivateField(repair, "score", score);
             changed |= SetPrivateField(repair, "interact", interact);
             changed |= SetPrivateField(interact, "score", score);
             changed |= SetPrivateField(interact, "weapon", weapon);
+            changed |= SetPrivateField(interact, "melee", melee);
 
             return changed;
         }
@@ -720,6 +915,14 @@ namespace Bunker.Editor
             // Hasar sayilari ve hasar yonu gostergesi (2026-09-05).
             if (host.GetComponent<DamageNumbersHud>() == null) host.AddComponent<DamageNumbersHud>();
 
+            // CO-OP izleyici ekrani (2026-09-07): yerdeyken/oluyken arkadasi izleme.
+            if (host.GetComponent<SpectatorHud>() == null) host.AddComponent<SpectatorHud>();
+
+            // Dis hava: yagmur ve disarida kalinlasan sis (2026-09-07). Ayni HUD
+            // nesnesinde, cunku F10 atmosfer anahtari da burada - ikisi ayri
+            // nesnelerde olsaydi atmosferi kapatmak yagmuru birakirdi.
+            if (host.GetComponent<OutdoorWeather>() == null) host.AddComponent<OutdoorWeather>();
+
             // TAB durum paneli (2026-09-06): kesin sayilar.
             if (host.GetComponent<StatsHud>() == null) host.AddComponent<StatsHud>();
 
@@ -732,6 +935,11 @@ namespace Bunker.Editor
             if (shopHud == null) shopHud = host.AddComponent<ShopHud>();
 
             SetPrivateField(shopHud, "shop", shopController);
+
+            // Silah tezgahinin ekrani (2026-09-06). Referansi yok - yerel oyuncuyu
+            // kendisi bulur, cunku oyuncu nesnesi agdan gelir ve sahne kurulurken
+            // henuz yoktur.
+            if (host.GetComponent<WeaponShopHud>() == null) host.AddComponent<WeaponShopHud>();
         }
 
         // ---------------------------------------------------------------- sahne

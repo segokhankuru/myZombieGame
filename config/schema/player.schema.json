@@ -4,7 +4,7 @@
   "title": "Oyuncu",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "health", "sprint"],
+  "required": ["version", "_meta", "health", "sprint", "crouch"],
   "properties": {
     "version": {
       "type": "integer",
@@ -66,6 +66,34 @@
         "minSecondsToStart": {
           "type": "number", "minimum": 0, "maximum": 3,
           "description": "Kosuya baslamak icin gereken en az birikmis sure. Sifir olursa oyuncu her saniye yarim adim kosar ve hareket titrer - okunmasi zor bir his. Buyutursen kosu, tam dolmadan hic kullanilamayan bir yetenege doner."
+        }
+      }
+    },
+
+    "crouch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speedMultiplier", "heightMultiplier", "spreadMultiplier", "damageMultiplier", "transitionSeconds"],
+      "properties": {
+        "speedMultiplier": {
+          "type": "number", "minimum": 0.2, "maximum": 0.9,
+          "description": "Comelmisken yurume hizinin carpani. Comelmenin BEDELI budur: nisan ve hasar kazanirsin, hareket kaybedersin. 0.8'in ustunde bedel hissedilmez ve comelmek her an dogru olur - yani bir karar olmaktan cikar. 0.3'un altinda comelmis oyuncu bir hedef tahtasidir ve tus hic kullanilmaz."
+        },
+        "heightMultiplier": {
+          "type": "number", "minimum": 0.4, "maximum": 0.95,
+          "description": "Comelmisken carpisan boyunun carpani. Yalnizca gorsel degil: zombinin dikey vurus siniri govdenin BOYUYLA olculuyor, yani alcalmak gercekten saklanmak demek. Cok kucultursen kamera yere gomulur."
+        },
+        "spreadMultiplier": {
+          "type": "number", "minimum": 0.1, "maximum": 1,
+          "description": "Comelmisken silahin dagilim acisinin carpani. ASIL ODUL bu. 1 yaparsan comelmek nisana hicbir sey katmaz; 0.2'nin altinda her silah keskin nisanci tufegine doner ve silahlarin karakter farki (weapons.json spreadDegrees) silinir."
+        },
+        "damageMultiplier": {
+          "type": "number", "minimum": 1, "maximum": 1.25,
+          "description": "Comelmisken hasar carpani. Kucuk tutulmali: comelmek NISAN odulu vermeli, guc odulu degil. 1.2'nin ustunde 'her zaman comel' dogru cevap olur ve hareket etmek cezalanir - PILLAR-03'un ritmi biter."
+        },
+        "transitionSeconds": {
+          "type": "number", "minimum": 0, "maximum": 0.6,
+          "description": "Ayakta ile comelmis arasindaki gecis suresi. Sifir olursa kamera ziplar ve okunmaz; uzatirsan comelmek bir tepki araci olmaktan cikar ve oyuncu tehlike aninda kullanamaz."
         }
       }
     }

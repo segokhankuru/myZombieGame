@@ -42,6 +42,10 @@ namespace Bunker.Gameplay
         [Tooltip("Duvardaki silah modelinin buyuklugu. Denge degeri degil - okunabilirlik.")]
         [SerializeField] private float displayScale = 2.2f;
 
+        [Tooltip("Model katalogu. Bosken duvarda gri kutu silah gorunur - " +
+                 "Bunker > Gorunum > Magaza Modellerini Bagla ile doldurulur.")]
+        [SerializeField] private ArtCatalogAsset art;
+
         /// <summary>Duvarin sattigi silahin tanimi. Katalogdan bir kez cozulur.</summary>
         private WeaponDefinition _sold;
 
@@ -165,7 +169,7 @@ namespace Bunker.Gameplay
             Material body = MakeMaterial(new Color(0.18f, 0.19f, 0.22f));
             Material accent = MakeMaterial(new Color(0.38f, 0.34f, 0.29f));
 
-            WeaponShape.Build(host.transform, _sold.Id, displayScale, body, accent);
+            WeaponShape.Build(host.transform, _sold.Id, displayScale, body, accent, art);
         }
 
         private static Material MakeMaterial(Color color)

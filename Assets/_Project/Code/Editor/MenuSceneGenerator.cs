@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Bunker.Net;
@@ -154,8 +155,25 @@ namespace Bunker.Editor
                 Undo.RegisterCreatedObjectUndo(host, "Ag yoneticisi");
             }
 
-            var transport = host.GetComponent<KcpTransport>();
-            if (transport == null) transport = host.AddComponent<KcpTransport>();
+            // KCP HER ZAMAN DURUR: Steam kapaliyken adresle katilma yolu bu.
+            var kcp = host.GetComponent<KcpTransport>();
+            if (kcp == null) kcp = host.AddComponent<KcpTransport>();
+
+            // ...AMA VARSA STEAM TASIMASI KORUNUR (2026-09-09).
+            //
+            // <b>Duzeltilen mayin:</b> bu metot `transport` alanina KOSULSUZ KcpTransport
+            // yaziyordu. `SteamSetupCheck` menu sahnesine FizzyFacepunch'i baglayip
+            // aktif tasima yapiyor; ondan SONRA 'Ana Menuyu Kur' calistiran herkes
+            // Steam'i sessizce kapatiyordu. Hicbir hata cikmaz, davet dugmesi
+            // gorunmez, katilma kodu KCP'ye adres diye gider ve "baglanilamadi" der -
+            // yani iki Steam yolu birden, sebebi soylenmeden olur.
+            //
+            // `EnsureUsableTransport` bunu yakalayamaz: KCP her zaman Available()
+            // doner, yani geri dusme mantigi hic devreye girmez.
+            //
+            // Tip YANSIMAYLA araniyor: FizzyFacepunch ucuncu partiden elle indiriliyor
+            // ve `Bunker.Editor` ona referans vermiyor (SteamSetupCheck ile ayni desen).
+            Transport transport = FindSteamTransport(host) ?? kcp;
 
             var manager = host.GetComponent<BunkerNetworkManager>();
             if (manager == null) manager = host.AddComponent<BunkerNetworkManager>();
@@ -191,7 +209,41 @@ namespace Bunker.Editor
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
+            // Hangi tasimanin secildigi SOYLENIR. Sessiz kalsaydi Steam'in kapandigi
+            // an, ancak iki makineli bir testte fark edilirdi - ve orada teshis pahali.
+            Debug.Log($"[Menu] Aktif tasima: {transport.GetType().Name}" +
+                      (transport is KcpTransport
+                          ? "  (Steam tasimasi yok - davet kapali. " +
+                            "'Bunker/Steam/Kurulumu Kontrol Et' bagliyor.)"
+                          : "  (Steam daveti acik; KCP yedek olarak duruyor.)"));
+
             EditorUtility.SetDirty(manager);
+        }
+
+        /// <summary>
+        /// Sahnedeki Steam taşımasını bulur; yoksa <c>null</c>.
+        ///
+        /// <para><b>Yansımayla</b>, çünkü FizzyFacepunch üçüncü partiden elle
+        /// indiriliyor ve projede olmayabilir — <c>Bunker.Editor</c>'ün asmdef'ine
+        /// referans eklemek, paket yokken bütün editör derlemesini düşürürdü.</para>
+        /// </summary>
+        private static Transport FindSteamTransport(GameObject host)
+        {
+            foreach (Transport candidate in host.GetComponents<Transport>())
+            {
+                if (candidate is KcpTransport) continue;
+
+                // Ad kontrolu: nesnede baska bir tasima daha olsa (ornegin bir test
+                // tasimasi) onu Steam sanmayalim.
+                if (candidate.GetType().Name.IndexOf("Fizzy", StringComparison.Ordinal) < 0)
+                {
+                    continue;
+                }
+
+                return candidate;
+            }
+
+            return null;
         }
 
         // Play'in menuden baslamasi PlayModeStartScene.cs'te (InitializeOnLoad):

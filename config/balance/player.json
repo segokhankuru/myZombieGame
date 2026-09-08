@@ -1,13 +1,13 @@
 {
   "$schema": "../schema/player.schema.json",
-  "version": 2,
+  "version": 3,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-01",
     "lastTuned": "2026-09-05"
   },
 
-  "_note": "v2 (2026-09-05): SPRINT eklendi (gelistirici karari - 'Shift ile kosabilmeliyim, EFT'deki gibi ama kisa, 4-5 sn'). Kisa olmasi tasarim: sinirsiz kosu haritayi kucultur ve zombi hiz kademelerini (rounds.json speed) anlamsiz kilar. Bitmeyen bir kacis yerine, 'simdi mi kossam sonra mi' karari. M1-11. Can modeli: vurulmayinca yenilenir (gelistirici karari, 2026-09-03). Gerekce CK-17 - kalici hasar birikimi 20 dakikalik bir oturumda ceza hissi yaratir. 100 can / 30 hasar = dort vurus; dort saniye kacmak canin tamamini geri verir. Bu esik oynanarak ayarlanacak.",
+  "_note": "v3 (2026-09-06, gelistirici): COMELME (Ctrl). Istenen sey 'daha isabetli nisan alma ve %5-10 arasi daha fazla hasar'. Odulun buyuk kismi NISANDA: dagilim %55 azaliyor (spreadMultiplier 0.45), hasar yalnizca %8 artiyor. Sebep - hasar odulu buyuk olursa 'her zaman comel' dogru cevap olur ve hareket etmek cezalanir; nisan odulu ise ancak DURABILDIGIN anda ise yarar, yani bir karar uretir. Bedel hizin yarisi. Boy carpani da gercek bir etki: zombinin dikey vurus siniri govde boyuyla olculuyor. Baslangic degerleri, oynanarak ayarlanacak. v2 (2026-09-05): SPRINT eklendi (gelistirici karari - 'Shift ile kosabilmeliyim, EFT'deki gibi ama kisa, 4-5 sn'). Kisa olmasi tasarim: sinirsiz kosu haritayi kucultur ve zombi hiz kademelerini (rounds.json speed) anlamsiz kilar. Bitmeyen bir kacis yerine, 'simdi mi kossam sonra mi' karari. M1-11. Can modeli: vurulmayinca yenilenir (gelistirici karari, 2026-09-03). Gerekce CK-17 - kalici hasar birikimi 20 dakikalik bir oturumda ceza hissi yaratir. 100 can / 30 hasar = dort vurus; dort saniye kacmak canin tamamini geri verir. Bu esik oynanarak ayarlanacak.",
 
   "health": {
     "maxPoints": 100,
@@ -21,5 +21,13 @@
     "maxSeconds": 4.5,
     "rechargePerSecond": 0.5,
     "minSecondsToStart": 0.6
+  },
+
+  "crouch": {
+    "speedMultiplier": 0.5,
+    "heightMultiplier": 0.6,
+    "spreadMultiplier": 0.45,
+    "damageMultiplier": 1.08,
+    "transitionSeconds": 0.12
   }
 }

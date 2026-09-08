@@ -40,6 +40,12 @@ namespace Bunker.Gameplay
             // M-04: menu ve oturum yayinlari. Menu -> oyun -> menu dongusunde
             // temizlenmezlerse ikinci oturumda "oda ac" iki kez tetiklenir ve
             // duraklatma menusu kapali oldugu halde acik sanilir.
+            // 2026-09-07: esya (drop) yayini ve suren etkileri. Temizlenmezse ikinci
+            // Play oturumu birincinin dondurmasiyla acilir ve olu abonelere yayin
+            // yapilir.
+            Systems.Pickups.PowerupSignals.Clear();
+            Systems.Pickups.PowerupState.Clear();
+
             CombatFeedback.Clear();
             Systems.Ui.MenuSignals.Clear();
             Systems.Net.SessionSignals.Clear();

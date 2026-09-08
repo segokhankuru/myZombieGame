@@ -133,11 +133,40 @@ namespace Bunker.Editor
             //     tirmanarak gecer), ama HER IKISI de var olmali.
             int outsideMissing = 0, insideMissing = 0, insideUnreachable = 0;
 
+            // DOGUM NOKTASI AYRI SAYILIR (2026-09-09). Bkz. asagidaki gerekce.
+            int spawnMissing = 0, spawnUnreachable = 0;
+
             for (int i = 0; i < windows.Length; i++)
             {
                 WindowEntry w = windows[i];
 
-                if (!TrySnap(w.OutsidePoint, out Vector3 _, 2f)) { outsideMissing++; continue; }
+                if (!TrySnap(w.OutsidePoint, out Vector3 outside, 2f)) { outsideMissing++; continue; }
+
+                // --- DOGUM NOKTASINDAN PENCEREYE (2026-09-09)
+                //
+                // <b>Neden bu satir eklendi:</b> zombiler apronda dogdugu yerde
+                // sikisip kaliyordu ve BU ARAC "BAGLI" diyordu. Kontrol pencerenin
+                // ONUNE (OutsidePoint) bakiyordu ve orada NavMesh gercekten vardi -
+                // ama zombi 14 metre daha disarida doguyor ve oraya YURUMEK zorunda.
+                // Aradaki apronu delik desik eden bir bake "NavMesh var ama ada"
+                // durumu uretir; olculen nokta dogru, olculen SORU yanlisti.
+                //
+                // Bu, projedeki en pahali hata sinifinin bir baska kiligi: aracin
+                // yanlis seyi olcmesi, hic olcmemesinden tehlikelidir - cunku
+                // "BAGLI" yazisi arayan kisiyi baska yere yollar (BUG-004'un dersi).
+                if (!TrySnap(w.SpawnPoint, out Vector3 spawn, 2f))
+                {
+                    spawnMissing++;
+                }
+                else
+                {
+                    var spawnPath = new NavMeshPath();
+                    if (!NavMesh.CalculatePath(spawn, outside, NavMesh.AllAreas, spawnPath) ||
+                        spawnPath.status != NavMeshPathStatus.PathComplete)
+                    {
+                        spawnUnreachable++;
+                    }
+                }
 
                 if (!TrySnap(w.InsidePoint, out Vector3 inside, 2f)) { insideMissing++; continue; }
 
@@ -151,10 +180,13 @@ namespace Bunker.Editor
 
             report.Append($"  pencere      : {windows.Length} giris\n");
             report.Append($"    disarida NavMesh yok : {outsideMissing}\n");
+            report.Append($"    dogumda NavMesh yok  : {spawnMissing}\n");
+            report.Append($"    dogumdan pencereye yol yok : {spawnUnreachable}\n");
             report.Append($"    iceride NavMesh yok  : {insideMissing}\n");
             report.Append($"    icerden oyuncuya yol yok : {insideUnreachable}\n");
 
             if (outsideMissing > 0 || insideMissing > 0 || insideUnreachable > 0) allOk = false;
+            if (spawnMissing > 0 || spawnUnreachable > 0) allOk = false;
 
             report.Append(allOk
                 ? "  SONUC: BAGLI - zombiler her yere ulasabilir."

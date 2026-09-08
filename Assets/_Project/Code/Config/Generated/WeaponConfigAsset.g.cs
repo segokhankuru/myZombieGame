@@ -80,7 +80,7 @@ namespace Bunker.Config
         [Header("feel")]
         [Tooltip("Merminin izinin ekranda kaldigi sure. Kisa olursa atisin nereye gittigi okunmaz ve oyuncu isabetsizligin sebebini ogrenemez; uzun olursa ekran cizgilerle dolar ve kaosta okunabilirlik (PILLAR-04) bozulur.")]
         [Range(0.01f, 0.5f)]
-        [SerializeField] private float feelTracerSeconds = 0.05f;
+        [SerializeField] private float feelTracerSeconds = 0.14f;
 
         [Tooltip("Isabet isaretinin ekranda kalma suresi. Isabetin ILK isi bir seyin oldugunu soylemektir; bu isaret olmadan sunger hissi kacinilmazdir. Uzun olursa arka arkaya atislarda isaret surekli acik kalir ve bilgi tasimayi birakir.")]
         [Range(0.02f, 0.5f)]

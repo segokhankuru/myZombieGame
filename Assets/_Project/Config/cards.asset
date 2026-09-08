@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0f4053a0d91c904193c4d4093b8a403, type: 3}
   m_Name: cards
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.CardCatalogAsset
-  version: 1
+  version: 2
   cards:
   - id: card.ballistics.damage.1
     displayName: Sert Cekirdek
@@ -54,26 +54,17 @@ MonoBehaviour:
     displayName: Keskin Nisan
     text: Kafa vurusu carpani 2x yerine 3x.
     tag: 0
-    stat: 6
+    stat: 5
     value: 1
     soloValid: 1
     coopValid: 1
     unique: 1
   - id: card.ballistics.magazine
     displayName: Genis Sarjor
-    text: Sarjor +6 mermi.
+    text: Sarjor kapasitesi +%20.
     tag: 0
     stat: 4
-    value: 6
-    soloValid: 1
-    coopValid: 1
-    unique: 0
-  - id: card.ballistics.reserve
-    displayName: Fisekik
-    text: Yedek mermi tavani +120.
-    tag: 0
-    stat: 5
-    value: 120
+    value: 0.2
     soloValid: 1
     coopValid: 1
     unique: 0
@@ -88,36 +79,28 @@ MonoBehaviour:
     unique: 0
   - id: card.ballistics.magazine.2
     displayName: Genis Sarjor II
-    text: Sarjor +10 mermi.
+    text: Sarjor kapasitesi +%40.
     tag: 0
     stat: 4
-    value: 10
+    value: 0.4
     soloValid: 1
     coopValid: 1
     unique: 0
-  - id: card.ballistics.reserve.2
-    displayName: Cephanelik
-    text: Yedek mermi tavani +200.
+  - id: card.ballistics.magazine.3
+    displayName: Genis Sarjor III
+    text: Sarjor kapasitesi +%70.
     tag: 0
-    stat: 5
-    value: 200
+    stat: 4
+    value: 0.7
     soloValid: 1
     coopValid: 1
     unique: 0
   - id: card.ballistics.penetration.1
     displayName: Delici Mermi
-    text: Mermi bir zombiden GECER ve arkadakine de vurur.
+    text: Mermi bir zombiden GECER ve arkadakine de vurur. Tekrar alirsan bir zombi
+      daha deler.
     tag: 0
-    stat: 16
-    value: 1
-    soloValid: 1
-    coopValid: 1
-    unique: 0
-  - id: card.ballistics.penetration.2
-    displayName: Delici Mermi II
-    text: Mermi bir zombi daha deler.
-    tag: 0
-    stat: 16
+    stat: 15
     value: 1
     soloValid: 1
     coopValid: 1
@@ -126,7 +109,7 @@ MonoBehaviour:
     displayName: Kalin Deri
     text: Maksimum can +%25.
     tag: 2
-    stat: 9
+    stat: 8
     value: 0.25
     soloValid: 1
     coopValid: 1
@@ -135,7 +118,7 @@ MonoBehaviour:
     displayName: Kalin Deri II
     text: Maksimum can +%35.
     tag: 2
-    stat: 9
+    stat: 8
     value: 0.35
     soloValid: 1
     coopValid: 1
@@ -144,7 +127,7 @@ MonoBehaviour:
     displayName: Yelek
     text: Alinan hasar %20 azalir.
     tag: 2
-    stat: 10
+    stat: 9
     value: 0.25
     soloValid: 1
     coopValid: 1
@@ -153,7 +136,7 @@ MonoBehaviour:
     displayName: Yelek II
     text: Alinan hasar daha da azalir.
     tag: 2
-    stat: 10
+    stat: 9
     value: 0.35
     soloValid: 1
     coopValid: 1
@@ -162,7 +145,7 @@ MonoBehaviour:
     displayName: Cabuk Toparlanma
     text: Can yenilenmesi %40 daha erken baslar.
     tag: 2
-    stat: 11
+    stat: 10
     value: 0.4
     soloValid: 1
     coopValid: 1
@@ -171,7 +154,7 @@ MonoBehaviour:
     displayName: Kalin Deri III
     text: Maksimum can +%50.
     tag: 2
-    stat: 9
+    stat: 8
     value: 0.5
     soloValid: 1
     coopValid: 1
@@ -180,7 +163,7 @@ MonoBehaviour:
     displayName: Agir Yelek
     text: Alinan hasar belirgin azalir.
     tag: 2
-    stat: 10
+    stat: 9
     value: 0.5
     soloValid: 1
     coopValid: 1
@@ -189,7 +172,7 @@ MonoBehaviour:
     displayName: Kan Icici
     text: Her oldurme maksimum caninin %6'si kadar iyilestirir.
     tag: 2
-    stat: 18
+    stat: 17
     value: 0.06
     soloValid: 1
     coopValid: 1
@@ -198,7 +181,7 @@ MonoBehaviour:
     displayName: Kan Icici II
     text: Her oldurme %10 iyilestirir.
     tag: 2
-    stat: 18
+    stat: 17
     value: 0.1
     soloValid: 1
     coopValid: 1
@@ -207,7 +190,7 @@ MonoBehaviour:
     displayName: Hafif Ayak
     text: Yurume hizi +%20.
     tag: 3
-    stat: 8
+    stat: 7
     value: 0.2
     soloValid: 1
     coopValid: 1
@@ -216,7 +199,7 @@ MonoBehaviour:
     displayName: Hafif Ayak II
     text: Yurume hizi +%30.
     tag: 3
-    stat: 8
+    stat: 7
     value: 0.3
     soloValid: 1
     coopValid: 1
@@ -234,7 +217,7 @@ MonoBehaviour:
     displayName: Yavaslatma
     text: Vurdugun zombi %10 yavaslar.
     tag: 3
-    stat: 15
+    stat: 14
     value: 0.1
     soloValid: 1
     coopValid: 1
@@ -243,7 +226,7 @@ MonoBehaviour:
     displayName: Keskin Bicak
     text: Bicak hasari +%50.
     tag: 3
-    stat: 7
+    stat: 6
     value: 0.5
     soloValid: 1
     coopValid: 1
@@ -252,7 +235,7 @@ MonoBehaviour:
     displayName: Hafif Ayak III
     text: Yurume hizi +%40.
     tag: 3
-    stat: 8
+    stat: 7
     value: 0.4
     soloValid: 1
     coopValid: 1
@@ -261,7 +244,7 @@ MonoBehaviour:
     displayName: Buz
     text: Vurdugun zombi %20 yavaslar.
     tag: 3
-    stat: 15
+    stat: 14
     value: 0.2
     soloValid: 1
     coopValid: 1
@@ -270,7 +253,7 @@ MonoBehaviour:
     displayName: Kasap
     text: Bicak hasari +%80.
     tag: 3
-    stat: 7
+    stat: 6
     value: 0.8
     soloValid: 1
     coopValid: 1
@@ -279,7 +262,7 @@ MonoBehaviour:
     displayName: Don
     text: Vurdugun zombi cok daha fazla yavaslar.
     tag: 3
-    stat: 15
+    stat: 14
     value: 0.35
     soloValid: 1
     coopValid: 1
@@ -288,7 +271,7 @@ MonoBehaviour:
     displayName: Kelle Avcisi
     text: Oldurme puani +%25.
     tag: 4
-    stat: 12
+    stat: 11
     value: 0.25
     soloValid: 1
     coopValid: 1
@@ -297,7 +280,7 @@ MonoBehaviour:
     displayName: Kelle Avcisi II
     text: Oldurme puani +%35.
     tag: 4
-    stat: 12
+    stat: 11
     value: 0.35
     soloValid: 1
     coopValid: 1
@@ -306,7 +289,7 @@ MonoBehaviour:
     displayName: Copcu
     text: Barikat tamiri iki kati puan.
     tag: 4
-    stat: 13
+    stat: 12
     value: 1
     soloValid: 1
     coopValid: 1
@@ -315,7 +298,7 @@ MonoBehaviour:
     displayName: Usta Elleri
     text: Barikat tamiri %50 daha hizli.
     tag: 4
-    stat: 14
+    stat: 13
     value: 0.5
     soloValid: 1
     coopValid: 1
@@ -324,7 +307,7 @@ MonoBehaviour:
     displayName: Kelle Avcisi III
     text: Oldurme puani +%50.
     tag: 4
-    stat: 12
+    stat: 11
     value: 0.5
     soloValid: 1
     coopValid: 1
@@ -333,7 +316,7 @@ MonoBehaviour:
     displayName: Marangoz
     text: Barikat tamiri %80 daha hizli.
     tag: 4
-    stat: 14
+    stat: 13
     value: 0.8
     soloValid: 1
     coopValid: 1
@@ -342,7 +325,7 @@ MonoBehaviour:
     displayName: Toplayici
     text: Her oldurmede yedege 2 mermi.
     tag: 4
-    stat: 19
+    stat: 18
     value: 2
     soloValid: 1
     coopValid: 1
@@ -351,35 +334,27 @@ MonoBehaviour:
     displayName: Toplayici II
     text: Her oldurmede yedege 4 mermi.
     tag: 4
-    stat: 19
+    stat: 18
     value: 4
+    soloValid: 1
+    coopValid: 1
+    unique: 0
+  - id: card.loot.droprate
+    displayName: Ugurlu Bulus
+    text: Zombilerin yere esya birakma sansi +%60.
+    tag: 4
+    stat: 19
+    value: 0.6
     soloValid: 1
     coopValid: 1
     unique: 0
   - id: card.demolition.explode.1
     displayName: Sarapnel
-    text: Oldurdugun zombi PATLAR ve cevresindekilere hasar verir.
+    text: Oldurdugun zombi PATLAR ve cevresindekilere hasar verir. Tekrar alirsan
+      patlama guclenir.
     tag: 1
-    stat: 17
+    stat: 16
     value: 0.35
-    soloValid: 1
-    coopValid: 1
-    unique: 0
-  - id: card.demolition.explode.2
-    displayName: Sarapnel II
-    text: Patlama cok daha guclu.
-    tag: 1
-    stat: 17
-    value: 0.55
-    soloValid: 1
-    coopValid: 1
-    unique: 0
-  - id: card.demolition.explode.3
-    displayName: Zincirleme
-    text: Patlama, patlamayla olenleri de patlatacak kadar guclu.
-    tag: 1
-    stat: 17
-    value: 0.8
     soloValid: 1
     coopValid: 1
     unique: 0

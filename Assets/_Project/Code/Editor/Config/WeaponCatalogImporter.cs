@@ -107,6 +107,12 @@ namespace Bunker.Editor.ConfigTools
                 if (!Integer(w, "price", id, errors, out entry.price)) continue;
                 if (!Integer(w, "ammoPrice", id, errors, out entry.ammoPrice)) continue;
 
+                // ISTEGE BAGLI ve varsayilani false: dolumun mermi mermi ilerlemesi
+                // istisnadir, kural degil. Zorunlu yapmak, dort silahin ucune anlamsiz
+                // bir "false" satiri yazdirmak olurdu.
+                entry.reloadPerShell = w["reloadPerShell"].Kind == JsonKind.Bool &&
+                                       w["reloadPerShell"].AsBool;
+
                 entries.Add(entry);
             }
 

@@ -1,5 +1,6 @@
 using System.Text;
 using Bunker.Gameplay;
+using Bunker.Systems.Pickups;
 using Bunker.Systems.Rounds;
 using Bunker.Systems.Settings;
 using UnityEngine;
@@ -25,9 +26,18 @@ namespace Bunker.UI
     [AddComponentMenu("Bunker/Combat HUD (gecici)")]
     public sealed class CombatHud : MonoBehaviour
     {
+        /// <summary>
+        /// Tam çömelmişken açıklığın kaça ineceği. <b>Denge sayısı değil</b>, bir
+        /// okunabilirlik ayarı — bu yüzden config'de değil burada (config-data.md
+        /// config'i denge için ayırır).
+        /// </summary>
+        private const float CrouchGapMultiplier = 0.45f;
+
         [Header("Nisangah")]
         [SerializeField] private float crosshairSizePixels = 10f;
-        [SerializeField] private float crosshairGapPixels = 4f;
+
+        [Tooltip("AYAKTAYKEN acikligi. Comelince CrouchGapMultiplier kadar daralir.")]
+        [SerializeField] private float crosshairGapPixels = 6f;
         [SerializeField] private float crosshairThicknessPixels = 2f;
 
         [Header("Can (M1-11)")]
@@ -117,6 +127,33 @@ namespace Bunker.UI
             DrawSprint();
             DrawCrosshair();
             DrawReadout();
+            DrawPowerup();
+        }
+
+        /// <summary>
+        /// Yerden toplanan süreli eşyanın sayacı (2026-09-07).
+        ///
+        /// <para><b>Süresi görünmeyen bir etki, olmayan bir etkidir:</b> zombilerin
+        /// neden yavaşladığını ve ne zaman hızlanacağını göremeyen oyuncu, kalan
+        /// süreye göre plan yapamaz — eşya bir ödül değil, açıklanamayan bir olay olur.
+        /// Bilgi renkle tek başına taşınmıyor; yazı da aynı şeyi söylüyor
+        /// (ui-code.md).</para>
+        /// </summary>
+        private void DrawPowerup()
+        {
+            string label = PowerupState.ActiveLabel();
+            if (label == null) return;
+
+            float remaining = PowerupState.ActiveRemainingSeconds;
+
+            GUI.color = PowerupState.IsFreezeActive
+                ? new Color(0.65f, 0.95f, 1f, 0.95f)
+                : new Color(0.45f, 0.78f, 1f, 0.9f);
+
+            GUI.Label(new Rect(Screen.width * 0.5f - 100f, 74f, 200f, 24f),
+                      $"{label}  {remaining:0.0} sn", _promptStyle);
+
+            GUI.color = Color.white;
         }
 
         /// <summary>
@@ -162,7 +199,44 @@ namespace Bunker.UI
             Rect(x, y, barWidth * fraction, barHeight);
 
             GUI.color = Color.white;
+
+            // HAM SAYI BARIN USTUNDE (2026-09-06, gelistirici: "kendi canimin sayisal
+            // degerini can barinda goster").
+            //
+            // Bar orani soyler, sayi KAC VURUS DAYANDIGINI soyler - ve kart alan
+            // oyuncunun tavani degistigi icin "%60 can" her turda baska bir sey
+            // demek. 30 hasarlik bir zombi vurusu karsisinda "72/120" ile "%60"
+            // arasindaki fark, karar verebilmekle tahmin etmek arasindaki fark.
+            //
+            // Metin BIR KEZ kurulur ve yalnizca DEGISTIGINDE (ui-code.md: kare basina
+            // string tahsisi yok). OnGUI kare basina birden fazla kez cagrilir.
+            int current = Mathf.CeilToInt(_health.CurrentPoints);
+            int max = Mathf.RoundToInt(_health.MaxPoints);
+
+            if (current != _lastHealthShown || max != _lastHealthMaxShown)
+            {
+                _lastHealthShown = current;
+                _lastHealthMaxShown = max;
+                _healthText = $"{current} / {max}";
+            }
+
+            _healthStyle ??= new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 15,
+                alignment = TextAnchor.LowerLeft,
+                richText = false
+            };
+
+            GUI.color = _health.IsLow ? new Color(1f, 0.45f, 0.4f) : new Color(1f, 1f, 1f, 0.85f);
+            GUI.Label(new UnityEngine.Rect(x, y - 20f, barWidth, 18f), _healthText, _healthStyle);
+            GUI.color = Color.white;
         }
+
+        // Can yazisinin onbellegi: yalnizca sayi degistiginde yeniden kurulur.
+        private string _healthText = string.Empty;
+        private int _lastHealthShown = -1;
+        private int _lastHealthMaxShown = -1;
+        private GUIStyle _healthStyle;
 
         /// <summary>
         /// Koşu göstergesi: can barının hemen altında ince bir çubuk (2026-09-05).
@@ -218,7 +292,25 @@ namespace Bunker.UI
                 ? (_weapon.LastHitWasHeadshot ? new Color(1f, 0.85f, 0.2f) : new Color(1f, 0.4f, 0.3f))
                 : new Color(1f, 1f, 1f, 0.75f);
 
-            float gap = crosshairGapPixels + (hit ? 3f : 0f);
+            // NISANGAH COMELINCE TOPLANIR (2026-09-07, gelistirici istegi:
+            // "ayaktayken bir tik daha ayrik, yere comelince daha yakin kalsin").
+            //
+            // <b>Neden doğru:</b> çömelmek zaten atışı toparlıyor
+            // (<c>PlayerController.CrouchSpreadMultiplier</c>) — nişangâh o kazancı
+            // <i>göstermiyordu</i>. Sabit bir nişangâh, oyuncuya "çömelmek işe
+            // yarıyor" bilgisini yalnızca istatistikle öğretir; açıklık daralınca
+            // aynı bilgi ilk çömelişte okunur.
+            //
+            // <b>Açıklık dağılımın kendisiyle değil, çömelme oranıyla ölçülüyor:</b>
+            // gerçek koni açısını piksele çevirmek görüş açısına ve ekran boyuna bağlı
+            // bir hesap olurdu ve dar ekranda yalan söylerdi. Burada nişangâh bir
+            // ölçü aleti değil, bir <i>durum göstergesi</i>.
+            float crouchGap = _controller != null
+                ? Mathf.Lerp(crosshairGapPixels, crosshairGapPixels * CrouchGapMultiplier,
+                             _controller.Crouch01)
+                : crosshairGapPixels;
+
+            float gap = crouchGap + (hit ? 3f : 0f);
             float len = crosshairSizePixels;
             float t = crosshairThicknessPixels;
 
