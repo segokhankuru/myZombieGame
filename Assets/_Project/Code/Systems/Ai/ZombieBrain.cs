@@ -84,6 +84,24 @@ namespace Bunker.Systems.Ai
         /// </summary>
         public readonly float ReachMultiplier;
 
+        /// <summary>
+        /// Zombinin merkeziyle hedefin merkezi arasındaki <b>yatay mesafe</b>
+        /// (2026-09-10). <see cref="GapToTargetMeters"/>'ten farkı: yarıçaplar düşülmez.
+        ///
+        /// <para><b>Neden ikinci bir ölçü</b> (geliştirici: <i>"zombiler 1 m'den uzaktan
+        /// vuramaz, bosslarda 2 m"</i>): gövde boşluğu "değecek kadar yakın mı"yı söyler
+        /// ve yarıçaplara bağlıdır — bir yarıçap yanlış ölçülürse menzil sessizce büyür.
+        /// Merkez mesafesi yarıçaptan bağımsız bir <b>mutlak tavan</b> verir: hangi ölçü
+        /// hatası olursa olsun o mesafeden vuruş yok.</para>
+        ///
+        /// <para>Varsayılan <c>0</c>: mesafe vermeyen çağrı (eski testler) tavana takılmaz.
+        /// Motor tarafı (<c>ZombieAgent</c>) her düşünmede gerçek değeri geçer.</para>
+        /// </summary>
+        public readonly float DistanceToTargetMeters;
+
+        /// <summary>Boss mu — mutlak tavanın hangisi uygulanacak.</summary>
+        public readonly bool IsBoss;
+
         public ZombieSenses(
             bool hasTarget,
             float gapToTargetMeters,
@@ -91,7 +109,9 @@ namespace Bunker.Systems.Ai
             float distanceToWindowMeters = 0f,
             float actualSpeedMetersPerSecond = 0f,
             bool windowBlocked = false,
-            float reachMultiplier = 1f)
+            float reachMultiplier = 1f,
+            float distanceToTargetMeters = 0f,
+            bool isBoss = false)
         {
             HasTarget = hasTarget;
             GapToTargetMeters = gapToTargetMeters;
@@ -100,6 +120,8 @@ namespace Bunker.Systems.Ai
             ActualSpeedMetersPerSecond = actualSpeedMetersPerSecond;
             WindowBlocked = windowBlocked;
             ReachMultiplier = reachMultiplier <= 0f ? 1f : reachMultiplier;
+            DistanceToTargetMeters = distanceToTargetMeters;
+            IsBoss = isBoss;
         }
     }
 
@@ -300,7 +322,8 @@ namespace Bunker.Systems.Ai
                     }
                     else if (senses.HasTarget &&
                              senses.GapToTargetMeters <=
-                             _config.AttackRangeMeters * senses.ReachMultiplier)
+                             _config.AttackRangeMeters * senses.ReachMultiplier &&
+                             WithinHardCap(senses))
                     {
                         Enter(ZombieState.WindingUp);
                     }
@@ -313,11 +336,14 @@ namespace Bunker.Systems.Ai
                 case ZombieState.WindingUp:
                     if (StateTimeSeconds < _config.AttackWindupSeconds) break;
 
-                    // Telegrafin bedeli: oyuncu geri cekildiyse vurus iskalar.
+                    // Telegrafin bedeli: oyuncu geri cekildiyse vurus iskalar. Mutlak
+                    // tavan burada DA sorulur: telegraf baslarken 0.9 m'de olan oyuncu
+                    // inis aninda 1.05 m'deyse kol toleransi ne derse desin vurus yok.
                     bool inReach = senses.HasTarget &&
                                    senses.GapToTargetMeters <=
                                    (_config.AttackRangeMeters + _config.AttackRangeToleranceMeters) *
-                                   senses.ReachMultiplier;
+                                   senses.ReachMultiplier &&
+                                   WithinHardCap(senses);
 
                     if (inReach)
                     {
@@ -377,6 +403,20 @@ namespace Bunker.Systems.Ai
         {
             State = next;
             StateTimeSeconds = 0f;
+        }
+
+        /// <summary>
+        /// Mutlak vuruş tavanı (2026-09-10): merkezler arası yatay mesafe, normal zombide
+        /// <c>attack.maxHitDistanceMeters</c>, boss'ta <c>attack.bossMaxHitDistanceMeters</c>.
+        /// Kol uzunluğundan bağımsız — gerekçe <see cref="ZombieSenses.DistanceToTargetMeters"/>'te.
+        /// </summary>
+        private bool WithinHardCap(in ZombieSenses senses)
+        {
+            float cap = senses.IsBoss
+                ? _config.AttackBossMaxHitDistanceMeters
+                : _config.AttackMaxHitDistanceMeters;
+
+            return senses.DistanceToTargetMeters <= cap;
         }
 
         private static float Clamp01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);

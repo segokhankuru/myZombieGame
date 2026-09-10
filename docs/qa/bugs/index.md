@@ -1,6 +1,6 @@
 # Hata dizini
 
-Hepsi **kapalı**. Ortak ders: *sessiz başarısızlık en pahalı hata türüdür* — beşinin
+BUG-006 düzeltildi, iki makineli testle doğrulanmayı bekliyor; diğerleri **kapalı**. Ortak ders: *sessiz başarısızlık en pahalı hata türüdür* — beşinin
 dördü hiçbir mesaj vermiyordu ve teşhis oyun testine kaldı.
 
 | Hata | Konu | Ders |
@@ -10,5 +10,6 @@ dördü hiçbir mesaj vermiyordu ve teşhis oyun testine kaldı.
 | [BUG-003](BUG-003-barikat-dogumu-kilitledi.md) | Barikat doğumu kilitledi | "Geçilemiyor" ile "giriş noktası değil" ayrı sorular (`IsOpen` / `AllowsEntry`) |
 | [BUG-004](BUG-004-kapi-gorunmuyor-zombiler-icerde.md) | Kapı görünmüyor, zombiler içeride | Aracın **yanlış anda** ölçmesi, yanlış ölçmesinden tehlikelidir |
 | [BUG-005](BUG-005-havuzdan-cikan-zombi-eski-yerinde-beliriyor.md) | Havuzdan çıkan zombi eski yerinde beliriyor | Bir bileşen bir alanın sahibiyse o alana başka kimse yazmamalı |
+| [BUG-006](BUG-006-oyun-baslayinca-davetliler-dusuyor.md) | Oyun başlayınca davetliler giremiyor | Yok edilecek singleton kopyası statik bir alana yazmadan önce durmalı |
 
 Yeni hata: `/bug`.

@@ -78,6 +78,33 @@ namespace Bunker.Systems.Combat
         /// </summary>
         public readonly bool ReloadPerShell;
 
+        /// <summary>
+        /// Dürbün büyütmesi. <b>0 ya da 1 = dürbün yok</b>, sağ tık hiçbir şey yapmaz.
+        ///
+        /// <para><b>Neden bir sayı, bir bayrak değil</b> (2026-09-09): ikinci dürbünlü
+        /// silah geldiğinde "hangisi daha çok yakınlaştırır" bir <i>denge</i> sorusu
+        /// olacak ve cevabı config'de durmalı (config-data.md). Bayrak olsaydı
+        /// büyütme kodda bir sabit olurdu — yani her dürbün aynı, ve ayarlamak için
+        /// derleme gerekirdi.</para>
+        ///
+        /// <para><b>Dürbün bir silah kimliği</b>, bir yükseltme değil: her silaha
+        /// verilmesi "hangisi uzun menzillidir" sorusunu ortadan kaldırırdı
+        /// (PILLAR-04 — silüet ve davranış birlikte konuşur).</para>
+        /// </summary>
+        public readonly float ScopeMagnification;
+
+        /// <summary>
+        /// Nisan alirken ekranda ne gorundugu. <see cref="ScopeStyle"/>.
+        ///
+        /// <para><b>Buyutmeden AYRI</b>: iki silah ayni katsayiyla yakinlasip bambaska
+        /// gorunebilir - nisanci durbunu cevreyi alir, prizmali optik birakir. Tek bir
+        /// sayiya sikistirmak, o farki kodda bir "if" haline getirirdi.</para>
+        /// </summary>
+        public readonly ScopeStyle ScopeStyle;
+
+        /// <summary>Bu silahın dürbünü var mı — sağ tık yakınlaştırır mı.</summary>
+        public bool HasScope => ScopeMagnification > 1f;
+
         public WeaponDefinition(string id, string displayName, float damage, float roundsPerMinute,
                                 float headshotMultiplier, float rangeMeters, float spreadDegrees,
                                 int pelletCount, int magazineCapacity, int reserveCapacity,
@@ -86,9 +113,12 @@ namespace Bunker.Systems.Combat
                                 float recoilRecoveryPerSecond, float recoilMaxPitch,
                                 float tracerSeconds, float hitMarkerSeconds,
                                 float inputBufferSeconds, int price, int ammoPrice,
-                                bool reloadPerShell = false)
+                                bool reloadPerShell = false, float scopeMagnification = 0f,
+                                ScopeStyle scopeStyle = ScopeStyle.None)
         {
             ReloadPerShell = reloadPerShell;
+            ScopeMagnification = scopeMagnification;
+            ScopeStyle = scopeStyle;
             Id = id ?? throw new ArgumentNullException(nameof(id));
             DisplayName = displayName ?? id;
             Damage = damage;

@@ -53,7 +53,7 @@
     "attack": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["rangeMeters", "rangeToleranceMeters", "windupSeconds", "recoverySeconds", "damage"],
+      "required": ["rangeMeters", "rangeToleranceMeters", "windupSeconds", "recoverySeconds", "damage", "maxHitDistanceMeters", "bossMaxHitDistanceMeters"],
       "properties": {
         "rangeMeters": {
           "type": "number", "minimum": 0.15, "maximum": 1.5,
@@ -73,7 +73,15 @@
         },
         "damage": {
           "type": "number", "minimum": 5, "maximum": 100,
-          "description": "Bir vurusun hasari. Oyuncu cani 100 kabul edilir; 30 demek uc vurusta olum demektir. Buyutursen tek hata olumcul olur ve oyuncu riskten kacinir, oyun korkakca oynanir; kucultursen sürünün icinde durmak bedava olur ve haritayi kullanma sebebi kalmaz."
+          "description": "TUR 1'de bir vurusun hasari; tura gore artisi rounds.json damage bolumunde (2026-09-11). Oyuncu cani 100 kabul edilir; 30 demek uc vurusta olum demektir. Buyutursen tek hata olumcul olur ve oyuncu riskten kacinir, oyun korkakca oynanir; kucultursen sürünün icinde durmak bedava olur ve haritayi kullanma sebebi kalmaz."
+        },
+        "maxHitDistanceMeters": {
+          "type": "number", "minimum": 0.6, "maximum": 1.5,
+          "description": "MUTLAK VURUS TAVANI (2026-09-10, gelistirici: 'zombiler 1 m den uzaktan vuramaz'). Zombinin merkeziyle oyuncunun merkezi arasindaki YATAY mesafe bunu asarsa vurus ne baslar ne iner - kol uzunlugu (rangeMeters + tolerans) ne derse desin. Kol uzunlugu govde yaricaplarina bagli ve bir yaricap yanlis olculurse sessizce buyur; bu tavan yaricaptan bagimsiz. 0.6 altinda zombi oyuncunun govdesine (0.35 + 0.4 yaricap) yaklasamadigi icin HIC vuramaz ve zararsizlasir; 1.5 ustunde oyuncu arada gorunur bir bosluk varken hasar yer ve olum haksizlik gibi okunur."
+        },
+        "bossMaxHitDistanceMeters": {
+          "type": "number", "minimum": 1.0, "maximum": 3.0,
+          "description": "Boss icin ayni mutlak tavan (2026-09-10, gelistirici: 'bosslarda 2 m'). Boss 1.7 kat buyuk ve govdesi de o kadar genis; normal zombinin tavanini kullansaydi merkezine yaklasamadan vuramazdi. 1.0 altinda boss hic vuramaz ve tur dondurucu bir sungere doner; 3.0 ustunde boss'un kolu ekranda gorunenden uzun olur ve oyuncu nereden yedigini okuyamaz (PILLAR-04)."
         }
       }
     },
@@ -190,6 +198,7 @@
         "chance01", "lifetimeSeconds", "pickupRadiusMeters",
         "healthFraction01", "ammoMagazines",
         "slowFraction01", "slowSeconds", "freezeSeconds",
+        "nukeMaxKills", "stackPerSlot",
         "weightHealth", "weightAmmo", "weightSlow", "weightFreeze", "weightNuke"
       ],
       "description": "Olen zombinin yere biraktigi esya (2026-09-06, gelistirici: 'zombiler icerde olunce hic drop atmiyor'). Drop, oyuncuyu YERINDEN OYNATAN tek mekanik: guvenli koseden cikip surunun oldugu yere gitmeyi bir SECIM haline getirir. Nadir olmali - her olumden esya cikarsa surprizi olmaz ve oyuncu esyayi degil, esya akisini oynar.",
@@ -219,12 +228,20 @@
           "description": "Yavaslatma esyasinin butun zombilerden dusurdugu hiz orani. Kucuk olursa oyuncu farki hic goremez ve esya bos hisseder; buyutursen 'dondurma' esyasindan farksizlasir ve iki esya tek esyaya doner."
         },
         "slowSeconds": {
-          "type": "number", "minimum": 2, "maximum": 30,
-          "description": "Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez."
+          "type": "number", "minimum": 2, "maximum": 40,
+          "description": "Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez. UST SINIR 30 -> 40 (2026-09-09): dondurma iki katina cikinca yavaslatma da onunla birlikte kaydi, yoksa iki esya arasindaki mesafe kapanirdi."
         },
         "freezeSeconds": {
-          "type": "number", "minimum": 1, "maximum": 15,
-          "description": "Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir."
+          "type": "number", "minimum": 1, "maximum": 20,
+          "description": "Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir. UST SINIR 15 -> 20 (2026-09-09, gelistirici: 'dondurma drobunun suresini 2 kat uzatalim'). Sure 5 -> 10 sn. Gerekce degisti: esya artik SLOTTA BEKLIYOR (istege bagli kullaniliyor), yani 'yanlis anda dustu' diye bosa gitmiyor - oyuncu onu dogru anda basacak. Dogru anda basilan bir esyanin karsiligi da o ana degmeli."
+        },
+        "nukeMaxKills": {
+          "type": "integer", "minimum": 1, "maximum": 200,
+          "description": "Nuke'un OLDURDUGU EN FAZLA ZOMBI, en yakindan baslayarak (2026-09-09, gelistirici: 'nuke drobunu kullaninca alandaki 15 zombiyi oldursun, birden hepsi olup turu gecince cok easy oluyor'). Onceki hali sahadaki HERKESI siliyordu, yani gec turda tek bir esya turu bitiriyordu - oyuncunun kazandigi sey oyun degil, zar atisiydi. Sinir bir SAYI oldugu icin esya artik bir ZAMANLAMA karari: 8 zombi varken basmak israf, 25 zombi varken basmak nefes. Cok buyutursen eski 'hepsini sil' haline geri donersin; 1-2 gibi bir sayi ise esyayi en nadir ciktigi halde en ise yaramaz esya yapar."
+        },
+        "stackPerSlot": {
+          "type": "integer", "minimum": 1, "maximum": 20,
+          "description": "Bir drop slotunda en fazla kac esya birikebilir (2026-09-09, gelistirici: 'yerden topladigimiz droplari stacklenebilen sekilde biriktirebilelim'). Tavan SART: tavansiz bir cep, gec turda oyuncuya on can ve alti nuke tasitir ve olum imkansizlasir - yani zorluk egrisi envanterle iptal edilir. Kucultursen (1-2) biriktirme karari yok olur, esya yine 'an'a baglanir; buyutursen tur arasi hazirlik yerine esya stoku oyunun kendisi olur."
         },
         "weightHealth": {
           "type": "integer", "minimum": 0, "maximum": 100,

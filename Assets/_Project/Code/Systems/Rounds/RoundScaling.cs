@@ -149,11 +149,77 @@ namespace Bunker.Systems.Rounds
         public float BossSpeedForRound(int round) =>
             SpeedForRound(round) * _config.BossSpeedMultiplier;
 
-        public float BossDamageMultiplier => _config.BossDamageMultiplier;
-
         public float BossScaleMultiplier => _config.BossScaleMultiplier;
 
         public float BossPointsMultiplier => _config.BossPointsMultiplier;
+
+        /// <summary>
+        /// Bu boss turunda kaç boss çıkar (2026-09-11). Boss turu değilse 0.
+        ///
+        /// <para><b>Co-op ve tek oyuncu farklı hızda:</b> geliştiricinin kuralı co-op'ta
+        /// her boss turunda bir fazla (1, 2, 3), tek oyuncuda iki boss turunda bir
+        /// (1, 1, 2, 2). Dört kişilik bir ekip tek bossa karşı kalınca boss turu olay
+        /// olmaktan çıkıyor; tek oyuncu ise dikkati dağıtacak ikinci biri olmadan co-op
+        /// hızındaki bossa dayanamaz.</para>
+        /// </summary>
+        public int BossCountForRound(int round, bool coop)
+        {
+            if (!IsBossRound(round)) return 0;
+
+            // Kacinci boss turu (1 tabanli). IsBossRound, every > 0 oldugunu garanti eder.
+            int bossRoundIndex = ClampRound(round) / _config.BossEveryRounds;
+
+            int step = coop ? _config.BossExtraEveryBossRoundsCoop : _config.BossExtraEveryBossRoundsSolo;
+            if (step < 1) step = 1;   // sifira bolme; sema zaten 1'in altini reddediyor
+
+            int count = 1 + (bossRoundIndex - 1) / step;
+
+            int max = _config.BossMaxPerRound < 1 ? 1 : _config.BossMaxPerRound;
+            return count > max ? max : count;
+        }
+
+        /// <summary>
+        /// <paramref name="bossIndex"/>'inci boss turun <b>kaçıncı doğumunda</b> gelir.
+        ///
+        /// <para><b>İlk boss yine turun ilk zombisi</b> (2026-09-06 kararı korunuyor);
+        /// diğerleri turun doğum sırasına eşit aralıkla yayılır. Hepsi birden gelseydi
+        /// boss turu kaçılabilir bir olay olmaktan çıkıp bir duvar olurdu. Zombi sayısı
+        /// boss sayısından azsa bosslar arka arkaya gelir — boss hakkı kaybolmaz.</para>
+        /// </summary>
+        public int BossSpawnIndex(int bossIndex, int bossCount, int totalForRound)
+        {
+            if (bossIndex <= 0 || bossCount <= 1) return 0;
+            if (totalForRound < bossCount) return bossIndex;
+
+            return bossIndex * totalForRound / bossCount;
+        }
+
+        // ---------------------------------------------------------------- hasar
+
+        /// <summary>
+        /// Zombi vuruşunun tura göre çarpanı (2026-09-11). Taban hasar
+        /// <c>zombie.json → attack.damage</c>'da; burası yalnızca çarpan.
+        ///
+        /// <para><b>Doğrusal, bileşik değil:</b> bileşik %3 50. turda dört kat eder ve
+        /// can kartlarını siler. Tavanı var: tavansız bir hasar yeterince ileri turda
+        /// her teması ölüm yapar.</para>
+        /// </summary>
+        public float ZombieDamageMultiplierForRound(int round)
+        {
+            round = ClampRound(round);
+
+            float multiplier = 1f + _config.DamageGrowthPerRound01 * (round - 1);
+            float cap = _config.DamageMaxMultiplier < 1f ? 1f : _config.DamageMaxMultiplier;
+
+            return multiplier > cap ? cap : multiplier;
+        }
+
+        /// <summary>
+        /// Boss vuruşunun çarpanı: <b>turun çarpanı × boss çarpanı</b>. Boss da turla
+        /// sertleşir; yoksa geç turda normal zombiyle arasındaki fark kapanırdı.
+        /// </summary>
+        public float BossDamageMultiplierForRound(int round) =>
+            ZombieDamageMultiplierForRound(round) * _config.BossDamageMultiplier;
 
         /// <summary>Turun hız kademesi.</summary>
         public ZombieSpeedTier SpeedTierForRound(int round)

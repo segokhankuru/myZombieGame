@@ -19,7 +19,7 @@ namespace Bunker.Config
     /// </summary>
     public sealed class EconomyConfigAsset : ScriptableObject
     {
-        [SerializeField] private int version = 4;
+        [SerializeField] private int version = 5;
 
         [Header("awards")]
         [Tooltip("Oldurmeyen her isabet. Bu deger oyuncunun 'silahim ise yariyor' hissinin ekonomik karsiligi - sifira yakinsa gec turlarda kalin canli zombilere ates etmek bedava is gibi hissettirir.")]
@@ -80,6 +80,14 @@ namespace Bunker.Config
         [Range(0, 500)]
         [SerializeField] private int pricesCardRerollAddPerRound = 50;
 
+        [Tooltip("Tur basinda dirilmenin TAM fiyati (2026-09-09). Olen oyuncu KENDI puanindan oder ve puani yetmezse yettigi kadar CANLA dirilir (hic yoksa 1 can). Sifir yaparsan olmek bedelsiz olur ve yerde kalmak bir sey kaybettirmez; cok buyutursen gec turda dirilmek imkansizlasir ve oyuncu izleyiciye doner - ki bu, yere dusme sisteminin varlik sebebinin tam tersi.")]
+        [Range(0, 5000)]
+        [SerializeField] private int pricesReviveBase = 500;
+
+        [Tooltip("Diriltme fiyatinin tur basina artisi. Kart yenilemesiyle ayni gerekce: sabit fiyat gec turlarda bedavaya doner ve olum bir sonuc olmaktan cikar. Artis, dirilmenin bedelini turun puan olcegiyle ayni bantta tutar.")]
+        [Range(0, 1000)]
+        [SerializeField] private int pricesReviveAddPerRound = 100;
+
         [Header("ammo")]
         [Tooltip("Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md.")]
         [Range(1, 40)]
@@ -108,6 +116,8 @@ namespace Bunker.Config
                 pricesMysteryBox,
                 pricesCardRerollBase,
                 pricesCardRerollAddPerRound,
+                pricesReviveBase,
+                pricesReviveAddPerRound,
                 ammoMagazinesPerPurchase,
                 ammoRefillCost);
         }

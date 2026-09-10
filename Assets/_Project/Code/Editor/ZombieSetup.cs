@@ -127,8 +127,9 @@ namespace Bunker.Editor
                 $"  satin alma   : {doors} kapi, {wallWeapons} duvar silahi\n" +
                 $"  yuzeyler     : {(look ? "uygulandi (duvarlar kanli ahsap)" : mapExisted ? "atlandi - harita korunuyor" : "UYGULANAMADI")}\n" +
                 $"  temizlik     : {stripped} bos bilesen kaldirildi\n" +
-                "  SIRADAKI ADIM: Play'e bas. Sol tik ates, R dolum, V bicak, " +
-                "E tamir/satin al; F7/F8 tur, F9 sahayi temizle.");
+                "  SIRADAKI ADIM: Play'e bas. 1 bicak, 2-3 silah, 4-8 esya; sol tik " +
+                "ates/savurus, sag tik durbun (M4/M107), R dolum, E tezgah, " +
+                "F tur arasinda HAZIR; F7/F8 tur, F9 sahayi temizle.");
         }
 
         /// <summary>
@@ -773,6 +774,30 @@ namespace Bunker.Editor
             var revive = player.GetComponent<PlayerRevive>();
             if (revive == null) { player.AddComponent<PlayerRevive>(); changed = true; }
 
+            // ESYA CEBI (2026-09-09): yerden toplanan droplar 6-0 slotlarinda birikir.
+            // Baglanmazsa toplanan esya SESSIZCE yok olur - PowerupSignals'in yedek
+            // yolu esyayi aninda uygular, yani "stack calismiyor" diye okunurdu.
+            var powerups = player.GetComponent<PlayerPowerups>();
+            if (powerups == null) { powerups = player.AddComponent<PlayerPowerups>(); changed = true; }
+
+            changed |= SetPrivateField(powerups, "zombieConfig", LoadConfigAsset("zombie"));
+
+            // AYAK SESLERI (2026-09-09). Katalog yoksa sessiz kalir, hata vermez -
+            // kotu bir ayak sesi, hic ayak sesi olmamasindan daha cok rahatsiz eder.
+            if (player.GetComponent<PlayerFootsteps>() == null)
+            {
+                player.AddComponent<PlayerFootsteps>();
+                changed = true;
+            }
+
+            // HAZIR ISARETI (2026-09-09): tur arasinda F. Baglanmazsa mola HER ZAMAN
+            // tam 30 saniye surer ve F sessizce hicbir sey yapmaz.
+            if (player.GetComponent<PlayerReady>() == null)
+            {
+                player.AddComponent<PlayerReady>();
+                changed = true;
+            }
+
             // Oyuncu kamerasi "MainCamera" etiketli olmali. Camera.main yalnizca o
             // etikete bakar; etiketsiz kalirsa null doner ve ona guvenen her sey
             // sessizce calismaz - zombi can barlari tam olarak boyle hic
@@ -888,6 +913,17 @@ namespace Bunker.Editor
 
             if (host.GetComponent<CombatHud>() == null) host.AddComponent<CombatHud>();
 
+            // SES KATALOGU (2026-09-09): magaza ses dosyalarini servise baglar.
+            // playMusic KAPALI - muzik yalnizca ana menude calar (gelistirici:
+            // "oyuna katilinca bu ses calmasin"). Kapali olmasi ayrica muzigi
+            // SUSTURUYOR: menuden oyuna gecerken durdurma isi burada, cikan kodda
+            // degil - hangi yoldan girilirse girilsin sonuc ayni (AudioBootstrap).
+            var audio = host.GetComponent<Bunker.Audio.AudioBootstrap>();
+            if (audio == null) audio = host.AddComponent<Bunker.Audio.AudioBootstrap>();
+
+            SetPrivateField(audio, "catalog", LoadAudioCatalog());
+            SetPrivateField(audio, "playMusic", false);
+
             // M1-11: skor ekrani ayni sahne nesnesinde yasar. Ayri bir nesne olsaydi
             // kurulum araci ikisini ayri ayri bulmak zorunda kalirdi ve biri eksik
             // kaldiginda hata sessiz olurdu - olen oyuncu bos ekrana bakar.
@@ -1000,6 +1036,26 @@ namespace Bunker.Editor
             if (perf == null) perf = sandboxHost.AddComponent<PerfRunner>();
 
             SetPrivateField(perf, "director", director);
+        }
+
+        /// <summary>
+        /// Ses kataloğu. <b>Yoksa uyarı, hata değil</b> — config'in aksine ses bir
+        /// yükseltme: katalog bağlanmazsa sesler eskisi gibi sentezlenir (ADR-0009) ve
+        /// oyun çalışmaya devam eder. Config eksikse oyun çalışamaz; fark bu.
+        /// </summary>
+        private static UnityEngine.Object LoadAudioCatalog()
+        {
+            const string path = "Assets/_Project/Config/audio.asset";
+            var asset = AssetDatabase.LoadAssetAtPath<Bunker.Audio.AudioCatalogAsset>(path);
+
+            if (asset == null)
+            {
+                Debug.LogWarning($"[Zombi] Ses katalogu yok: {path}. Sesler " +
+                                 "sentezlenecek. 'Bunker/Gorunum/Ses Dosyalarini Bagla' " +
+                                 "calistir.");
+            }
+
+            return asset;
         }
 
         private static UnityEngine.Object LoadConfigAsset(string domain)

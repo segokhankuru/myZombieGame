@@ -1,4 +1,5 @@
 using Bunker.Config;
+using Bunker.Systems.Config;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Economy;
@@ -130,7 +131,10 @@ namespace Bunker.Gameplay
 
             int ammo = Mathf.RoundToInt(RunModifiers.Total(CardStat.AmmoOnKill));
 
-            if (ammo > 0 && weapon != null) weapon.ServerAddReserve(ammo);
+            // OLDURME ODULU BEDAVA MERMIDIR (2026-09-10, gelistirici: "yedek mermi
+            // kapasitesinin ustune sadece mermi satin alarak cikilir"). Tavana kadar
+            // doldurur; tavanin ustune tasiyan tek sey satin alma.
+            if (ammo > 0 && weapon != null) weapon.ServerAddFreeReserve(ammo);
         }
 
         /// <summary>
@@ -201,6 +205,40 @@ namespace Bunker.Gameplay
             // Kazanilan TOPLAM bildirilir, artis degil: ikinci bir toplama yapmak
             // iki sayinin er gec ayrismasi demektir (config-data.md, hesaplanmis deger).
             RunSignals.Current.NoteScore(_earned);
+        }
+
+        /// <summary>
+        /// Tur başında dirilmenin fiyatı (2026-09-09).
+        ///
+        /// <para><b>Tura göre artıyor</b>, kart yenilemesiyle aynı gerekçe: sabit bir
+        /// fiyat geç turlarda bedavaya döner ve ölüm bir sonuç olmaktan çıkar.</para>
+        /// </summary>
+        public int ReviveCostForRound(int round)
+        {
+            if (economyConfig == null) return 0;
+
+            EconomyConfig economy = economyConfig.ToRuntime();
+            int clamped = round < 1 ? 1 : round;
+
+            return economy.PricesReviveBase +
+                   economy.PricesReviveAddPerRound * (clamped - 1);
+        }
+
+        /// <summary>
+        /// Puanı <b>koşulsuz</b> düşürür — diriliş bedeli için.
+        ///
+        /// <para><b>Neden <see cref="TrySpend"/> değil:</b> diriliş bir <i>satın alma</i>
+        /// değil bir <i>tahsilat</i>. Puan yetmediğinde işlem başarısız olmuyor, kısmi
+        /// ödeniyor ve karşılığında daha az can veriliyor (PlayerDownState). TrySpend'in
+        /// "yetmiyorsa hiçbir şey olmaz" sözleşmesi burada yanlış olurdu.</para>
+        /// </summary>
+        [Server]
+        public void ServerSpend(int amount)
+        {
+            if (amount <= 0) return;
+
+            _wallet.TryPurchase(Mathf.Min(amount, _wallet.SpendablePoints));
+            _spendable = _wallet.SpendablePoints;
         }
 
         /// <summary>Harcama denemesi. Kapı ve duvar silahı buradan geçer (M1-09, M1-10).</summary>

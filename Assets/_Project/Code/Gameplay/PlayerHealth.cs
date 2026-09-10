@@ -104,6 +104,40 @@ namespace Bunker.Gameplay
             RunSignals.RunRestarted += OnRunRestarted;
             CardSignals.LoadoutChanged += OnLoadoutChanged;
             PowerupSignals.Picked += OnPowerupPicked;
+            RoundSignals.RoundEndRestock += OnRoundEndRestock;
+        }
+
+        /// <summary>
+        /// Tur temizlendi: can <b>tam</b> dolar (2026-09-09, geliştirici kararı).
+        ///
+        /// <para>Tur içinde yenilenme kapatıldığı için (bkz. <see cref="Update"/>) canın
+        /// geri geldiği tek an burası. Kural tek cümlede söylenebiliyor — <i>turu
+        /// bitirirsen canını geri alırsın</i> — ve oyuncunun tur ortasında öğrenmesi
+        /// gereken bir zamanlama yok.</para>
+        ///
+        /// <para><b>Mermi ve barikat ikmaliyle aynı olaya bağlı</b>, ayrı bir sinyale
+        /// değil: üçü de "tur bitti, hazırlık başlıyor" anının parçası ve ikinci bir
+        /// yayın noktası, ikisinin zamanla ayrışması demekti.</para>
+        ///
+        /// <para><b>Yerdeki oyuncuyu KALDIRMAZ.</b> Diriltme bir takım eylemi
+        /// (<c>PlayerRevive</c>) ve onu tur sonuna bağlamak, co-op'ta arkadaşını
+        /// kaldırma kararını bedelsiz yapardı. Burada yalnızca ayakta olanın canı
+        /// dolar.</para>
+        /// </summary>
+        private void OnRoundEndRestock(float reserveAmmoFraction01, float boardsFraction01)
+        {
+            if (!isServer || _health == null) return;
+            if (RunSignals.IsRunOver) return;
+
+            // AYAKTA OLMAYAN DOLMAZ (2026-09-09). Yerdeki oyuncuyu doldurmak
+            // kaldirilmayi bedelsiz yapardi; OLU oyuncuyu doldurmak ise tur basindaki
+            // puanli dirilisin oransal canini hemen ezerdi - yani "paran yoksa 1 canla
+            // dirilirsin" kurali sessizce hicbir sey ifade etmezdi.
+            var down = GetComponent<PlayerDownState>();
+            if (down != null && !down.IsAlive) return;
+
+            _health.ResetFull();
+            PublishState();
         }
 
         /// <summary>
@@ -138,17 +172,39 @@ namespace Bunker.Gameplay
             RunSignals.RunRestarted -= OnRunRestarted;
             CardSignals.LoadoutChanged -= OnLoadoutChanged;
             PowerupSignals.Picked -= OnPowerupPicked;
+            RoundSignals.RoundEndRestock -= OnRoundEndRestock;
 
             base.OnStopServer();
         }
 
+        /// <summary>
+        /// <b>Tur içinde can yenilenmesi YOKTUR</b> (2026-09-09, geliştirici:
+        /// <i>"artık tur içinde çatışırken can otomatik dolmasın, tur bittikten sonra
+        /// dolsun"</i>).
+        ///
+        /// <para><b>Neden bu daha iyi bir kural:</b> kendiliğinden dolan bir can, geri
+        /// çekilmeyi <i>bedava</i> yapıyordu — bir köşeye saklanıp beklemek, hiçbir şey
+        /// harcamadan hasarı geri alıyordu ve turun ortasında verilen "riske gireyim
+        /// mi" kararı ölçüsünü kaybediyordu. Artık tur boyunca can <b>tek yönlü</b>:
+        /// yalnızca azalır. Bu, can eşyasını (6 tuşu) gerçek bir kaynak yapan şeydir —
+        /// önceki hâlde beklemek onun yerine geçiyordu.</para>
+        ///
+        /// <para>Dolum <see cref="OnRoundEndRestock"/>'ta, turun temizlendiği an ve
+        /// <b>tam</b>. Kısmi dolum düşünüldü ve seçilmedi: iki farklı dolum kuralı
+        /// (kısmi tur sonu + can eşyası) oyuncunun kafasında tek bir sayıya
+        /// oturmazdı.</para>
+        /// </summary>
         private void Update()
         {
             // Yenilenmeyi yalnizca otorite yurutur; istemci gordugunu gosterir.
             if (!isServer || _health == null) return;
             if (RunSignals.IsRunOver) return;
 
-            _health.Tick(Time.deltaTime);
+            // _health.Tick BILEREK CAGRILMIYOR. RegeneratingHealth'in yenilenme
+            // yolu artik hic islemiyor; sinif duruyor cunku gecikme/hiz alanlari
+            // hala save ve config sozlesmesinin parcasi ve M-03'te bir kart ya da
+            // tezgah hatti onu geri acabilir. Olu kod degil, KAPALI kod - farki
+            // burada yaziyor.
             PublishState();
         }
 
@@ -167,9 +223,23 @@ namespace Bunker.Gameplay
             // yani satirlar yan yana okununca "dort vurus, 0.1 saniye" gorunur.
             if (result.Absorbed > 0f)
             {
+                // MESAFE (2026-09-10, gelistirici: "zombiler uzak mesafeden hasar
+                // verebiliyor"). Yakin dovus vurusu vuranin konumunu zaten tasiyor;
+                // satira YATAY merkez mesafesi yazilir. Mutlak tavan (zombie.json
+                // attack.maxHitDistanceMeters) bir gun ihlal edilirse gunlukte gorunur.
+                float distance = -1f;
+
+                if (damage.Kind == DamageKind.Melee)
+                {
+                    Vector3 self = transform.position;
+                    float dx = damage.SourceX - self.x;
+                    float dz = damage.SourceZ - self.z;
+                    distance = Mathf.Sqrt(dx * dx + dz * dz);
+                }
+
                 CombatLog.PlayerDamage(damage.Source ?? damage.Kind.ToString(), null,
                                        result.Absorbed, _health.Current, _health.Max,
-                                       result.Killed);
+                                       result.Killed, distance);
             }
 
             // Geri bildirim VURULAN OYUNCUYA gider, sunucuda kalmaz: co-op'ta hasarı

@@ -1,45 +1,57 @@
 {
-  "version": 1,
+  "version": 2,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-silah",
-    "lastTuned": "2026-09-06"
+    "lastTuned": "2026-09-10"
   },
+
+  "_v2": "2026-09-09, gelistirici: 'atesli silahlarin hepsini kaldir ve Low Poly Weapons VOL.1 paketiyle degistir (tezgah dahil)'. Silah sayisi 4 -> 6 ve BUTUN modeller tek pakete tasindi. Iki kazanc: (1) dort ayri paketten gelen dort silah artik ayni elin ciziminden cikiyor - silüet dili tutarli (ADR-0008'in cozemedigi sey buydu, her paket kendi kalinligini ve kendi detay yogunlugunu getiriyordu). (2) Pakette dogru silah var: AK74, M4, Bennelli M4, M107 ve ayri bir SCOPE attachment'i. Onceki eslesme 'elimizde ne varsa' idi.",
+
+  "_v2_kaldirilan": "weapon.rifle EMEKLIYE AYRILDI. Id kalicidir (config-data.md) ama silah artik yok: M16A1 modeli pakette yok ve rolunu ikiye bolduk - weapon.ak74 (sert vurus, kucuk sarjor) ve weapon.m4 (yumusak vurus, buyuk sarjor). Eski id'ye bagli bir duvar satin alma noktasi varsa katalogda bulamaz ve UYARI verip satis yapmaz (WallWeaponPurchase) - sessizce yanlis silah satmaz. Id yeniden KULLANILMADI: telemetri gecmisinde 'weapon.rifle' 130 hasarli bir silah demek ve ayni ismi baska bir silaha vermek o gecmisi yalan yapardi.",
+
+  "_v2_hasar": "Hasarlar gelistirici tarafindan BIRBIRINE GORE tanimlandi (2026-09-09), yani zincir tek bir referanstan cikiyor: TABANCA = TARAMALI = 55 ('smg ve pistol hasari ayni olacak'). AK74 = taramali +%40 = 77. M4 = taramali +%20 = 66. M107 = M4 +%100 = 132. POMPALI degismedi (sacma basina 24 x 8). Sayilar burada MUTLAK yaziliyor cunku config-data.md hesaplanan degeri yasaklar; oran ZINCIRI bu notta duruyor ki bir sonraki ayarci neyin neye bagli oldugunu bilsin. Taban 55 degisirse dordu birden elle kayar.",
 
   "_menzil": "2026-09-06, gelistirici: 'pompali uzak mesafeye isabet edemiyor, en azindan o mesafeye gidebilmeli, ust katin bir ucundan digerine yetismeli.' Dogru: mermi 18 metrede HAVADA KAYBOLUYORDU - bu bir denge kurali degil, gorunmeyen bir duvar. Menzil 45'e cikti; pompaliyi yakin mesafe silahi yapan sey artik SADECE dagilim. Uzakta koni genisler, sekiz sacmadan bir ikisi tutar ve TABAN hasarini verir. Ceza kendiliginden geliyor, bir sayiyla dayatilmiyor - oyuncu mesafeyi gozuyle ogreniyor.",
 
-  "_reload": "reloadSeconds normalde BUTUN sarjorun suresi. reloadPerShell true ise TEK BIR MERMININ suresidir ve dolum mermi mermi ilerler: her adimda bir fisek girer, oyuncu istedigi an kesip ates edebilir. Pompali icin dogru olan bu (2026-09-06, gelistirici: 'tek sarjor dolduruyormus dusuncesi pompali metasina aykiri'). Bos sarjordan tam dolum 6 x 0.45 = 2.7 sn - eski tek parca 2.8 sn ile ayni; fark, artik ikinci fisekten sonra ates edebiliyor olman.",
+  "_reload": "reloadSeconds normalde BUTUN sarjorun suresi. reloadPerShell true ise TEK BIR MERMININ suresidir ve dolum mermi mermi ilerler: her adimda bir fisek girer, oyuncu istedigi an kesip ates edebilir. Pompali icin dogru olan bu (2026-09-06, gelistirici: 'tek sarjor dolduruyormus dusuncesi pompali metasina aykiri'). Bos sarjordan tam dolum 6 x 0.45 = 2.7 sn.",
 
-  "_note": "2026-09-06, gelistirici: 'farkli silahlar ekle cunku atis hizini test edemiyorum.' Dort silah, dort AYRI RITIM - ayni silahin daha guclusu degil. Tabanca referanstir (weapon.json'daki denge silahi); digerleri ona GORE tanimlandi. Saniyedeki hasar (DPS) bilerek birbirine yakin: silahi secen sey guc degil, RITIM ve MENZIL olmali. Hicbiri kanit degil, hepsi hipotez - oynanarak ayarlanacak.",
+  "_v2_tabancaDolum": "2026-09-09, gelistirici: 'pistol sarjor degistirme suresini biraz daha kisaltalim ve kapasitesi 8 olsun'. Dolum 1.6 -> 1.15 sn, sarjor 12 -> 8. IKISI BIRLIKTE gitmek zorundaydi: sarjoru 8'e indirip dolumu birakmak, tabancayi saniyede 6.7 mermi atip her 1.2 saniyede 1.6 saniye bekleyen bir silaha cevirirdi - yani ates ettiginden COK dolum yapan bir baslangic silahi. Kisa sarjor + hizli dolum, tabancanin RITMINI degistirir: dolum artik bir kesinti degil, atisin bir parcasi. DPS ayni kaldi (367); degisen sey, oyuncunun kac saniyede bir 'R'ye bastigi.",
+
+  "_scope": "scopeMagnification > 1 olan silah sag tikla YAKINLASIR; sifir/yok olan silahta sag tik hicbir sey yapmaz. Sayi bir GORUS acisi carpani degil, dogrudan buyutme: 6 = alti kat. Model tarafi ArtIntegration'daki attachment satirindan geliyor.",
+
+  "_scopeStyle": "2026-09-09, gelistirici: 'm107 scope olayinda gercekten scopetan bakiyormusuz gibi goster sadece yakinlasmasin' ve 'm4 silahinada hamr scope tak, hamr scope zoomu farkli gorunuyor gercekteki gibi uygula'. Ilk surum SADECE gorus acisini daraltiyordu - yani oyuncu 'yakinlastim' diyordu ama 'durbunden bakiyorum' demiyordu. Iki ayri bakis var ve ikisi GERCEK optiklerin calisma bicimini takip ediyor: LongRange = klasik nisanci durbunu (ekran karariyor, yuvarlak bir alan kaliyor, ince arti + mil noktalari, kenarda karanlik halka). Prism = ELCAN/HAMR turu prizmali optik (govde GORUNUR kalir, alan cok daha genis, kirmizi CHEVRON nisangah, ekran kararmaz - yalnizca cevre hafif soner). Fark bir sus degil: prizmali optikte iki gozun de acik kalabilmesi ve cevreyi gorebilmek o optigin VARLIK SEBEBI; nisanci durbunu ise tam tersine cevreni feda ettirir. Oyuncu bu farki hissetmezse iki silah ayni silah olur.",
+
+  "_m4Scope": "2026-09-09: M4 artik durbunlu (ELCAN). Buyutme 3x, M107'nin 6x'inin yarisi - ve bu bir denge karari: M4 bir orta menzil silahi ve 6x ile kalabaligin icinde kullanilamaz hale gelirdi. M107 uzagi, M4 ortayi cozer; ikisi ayni ise yaramaz. Pompali, tabanca, Uzi ve AK durbunsuz kaliyor cunku dordu de yakin/orta is goruyor ve HEPSINE durbun vermek 'hangi silah uzun menzillidir' sorusunu ortadan kaldirirdi (PILLAR-04).",
 
   "_ids": "Id'ler KALICIDIR: duvar satin alma noktalari, kaydedilen silah ve telemetri bunlara baglanir.",
 
-  "_reserveCapacity": "2026-09-07: BU ARTIK BIR TAVAN DEGIL. Yedek merminin tavani kaldirildi (gelistirici: 'yedek mermi konusu bir tik gereksiz'); tavanin oyuncuya gorunen tek sonucu, satin alinan ya da yerden toplanan merminin sessizce yok olmasiydi. Sayi duruyor cunku hala bir soruya cevap veriyor: TUR SONU IKMALI ne kadar olsun (rounds.json roundEnd.reserveAmmoFraction01 bunun orani kadarini verir). Yani 'silahin bir tur sonunda kazandigi mermi' olcusudur - pompalida 90, SMG'de 480 olmasi bundan.",
+  "_reserveCapacity": "2026-09-07: BU ARTIK BIR TAVAN DEGIL. Yedek merminin tavani kaldirildi; tavanin oyuncuya gorunen tek sonucu, satin alinan ya da yerden toplanan merminin sessizce yok olmasiydi. Sayi duruyor cunku hala bir soruya cevap veriyor: TUR SONU IKMALI ne kadar olsun (rounds.json roundEnd.reserveAmmoFraction01 bunun orani kadarini verir). 2026-09-09'dan itibaren o ikmal ELDEKI SILAHA DEGIL, SAHIP OLUNAN BUTUN SILAHLARA gidiyor - yani bu sayi artik her silahin kendi tur sonu payini belirliyor.",
 
-  "_dps": "Tur 1 zombisi 150 can. Tabanca 55x6.7/sn = 367 DPS, MP 55x12.5/sn = 687 DPS, pompali 8x24 = 192/atis x1.5/sn = 288 DPS (yakin), tufek 130x2.5/sn = 325 DPS. Pompali yakinda en yuksek TEK ATIS hasarini verir ama uzakta ise yaramaz.",
+  "_dps": "Tur 1 zombisi 150 can. Tabanca 55x6.7/sn = 367, taramali 55x12.5/sn = 687, AK74 77x10/sn = 770, M4 66x11.7/sn = 770, pompali 8x24=192/atis x1.5/sn = 288 (yakin), M107 132x0.83/sn = 110. AK74 ve M4 BILEREK ayni DPS'te: aralarindaki fark guc degil, SARJOR ve GERI TEPME - AK sarjorunu 2.0 saniyede, M4 2.6 saniyede bosaltir. M107'nin DPS'i dusuk ve oyle kalmali; onun isi saniyedeki hasar degil, TEK ISABETTE ne olduğu (kafadan 396, yani 10. tura kadar her zombi tek atis).",
 
-  "_mpHasari": "2026-09-08, gelistirici: 'mp kisa diye koydugun taramali, tabancayla ayni hasari vermeli, az olmasi sacma.' Hasar 32 -> 55, yani tabancanin AYNISI. DENGE SONUCU ACIK VE BILEREK KABUL EDILDI: MP artik en yuksek DPS'li silah (687, tabancanin 1.9 kati) ve 900 puana aliniyor. Silahi ayiran sey artik guc degil MERMI TUKETIMI ve MENZIL: 30 mermilik sarjor 2.4 saniyede bitiyor, menzil 35 m ve dagilim 2.2 derece - yani uzakta ise yaramiyor ve mermi ekonomisi cezayi kendisi kesiyor. Ilk oyun testinde MP tek dogru cevap gibi okunuyorsa dusecek yer roundsPerMinute ya da reserveCapacity, hasar degil.",
+  "retiredIds": ["weapon.rifle"],
 
   "weapons": [
     {
       "id": "weapon.pistol",
-      "name": "TABANCA",
-      "damage": 55, "roundsPerMinute": 400, "headshotMultiplier": 2.0,
+      "name": "M1911",
+      "damage": 45, "roundsPerMinute": 400, "headshotMultiplier": 1.6,
       "rangeMeters": 60, "spreadDegrees": 0.6, "pelletCount": 1,
-      "magazineCapacity": 12, "reserveCapacity": 300, "startingReserve": 120,
-      "reloadSeconds": 1.6,
+      "magazineCapacity": 8, "reserveCapacity": 300, "startingReserve": 120,
+      "reloadSeconds": 1.15,
       "recoilPitchPerShot": 1.1, "recoilYawPerShot": 0.35,
       "recoilRecoveryPerSecond": 14, "recoilMaxPitch": 6,
       "price": 0, "ammoPrice": 250,
-      "text": "Baslangic silahi. Dengeli, sabirli, kafa vurusunu odullendirir."
+      "text": "Baslangic silahi. Sekiz mermi, hizli dolum - ritmi dolumun kendisi."
     },
     {
       "id": "weapon.smg",
-      "name": "MP-KISA",
-      "damage": 55, "roundsPerMinute": 750, "headshotMultiplier": 1.6,
+      "name": "UZI",
+      "damage": 45, "roundsPerMinute": 750, "headshotMultiplier": 1.6,
       "rangeMeters": 35, "spreadDegrees": 2.2, "pelletCount": 1,
       "magazineCapacity": 30, "reserveCapacity": 480, "startingReserve": 180,
-      "reloadSeconds": 2.0,
+      "reloadSeconds": 2,
       "recoilPitchPerShot": 0.55, "recoilYawPerShot": 0.45,
       "recoilRecoveryPerSecond": 20, "recoilMaxPitch": 9,
       "price": 900, "ammoPrice": 250,
@@ -47,27 +59,53 @@
     },
     {
       "id": "weapon.shotgun",
-      "name": "POMPALI",
-      "damage": 24, "roundsPerMinute": 90, "headshotMultiplier": 1.4,
-      "rangeMeters": 45, "spreadDegrees": 3.0, "pelletCount": 8,
+      "name": "BENELLI M4",
+      "damage": 30, "roundsPerMinute": 90, "headshotMultiplier": 1.8,
+      "rangeMeters": 50, "spreadDegrees": 2, "pelletCount": 8,
       "magazineCapacity": 6, "reserveCapacity": 90, "startingReserve": 36,
       "reloadSeconds": 0.45, "reloadPerShell": true,
-      "recoilPitchPerShot": 4.0, "recoilYawPerShot": 0.8,
+      "recoilPitchPerShot": 4, "recoilYawPerShot": 0.8,
       "recoilRecoveryPerSecond": 16, "recoilMaxPitch": 12,
       "price": 1200, "ammoPrice": 250,
       "text": "Yakin mesafenin cevabi. Sekiz sacma; uzakta dagilir, bir ikisi tutar."
     },
     {
-      "id": "weapon.rifle",
-      "name": "TUFEK",
-      "damage": 130, "roundsPerMinute": 150, "headshotMultiplier": 2.5,
-      "rangeMeters": 90, "spreadDegrees": 0.2, "pelletCount": 1,
-      "magazineCapacity": 8, "reserveCapacity": 160, "startingReserve": 64,
-      "reloadSeconds": 2.4,
-      "recoilPitchPerShot": 3.2, "recoilYawPerShot": 0.5,
-      "recoilRecoveryPerSecond": 12, "recoilMaxPitch": 10,
-      "price": 1500, "ammoPrice": 250,
-      "text": "Yavas ve agir. Kafadan vurdugun surece gec turlarin cevabi."
+      "id": "weapon.ak74",
+      "name": "AK-74",
+      "damage": 80, "roundsPerMinute": 600, "headshotMultiplier": 2,
+      "rangeMeters": 55, "spreadDegrees": 1.4, "pelletCount": 1,
+      "magazineCapacity": 20, "reserveCapacity": 320, "startingReserve": 120,
+      "reloadSeconds": 2.2,
+      "recoilPitchPerShot": 1.6, "recoilYawPerShot": 0.6,
+      "recoilRecoveryPerSecond": 15, "recoilMaxPitch": 11,
+      "price": 1800, "ammoPrice": 250,
+      "text": "Sert vurus, kisa sarjor. Yirmi mermi iki saniyede biter - nisan alarak kullan."
+    },
+    {
+      "id": "weapon.m4",
+      "name": "M4",
+      "damage": 65, "roundsPerMinute": 700, "headshotMultiplier": 1.9,
+      "rangeMeters": 60, "spreadDegrees": 1, "pelletCount": 1,
+      "magazineCapacity": 30, "reserveCapacity": 420, "startingReserve": 150,
+      "reloadSeconds": 2.1,
+      "scopeMagnification": 2, "scopeStyle": "Prism",
+      "recoilPitchPerShot": 1, "recoilYawPerShot": 0.4,
+      "recoilRecoveryPerSecond": 18, "recoilMaxPitch": 8,
+      "price": 2200, "ammoPrice": 250,
+      "text": "AK'nin dengeli kardesi. ELCAN durbunlu (sag tik 3x). Orta menzilin cevabi."
+    },
+    {
+      "id": "weapon.sniper",
+      "name": "M107",
+      "damage": 132, "roundsPerMinute": 50, "headshotMultiplier": 3,
+      "rangeMeters": 120, "spreadDegrees": 0.05, "pelletCount": 1,
+      "magazineCapacity": 5, "reserveCapacity": 100, "startingReserve": 30,
+      "reloadSeconds": 3,
+      "scopeMagnification": 4, "scopeStyle": "LongRange",
+      "recoilPitchPerShot": 6, "recoilYawPerShot": 0.7,
+      "recoilRecoveryPerSecond": 10, "recoilMaxPitch": 16,
+      "price": 3000, "ammoPrice": 400,
+      "text": "Uzun menzil durbunu (sag tik 6x). Bes mermi, kafadan tek atis - ama kalabalikta ise yaramaz."
     }
   ]
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using Bunker.Config;
 using UnityEditor;
 using UnityEngine;
@@ -42,83 +43,34 @@ namespace Bunker.Editor
         private const string WastelandPrefabs = "Assets/The Wasteland LITE/Prefabs";
 
         /// <summary>
-        /// Silah eşleşmesi. <b>Hedef boy oyunun kararı, paketin değil:</b> dört ayrı
-        /// paketten gelen dört silah aynı dünyada yaşamalı — biri diğerinin iki katı
-        /// olursa el modeli ekranı kaplar. Boy, gri kutu siluetlerinin boyudur
-        /// (<c>WeaponShape</c>), yani oyunun zaten alıştığı ölçü.
+        /// Takılı bir aksesuarın prefab'daki çocuk nesne adının öneki: <c>Att_&lt;ad&gt;</c>.
+        ///
+        /// <para><b>Ateşli silahların modeli, yönü, eldeki boyu ve aksesuarları artık
+        /// burada bir tablo değil</b> (2026-09-10, geliştirici: <i>"import ettiği tüm
+        /// silahları ve attachmentları ekleyip düzenleyebileceğim yapı kur"</i>):
+        /// <c>config/content/weapon-art.json</c>, <c>Bunker &gt; Silah Atolyesi</c> yazar.
+        /// Yönün neden elle seçildiği — namlunun hangi uçta olduğu geometriden
+        /// çıkarılamaz, 2026-09-07'de dört silahın ikisi ters çıktı, 2026-09-09'da
+        /// Low Poly paketi <c>-Z</c> çıktı — o dosyanın notunda; pencere yönü
+        /// görerek seçtiriyor.</para>
         /// </summary>
-        private readonly struct WeaponSource
+        internal const string AttachmentPrefix = "Att_";
+
+        /// <summary>Bir çocuk nesne takılı bir aksesuar mı.</summary>
+        internal static bool IsAttachmentChild(Transform child) =>
+            child != null && child.name.StartsWith(AttachmentPrefix, System.StringComparison.Ordinal);
+
+        /// <summary><paramref name="node"/>, <paramref name="root"/>'a takılı bir aksesuarın içinde mi.</summary>
+        internal static bool IsUnderAttachment(Transform node, Transform root)
         {
-            public readonly string Id;
-            public readonly string PrefabPath;
-            public readonly float LengthMeters;
-
-            /// <summary>Modelin KENDI uzayinda namlunun baktigi yon.</summary>
-            public readonly Vector3 NativeForward;
-
-            /// <summary>Modelin KENDI uzayinda silahin ustu.</summary>
-            public readonly Vector3 NativeUp;
-
-            public readonly string Why;
-
-            public WeaponSource(string id, string prefabPath, float lengthMeters,
-                                Vector3 nativeForward, Vector3 nativeUp, string why)
+            while (node != null && node != root)
             {
-                Id = id; PrefabPath = prefabPath; LengthMeters = lengthMeters;
-                NativeForward = nativeForward; NativeUp = nativeUp; Why = why;
+                if (node.parent == root) return IsAttachmentChild(node);
+                node = node.parent;
             }
+
+            return false;
         }
-
-        /// <summary>
-        /// Silahların kaynağı ve <b>ölçülmüş nativ yönü</b>.
-        ///
-        /// <para><b>Yön neden tabloda, koddan çıkarılmıyor</b> (2026-09-07): ilk sürüm
-        /// namlunun hangi uçta olduğunu mesh köşelerinden <i>tahmin ediyordu</i> —
-        /// "ince olan uç namludur", "kütle merkezinin kaydığı taraf kabzadır". Dört
-        /// silahın ikisinde yanlış çıktı ve geliştirici oyunda gördü:
-        /// <i>"silahlar ters, bana doğru dönük."</i> M16'nın dipçiği namlusundan ince,
-        /// kabzası da az köşe taşıyor; sezgi modele bağlı, model pakete bağlı.</para>
-        ///
-        /// <para><b>Yerine kanıt kondu:</b> her modelin sınırlar kutusu günlüğe
-        /// yazılıyor (<i>olculen sinirlar</i>) ve eksen çubuklu önizlemesi çekiliyor
-        /// (<c>ArtPreview</c> → <c>Logs/art-preview/raw_*.png</c>). Üç sayı hangi
-        /// eksenin uzun olduğunu tartışmasız söylüyor; resim ise yönün işaretini.
-        /// <b>Yalnızca resme bakmak yetmedi</b> — 3/4 açıdan bakan bir kamerada X ve Z
-        /// çubukları benzer yöne düşüyor ve ilk okuma iki silahta yanlış çıktı. Sayı
-        /// ile resim birlikte.</para>
-        ///
-        /// <para>İki paket iki farklı düzende geliyor: Low Poly paketleri (tabanca,
-        /// pompalı) <b>+Z</b>, PolyOne (MP5, M16) <b>-X</b>. Yani "hepsi aynıdır" diye
-        /// bir kural yok; beşinci silah geldiğinde önizlemeye bakılır ve buraya bir
-        /// satır yazılır.</para>
-        ///
-        /// <para><b>Hedef boy oyunun kararı, paketin değil:</b> dört ayrı paketten
-        /// gelen dört silah aynı dünyada yaşamalı. Boy, gri kutu siluetlerinin boyu
-        /// (<c>WeaponShape</c>) — yani oyunun zaten alıştığı ölçü.</para>
-        /// </summary>
-        private static readonly WeaponSource[] Weapons =
-        {
-            new WeaponSource("weapon.pistol",
-                "Assets/Low Poly Pistol Weapon Pack 2/Prefabs/Weapons/Pistol_F.prefab",
-                0.26f, Vector3.forward, Vector3.up,
-                "Tabanca: en kisa siluet, referans silah."),
-
-            new WeaponSource("weapon.smg",
-                "Assets/PolyOne/Free Gun/Prefabs/SM_HK_MP5.prefab",
-                0.52f, Vector3.left, Vector3.up,
-                "Taramali (MP5): kisa gövde, sarkan sarjor - tabancadan ilk " +
-                "bakista ayrilir."),
-
-            new WeaponSource("weapon.shotgun",
-                "Assets/Low Poly ShotGun Weapon Pack 1/Prefabs/Weapons/ShotGun_A.prefab",
-                0.78f, Vector3.forward, Vector3.up,
-                "Pompali: kalin namlu, altinda pompa kolu - yakin mesafenin cevabi."),
-
-            new WeaponSource("weapon.rifle",
-                "Assets/PolyOne/Free Gun/Prefabs/SM_M16A1.prefab",
-                0.92f, Vector3.left, Vector3.up,
-                "Tufek: en uzun namlu - uzaktan is gordugu silüetinden okunmali.")
-        };
 
         private const string BlinkWeapons = "Assets/Blink/Art/Weapons/Stylized";
 
@@ -170,6 +122,11 @@ namespace Bunker.Editor
             var log = new System.Text.StringBuilder(512);
             int problems = 0;
 
+            // Silah gorunum dosyasi bozuksa HICBIR SEY uretilmeden patlar: yarim bir
+            // kosu modelsiz ya da durbunsuz prefab'lar yazar ve oyunda "silah
+            // kayboldu" diye okunur.
+            List<WeaponArtData> weapons = WeaponWorkshopData.LoadArt();
+
             EnsureFolder(OutputRoot);
             EnsureFolder(MaterialFolder);
             EnsureFolder(ModelFolder);
@@ -186,40 +143,46 @@ namespace Bunker.Editor
 
             try
             {
-                // --- silahlar
-                var models = new List<ArtCatalogAsset.WeaponModel>(Weapons.Length);
+                // --- silahlar (config/content/weapon-art.json)
+                var models = new List<ArtCatalogAsset.WeaponModel>(weapons.Count);
 
-                foreach (WeaponSource source in Weapons)
+                foreach (WeaponArtData art in weapons)
                 {
-                    var original = AssetDatabase.LoadAssetAtPath<GameObject>(source.PrefabPath);
+                    var original = AssetDatabase.LoadAssetAtPath<GameObject>(art.ModelPath);
                     if (original == null)
                     {
                         problems++;
-                        log.Append($"  EKSIK  {source.Id}: {source.PrefabPath} bulunamadi\n");
+                        log.Append($"  EKSIK  {art.WeaponId}: {art.ModelPath} bulunamadi\n");
                         continue;
                     }
 
-                    string copyPath = $"{ModelFolder}/{Sanitize(source.Id)}.prefab";
+                    string copyPath = $"{ModelFolder}/{Sanitize(art.WeaponId)}.prefab";
                     GameObject copy = MakeUrpCopy(original, copyPath, stripColliders: true);
                     if (copy == null)
                     {
                         problems++;
-                        log.Append($"  HATA   {source.Id}: kopya uretilemedi\n");
+                        log.Append($"  HATA   {art.WeaponId}: kopya uretilemedi\n");
                         continue;
                     }
 
-                    ArtCatalogAsset.WeaponModel model = Measure(source.Id, copy, source.LengthMeters,
-                                                                source.NativeForward,
-                                                                source.NativeUp);
+                    // AKSESUARLAR olcumden ONCE takilir: namlu ucu (alevin yeri) takili
+                    // bir susturucunun ucunda olmali. Boy ve merkez ise aksesuarlari
+                    // SAYMAZ (Measure) - parca takmak silahi kucultmesin.
+                    if (!AttachAccessories(art, copyPath, log)) problems++;
+
+                    // Kopya diskte degisti; olcum icin yeniden okunuyor.
+                    copy = AssetDatabase.LoadAssetAtPath<GameObject>(copyPath);
+
+                    ArtCatalogAsset.WeaponModel model = Measure(art.WeaponId, copy, art);
                     models.Add(model);
 
-                    // Sinirlar da yazilir: yon tablodan geliyor ve tablo YANLIS
-                    // olabilir. Uc sayiya bakmak, hangi eksenin gercekten uzun
-                    // oldugunu tartismasiz soyler - resme bakip 3/4 acidan eksen
-                    // tahmin etmekten cok daha guvenilir (2026-09-07).
-                    log.Append($"  {source.Id,-16} olcek {model.localScale:F3}  " +
+                    // Sinirlar da yazilir: yon elle secildi ve YANLIS olabilir. Uc sayiya
+                    // bakmak, hangi eksenin gercekten uzun oldugunu tartismasiz soyler
+                    // (2026-09-07).
+                    log.Append($"  {art.WeaponId,-16} olcek {model.localScale:F3}  " +
                                $"namlu z={model.muzzleLocal.z:F3}  " +
-                               $"olculen sinirlar={LastMeasuredSize}\n");
+                               $"olculen sinirlar={LastMeasuredSize}  " +
+                               $"aksesuar {art.Attachments.Count}\n");
                 }
 
                 // --- yakin dovus (2026-09-08)
@@ -314,6 +277,111 @@ namespace Bunker.Editor
         /// yaptığımız her değişiklik kaybolurdu — ve bunu kimse fark etmezdi, ta ki
         /// oyunda her şey pembe görünene kadar.</para>
         /// </summary>
+        /// <summary>
+        /// Silaha aksesuarlarını takar (<c>weapon-art.json</c>, serbest liste).
+        ///
+        /// <para><b>Idempotent</b> (editor-tools.md): önceki koşudan kalan bütün
+        /// <c>Att_</c> çocukları önce silinir. Olmasaydı aracı iki kez çalıştırmak
+        /// silaha iki dürbün takardı — "append eden authoring aracı" hatasının ders
+        /// kitabı örneği.</para>
+        ///
+        /// <para><b>Önce hepsi takılır, sonra hepsi yerleştirilir.</b> Silahın çerçevesi
+        /// aksesuarsız ölçüldüğü için sıra sonucu değiştirmez; ama bir parçayı henüz
+        /// takılmamış diğerlerine göre yerleştirmek bu garantiyi sessizce bozardı.</para>
+        ///
+        /// <para>Aynı paket parçası iki silaha takılırsa URP kopyası tektir
+        /// (<c>att_&lt;prefab adı&gt;</c>).</para>
+        /// </summary>
+        /// <returns>Sorun çıkmadıysa <c>true</c>.</returns>
+        private static bool AttachAccessories(WeaponArtData art, string weaponPrefabPath, StringBuilder log)
+        {
+            if (art.Attachments.Count == 0) return true;
+
+            bool ok = true;
+
+            // URP kopyalari prefab ICERIGI acilmadan once uretilir: acik bir prefab
+            // duzenleme sahnesinin yaninda baska bir prefab kaydetmek, Unity'nin hangi
+            // sahneye yazdigini tartismaya acar.
+            var copies = new List<(AttachmentData Fit, GameObject Copy)>(art.Attachments.Count);
+
+            foreach (AttachmentData fit in art.Attachments)
+            {
+                var original = AssetDatabase.LoadAssetAtPath<GameObject>(fit.PrefabPath);
+
+                if (original == null)
+                {
+                    log.Append($"  EKSIK  {art.WeaponId} aksesuari '{fit.Name}': {fit.PrefabPath} bulunamadi\n");
+                    ok = false;
+                    continue;
+                }
+
+                string name = Sanitize(System.IO.Path.GetFileNameWithoutExtension(fit.PrefabPath)).ToLowerInvariant();
+                GameObject copy = MakeUrpCopy(original, $"{ModelFolder}/att_{name}.prefab", stripColliders: true);
+
+                if (copy == null)
+                {
+                    log.Append($"  HATA   {art.WeaponId} aksesuari '{fit.Name}': URP kopyasi uretilemedi\n");
+                    ok = false;
+                    continue;
+                }
+
+                copies.Add((fit, copy));
+            }
+
+            GameObject contents = PrefabUtility.LoadPrefabContents(weaponPrefabPath);
+
+            try
+            {
+                for (int i = contents.transform.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = contents.transform.GetChild(i);
+                    if (IsAttachmentChild(child)) Object.DestroyImmediate(child.gameObject);
+                }
+
+                var placed = new List<(Transform Node, AttachmentData Fit)>(copies.Count);
+
+                foreach ((AttachmentData fit, GameObject copy) in copies)
+                {
+                    var instance = (GameObject)PrefabUtility.InstantiatePrefab(copy, contents.transform);
+
+                    if (instance == null)
+                    {
+                        log.Append($"  HATA   {art.WeaponId} aksesuari '{fit.Name}': silaha konamadi\n");
+                        ok = false;
+                        continue;
+                    }
+
+                    instance.name = AttachmentPrefix + fit.Name;
+                    placed.Add((instance.transform, fit));
+                }
+
+                // Yerlesim Silah Atolyesi ile ORTAK (FitAccessory): pencerenin gosterdigi
+                // yer ile burada uretilen yer ayni fonksiyondan cikiyor. Iki ayri hesap
+                // "pencerede oturuyordu, oyunda havada" demek olurdu.
+                foreach ((Transform node, AttachmentData fit) in placed)
+                {
+                    if (FitAccessory(art, contents, node, fit)) continue;
+
+                    log.Append($"  HATA   {art.WeaponId} aksesuari '{fit.Name}': silahin olcusu alinamadi (mesh yok)\n");
+                    ok = false;
+                }
+
+                PrefabUtility.SaveAsPrefabAsset(contents, weaponPrefabPath);
+                log.Append($"  {art.WeaponId,-16} {placed.Count} aksesuar takildi\n");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+
+            return ok;
+        }
+
+        /// <summary>Disaridan cagrilabilen URP kopyalayici (PlayerCharacterSetup kullanir).</summary>
+        public static GameObject MakeUrpCopyPublic(GameObject original, string path,
+                                                   bool stripColliders) =>
+            MakeUrpCopy(original, path, stripColliders);
+
         private static GameObject MakeUrpCopy(GameObject original, string path, bool stripColliders)
         {
             GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(original);
@@ -398,9 +466,7 @@ namespace Bunker.Editor
             // TASIMIYOR. Sonuc, shader'i dogru ama dokusu bos bir materyal - ekranda
             // Unity'nin varsayilan beyazindan ayirt edilemez. Sadece shader adina
             // bakan bir kontrol bunu "hallolmus" sayar ve sessizce beyaz birakir.
-            if (source.shader != null
-                && source.shader.name.StartsWith("Universal Render Pipeline")
-                && (source.GetTexture("_BaseMap") != null || SavedTexture(source, "_MainTex") == null))
+            if (IsUsableUrp(source))
             {
                 if (source.GetTexture("_BaseMap") == null)
                 {
@@ -430,36 +496,7 @@ namespace Bunker.Editor
             }
 
             target.shader = lit;
-
-            CopyColor(source, "_Color", target, "_BaseColor");
-            CopyTexture(source, "_MainTex", target, "_BaseMap");
-            CopyTexture(source, "_BumpMap", target, "_BumpMap");
-            CopyTexture(source, "_OcclusionMap", target, "_OcclusionMap");
-            CopyTexture(source, "_MetallicGlossMap", target, "_MetallicGlossMap");
-
-            // TEK RENK KALDIYSA DOKUYU SERILESMIS VERIDEN AL (2026-09-07 bulgusu:
-            // "silahlar bembeyaz").
-            //
-            // <c>HasProperty</c> materyalin SHADER'ina sorar. PolyOne paketinin
-            // materyali projede olmayan bir toon shader'a bakiyor; Unity onu eksik
-            // shader'a dusuruyor ve o shader'in hicbir ozelligi yok - yani
-            // <c>_MainTex</c> "yok" cikiyor ve doku sessizce kayboluyor. Materyalin
-            // DISKTEKI verisi ise dokuyu hala tasiyor.
-            if (target.GetTexture("_BaseMap") == null)
-            {
-                Texture saved = SavedTexture(source, "_MainTex") ?? SavedTexture(source, "_BaseMap");
-                if (saved != null) target.SetTexture("_BaseMap", saved);
-            }
-
-            if (source.HasProperty("_Glossiness") && target.HasProperty("_Smoothness"))
-            {
-                target.SetFloat("_Smoothness", source.GetFloat("_Glossiness"));
-            }
-
-            if (source.HasProperty("_Metallic") && target.HasProperty("_Metallic"))
-            {
-                target.SetFloat("_Metallic", source.GetFloat("_Metallic"));
-            }
+            CopyBuiltInToUrp(source, target);
 
             if (created) AssetDatabase.CreateAsset(target, path);
             else EditorUtility.SetDirty(target);
@@ -527,6 +564,206 @@ namespace Bunker.Editor
         private static Vector3 LastMeasuredMin;
         private static Vector3 LastMeasuredMax;
 
+        // ====================================================== durbun yerlesimi
+
+        /// <summary>
+        /// Silahın <b>kendi kök uzayındaki</b> çerçevesi: namlu, üst ve sağ yönleri ile
+        /// aksesuarsız sınırları. 2026-09-10.
+        ///
+        /// <para><b>Yönler <c>weapon-art.json</c>'dan gelir</b> (pencerede görülerek
+        /// seçilir), sınırlardan tahmin edilmez. Önceki yerleşim "en uzun kenar namludur, Y yukarıdır"
+        /// diyordu; tablonun var olma sebebi tam olarak bu tür bir tahminin dört
+        /// silahın ikisinde yanlış çıkmasıydı.</para>
+        /// </summary>
+        internal readonly struct WeaponFrame
+        {
+            public readonly Bounds Bounds;
+            public readonly Vector3 Forward;
+            public readonly Vector3 Up;
+            public readonly Vector3 Right;
+
+            public WeaponFrame(Bounds bounds, Vector3 forward, Vector3 up)
+            {
+                Bounds = bounds;
+                Forward = forward.normalized;
+                Up = up.normalized;
+                Right = Vector3.Cross(Up, Forward);   // Unity: sag = yukari x ileri
+            }
+
+            public float Length => Mathf.Abs(Vector3.Dot(Bounds.size, Forward));
+            public float Height => Mathf.Abs(Vector3.Dot(Bounds.size, Up));
+            public float Width => Mathf.Abs(Vector3.Dot(Bounds.size, Right));
+        }
+
+        /// <summary>
+        /// Silahın çerçevesi. Takılı aksesuarlar (<see cref="AttachmentPrefix"/>) ölçüye girmez.
+        /// </summary>
+        internal static bool TryWeaponFrame(WeaponArtData art, GameObject weaponRoot, out WeaponFrame frame)
+        {
+            frame = default;
+
+            if (!CollectVertices(weaponRoot, true, out List<Vector3> points)) return false;
+
+            frame = new WeaponFrame(BoundsOf(points), art.ForwardVector, art.UpVector);
+            return true;
+        }
+
+        /// <summary>
+        /// Aksesuarı silaha yerleştirir. <b>Tek yerleşim hesabı</b>: hem
+        /// "Mağaza Modellerini Bağla" hem Silah Atölyesi bunu çağırır. 2026-09-10.
+        ///
+        /// <para><b>Aksesuarın kendi ölçüsü de ölçülür, pivotu kullanılmaz</b>
+        /// (2026-09-10 oyun testi: <i>"silahla scope arasında boşluk var, çok havada
+        /// duruyor"</i>). Pivotun modelin neresinde olduğu üçüncü parti paketin kararı
+        /// ve bu iki dürbünde gövdenin epey altındaydı; pivot varsayımı satın alınmış
+        /// bir modelde asla doğrulanamaz. Bu yüzden: namlu boyunca dürbünün
+        /// <b>merkezi</b>, dikeyde <b>alt kenarı</b>, yanda yine <b>merkezi</b>
+        /// hizalanır.</para>
+        ///
+        /// <para>Ölçüler mesh köşelerinden alınır, <c>Renderer.bounds</c>'tan değil:
+        /// o dünya uzayında ve eksene hizalı; döndürülmüş bir kökte kutuyu şişirir ve
+        /// pencerede (silah el konumunda, dönük) başka, prefab'da başka bir yer
+        /// verirdi.</para>
+        ///
+        /// <para><paramref name="accessory"/> silah kökünün <b>doğrudan</b> çocuğu
+        /// olmalı. Dönüşü veriden gelir: başka bir paketten gelen parça ters yönde
+        /// çizilmiş olabilir.</para>
+        /// </summary>
+        internal static bool FitAccessory(WeaponArtData art, GameObject weaponRoot,
+                                          Transform accessory, AttachmentData fit)
+        {
+            if (accessory.parent != weaponRoot.transform) return false;
+            if (!TryWeaponFrame(art, weaponRoot, out WeaponFrame frame)) return false;
+
+            // Aksesuarin KENDI uzayinda, olceksiz (kokun olcegi matriste geri aliniyor),
+            // sonra DONUSUYLE cevrilmis: cevrilmis bir parcanin alt kenari da cevrilmis
+            // haliyle olculmeli, yoksa yan yatan bir lazer govdeye gomulur.
+            if (!CollectVertices(accessory.gameObject, out List<Vector3> own)) return false;
+
+            Quaternion rotation = Quaternion.Euler(fit.EulerDegrees);
+            for (int i = 0; i < own.Count; i++) own[i] = rotation * own[i];
+
+            Bounds self = BoundsOf(own);
+
+            float scale = fit.ScaleMultiplier;
+            Vector3 center = frame.Bounds.center;
+
+            // Namlu: agiz ucundan dipcige dogru oran.
+            float muzzle = Vector3.Dot(center, frame.Forward) + frame.Length * 0.5f;
+            float along = muzzle - frame.Length * fit.AlongBarrel01
+                          - scale * Vector3.Dot(self.center, frame.Forward);
+
+            // Ust: aksesuarin ALT kenari govdenin tepesine, arti bosluk.
+            float top = Vector3.Dot(center, frame.Up) + frame.Height * 0.5f;
+            float selfBottom = Vector3.Dot(self.center, frame.Up)
+                               - Mathf.Abs(Vector3.Dot(self.size, frame.Up)) * 0.5f;
+            float up = top + frame.Height * fit.GapOfWeaponHeight - scale * selfBottom;
+
+            // Yan: silahin ortasi, arti kaydirma.
+            float side = Vector3.Dot(center, frame.Right) + frame.Width * fit.SideOfWeaponWidth
+                         - scale * Vector3.Dot(self.center, frame.Right);
+
+            accessory.localRotation = rotation;
+            accessory.localScale = Vector3.one * scale;
+            accessory.localPosition = frame.Forward * along + frame.Up * up + frame.Right * side;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Silahı oyunun el modeli için ölçer (ölçek, dönüş, konum, namlu ucu) — katalog
+        /// yazılırken yapılan ölçümün aynısı. Silah Atölyesi, yön, boy ve el konumu
+        /// değiştikçe oyuncunun gözünde ne göreceğini canlı göstermek için çağırır.
+        /// </summary>
+        internal static ArtCatalogAsset.WeaponModel MeasureWeapon(WeaponArtData art, GameObject weaponRoot) =>
+            Measure(art.WeaponId, weaponRoot, art);
+
+        /// <summary>
+        /// Önizleme için paketin Built-in materyallerini <b>diske yazmadan</b> URP'ye
+        /// çevirir. Oluşturulan materyaller <paramref name="created"/>'a eklenir;
+        /// çağıran yok eder.
+        ///
+        /// <para><b>Neden gerekli:</b> kaynak paket prefab'ı doğrudan gösterilirse URP'de
+        /// <b>pembe</b> çizilir ve "model bozuk" diye okunur. Kaydet'in yapacağı
+        /// dönüşüm (<see cref="ToUrp"/>) ise materyal dosyası üretiyor — sadece bakmak
+        /// için diske yazmak olmaz. Kopyalama kuralı ikisinde de aynı fonksiyon
+        /// (<see cref="CopyBuiltInToUrp"/>).</para>
+        /// </summary>
+        internal static void PreviewMaterials(GameObject root, List<Material> created)
+        {
+            Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+            if (lit == null) return;
+
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                Material[] shared = renderer.sharedMaterials;
+                bool changed = false;
+
+                for (int i = 0; i < shared.Length; i++)
+                {
+                    Material source = shared[i];
+                    if (source == null || IsUsableUrp(source)) continue;
+
+                    var copy = new Material(lit) { name = source.name + " (onizleme)", hideFlags = HideFlags.HideAndDontSave };
+                    CopyBuiltInToUrp(source, copy);
+
+                    created.Add(copy);
+                    shared[i] = copy;
+                    changed = true;
+                }
+
+                if (changed) renderer.sharedMaterials = shared;
+            }
+        }
+
+        /// <summary>
+        /// Materyal zaten URP ve dokusu yerinde mi — o zaman dokunulmaz.
+        ///
+        /// <para><b>"Dokusu yerinde" şartı 2026-09-07'de eklendi</b> ("silahlar
+        /// bembeyaz"): Unity, PolyOne paketinin Built-in materyalini içe aktarırken
+        /// URP/Lit'e YÜKSELTİYOR ama <c>_MainTex</c>'i <c>_BaseMap</c>'e TAŞIMIYOR.
+        /// Yalnızca shader adına bakan bir kontrol bunu "hallolmuş" sayar ve sessizce
+        /// beyaz bırakır.</para>
+        /// </summary>
+        private static bool IsUsableUrp(Material source) =>
+            source.shader != null
+            && source.shader.name.StartsWith("Universal Render Pipeline")
+            && (source.GetTexture("_BaseMap") != null || SavedTexture(source, "_MainTex") == null);
+
+        /// <summary>Built-in materyalin renk, doku ve yüzey değerlerini bir URP/Lit materyaline kopyalar.</summary>
+        private static void CopyBuiltInToUrp(Material source, Material target)
+        {
+            CopyColor(source, "_Color", target, "_BaseColor");
+            CopyTexture(source, "_MainTex", target, "_BaseMap");
+            CopyTexture(source, "_BumpMap", target, "_BumpMap");
+            CopyTexture(source, "_OcclusionMap", target, "_OcclusionMap");
+            CopyTexture(source, "_MetallicGlossMap", target, "_MetallicGlossMap");
+
+            // TEK RENK KALDIYSA DOKUYU SERILESMIS VERIDEN AL (2026-09-07 bulgusu:
+            // "silahlar bembeyaz").
+            //
+            // <c>HasProperty</c> materyalin SHADER'ina sorar. PolyOne paketinin
+            // materyali projede olmayan bir toon shader'a bakiyor; Unity onu eksik
+            // shader'a dusuruyor ve o shader'in hicbir ozelligi yok - yani
+            // <c>_MainTex</c> "yok" cikiyor ve doku sessizce kayboluyor. Materyalin
+            // DISKTEKI verisi ise dokuyu hala tasiyor.
+            if (target.GetTexture("_BaseMap") == null)
+            {
+                Texture saved = SavedTexture(source, "_MainTex") ?? SavedTexture(source, "_BaseMap");
+                if (saved != null) target.SetTexture("_BaseMap", saved);
+            }
+
+            if (source.HasProperty("_Glossiness") && target.HasProperty("_Smoothness"))
+            {
+                target.SetFloat("_Smoothness", source.GetFloat("_Glossiness"));
+            }
+
+            if (source.HasProperty("_Metallic") && target.HasProperty("_Metallic"))
+            {
+                target.SetFloat("_Metallic", source.GetFloat("_Metallic"));
+            }
+        }
+
         // ================================================================ olcum
 
         /// <summary>
@@ -535,8 +772,8 @@ namespace Bunker.Editor
         ///
         /// <para><b>Yön ölçülmez, verilir</b> (2026-09-07). Önceki sürüm namlunun hangi
         /// uçta olduğunu geometriden çıkarmaya çalışıyordu ve dört silahın ikisinde
-        /// yanılıyordu. Yön artık <see cref="Weapons"/> tablosunda, eksen çubuklu
-        /// önizlemelerden <i>okunarak</i>. Burada kalan iş ölçek, merkez ve namlu ucu —
+        /// yanılıyordu. Yön artık <c>weapon-art.json</c>'da, Silah
+        /// Atölyesi'nde <i>görülerek</i> seçilmiş. Burada kalan iş ölçek, merkez ve namlu ucu —
         /// üçü de yön bilindiğinde tek anlamlı.</para>
         ///
         /// <para><b>Neden ölçek yine de hesaplanıyor:</b> paketler farklı birimlerde
@@ -544,14 +781,18 @@ namespace Bunker.Editor
         /// olur. Ölçek modelin kendi boyundan türüyor; yön gibi bir "hangisi" sorusu
         /// değil, bir bölme işlemi.</para>
         /// </summary>
-        private static ArtCatalogAsset.WeaponModel Measure(string id, GameObject prefab,
-                                                           float targetLength,
-                                                           Vector3 nativeForward,
-                                                           Vector3 nativeUp)
+        private static ArtCatalogAsset.WeaponModel Measure(string id, GameObject prefab, WeaponArtData art)
         {
             var model = new ArtCatalogAsset.WeaponModel { id = id, prefab = prefab };
 
-            if (!CollectVertices(prefab, out List<Vector3> points))
+            float targetLength = art.LengthMeters;
+            Vector3 nativeForward = art.ForwardVector;
+            Vector3 nativeUp = art.UpVector;
+
+            // GOVDE olculur, aksesuarlar SAYILMAZ (2026-09-10): sayilsaydi namluya
+            // susturucu takmak butun silahi kucultur, uste durbun koymak asagi
+            // kaydirirdi. Boy ve merkez silahin kendisinin.
+            if (!CollectVertices(prefab, true, out List<Vector3> points))
             {
                 model.localScale = 1f;
                 return model;
@@ -587,14 +828,21 @@ namespace Bunker.Editor
             // gerekmiyor.
             const float behindHand01 = 0.18f;
 
+            // El konumu duzeltmesi en sonda, EL uzayinda (sag, yukari, ileri): otomatik
+            // yerlesim bir modelde yanlis oturuyorsa pencereden goz karariyla duzeltilir.
             model.localPosition = -(rotation * bounds.center) * scale
-                                  + Vector3.forward * ((0.5f - behindHand01) * targetLength);
+                                  + Vector3.forward * ((0.5f - behindHand01) * targetLength)
+                                  + art.HandOffsetMeters;
 
             // --- namlu ucu: on %8'lik dilimin ortalamasi.
             //
             // Sinirlar kutusunun on yuzunun MERKEZI degil: dürbünlü bir tüfekte o
             // nokta havada kalir. Gercek koselerin ortalamasi namlunun ekseninde durur.
-            Vector3 tipLocal = FrontSlice(points, bounds, longAxis, frontSign, 0.08f);
+            //
+            // Burada aksesuarlar DAHIL: namluya susturucu takiliysa alev onun ucunda
+            // patlamali, govdenin icinde degil.
+            CollectVertices(prefab, false, out List<Vector3> all);
+            Vector3 tipLocal = FrontSlice(all, BoundsOf(all), longAxis, frontSign, 0.08f);
             model.muzzleLocal = model.localPosition + rotation * tipLocal * scale;
 
             return model;
@@ -836,7 +1084,16 @@ namespace Bunker.Editor
         /// <para><c>Renderer.bounds</c> yetmez: o dünya uzayında ve eksene hizalıdır,
         /// döndürülmüş bir alt nesnede yalan söyler. Köşeler tek doğru kaynak.</para>
         /// </summary>
-        private static bool CollectVertices(GameObject prefab, out List<Vector3> points)
+        private static bool CollectVertices(GameObject prefab, out List<Vector3> points) =>
+            CollectVertices(prefab, false, out points);
+
+        /// <summary>
+        /// Aynısı; <paramref name="excludeAttachments"/> ise takılı aksesuarlar
+        /// (<see cref="AttachmentPrefix"/>) sayılmaz — silahı <b>kendi gövdesiyle</b>
+        /// ölçmek için.
+        /// </summary>
+        private static bool CollectVertices(GameObject prefab, bool excludeAttachments,
+                                            out List<Vector3> points)
         {
             points = new List<Vector3>(4096);
             Transform root = prefab.transform;
@@ -846,6 +1103,7 @@ namespace Bunker.Editor
             {
                 Mesh mesh = filter.sharedMesh;
                 if (mesh == null) continue;
+                if (excludeAttachments && IsUnderAttachment(filter.transform, root)) continue;
 
                 Append(points, mesh, root, filter.transform);
             }
@@ -855,6 +1113,7 @@ namespace Bunker.Editor
             {
                 Mesh mesh = renderer.sharedMesh;
                 if (mesh == null) continue;
+                if (excludeAttachments && IsUnderAttachment(renderer.transform, root)) continue;
 
                 Append(points, mesh, root, renderer.transform);
             }
@@ -916,7 +1175,7 @@ namespace Bunker.Editor
 
         /// <summary>
         /// Eksene hizalı bir vektörün hangi eksen olduğu (0=X, 1=Y, 2=Z).
-        /// <see cref="Weapons"/> tablosundaki yönler her zaman eksene hizalıdır.
+        /// <c>weapon-art.json</c>'daki yönler her zaman eksene hizalıdır (şemada bir enum).
         /// </summary>
         private static int AxisIndexOf(Vector3 direction)
         {

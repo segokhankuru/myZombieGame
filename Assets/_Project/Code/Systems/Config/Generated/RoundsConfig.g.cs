@@ -88,6 +88,26 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 2 .. 20 | JSON: speed.jogUntilRound</remarks>
         public readonly int SpeedJogUntilRound;
 
+        /// <summary>Tur basina hasar artisi, DOGRUSAL (0.03 = her tur taban hasarin +%3'u). Hasar = attack.damage x (1 + bu x (tur - 1)). 0 yaparsan hasar yeniden sabitlenir ve gec turda zombi sayisi disinda sertlesen hicbir sey kalmaz; buyutursen can kartlari ve tezgahin DAYANIKLILIK hatti gec turda anlamsizlasir cunku her temas iki vurusta oldurur.</summary>
+        /// <remarks>Aralik: 0 .. 0.15 | JSON: damage.growthPerRound01</remarks>
+        public readonly float DamageGrowthPerRound01;
+
+        /// <summary>Hasar carpaninin tavani. 100 canli oyuncuda 30 x 2.5 = 75: tavanda bile tek vurus oldurmez. Tavansiz ya da cok yuksek olursa yeterince ileri turda her temas olum olur ve oyun bir kacis sinavindan bir zar atisina doner.</summary>
+        /// <remarks>Aralik: 1 .. 4 | JSON: damage.maxMultiplier</remarks>
+        public readonly float DamageMaxMultiplier;
+
+        /// <summary>CO-OP'ta (oturumda birden fazla oyuncu) boss sayisi kac BOSS TURUNDA bir artar. 1 = her boss turunda bir fazla: 1, 2, 3... Buyutursen dort kisilik bir ekip tek bir bossa karsi kalir ve boss turu kalabalik bir takim icin olay olmaktan cikar.</summary>
+        /// <remarks>Aralik: 1 .. 10 | JSON: boss.extraEveryBossRoundsCoop</remarks>
+        public readonly int BossExtraEveryBossRoundsCoop;
+
+        /// <summary>TEK OYUNCUDA boss sayisi kac boss turunda bir artar. 2 = 1, 1, 2, 2, 3... Co-op hizinda (1) artarsa solo oyuncu, dikkati dagitacak ikinci bir oyuncu olmadan uc bossla ayni odada kalir - bu bir savas degil bir kusatmadir.</summary>
+        /// <remarks>Aralik: 1 .. 10 | JSON: boss.extraEveryBossRoundsSolo</remarks>
+        public readonly int BossExtraEveryBossRoundsSolo;
+
+        /// <summary>Bir turda en fazla boss. Tavan olmazsa co-op 50. turda on boss dogurur; her biri turun caninin 14 kati ve mermi ekonomisi de PERF-BUDGET de birlikte coker.</summary>
+        /// <remarks>Aralik: 1 .. 10 | JSON: boss.maxPerRound</remarks>
+        public readonly int BossMaxPerRound;
+
         /// <summary>Kac turda bir boss cikar. Sik olursa boss sıradanlasir ve bir olay olmaktan cikar; seyrek olursa oyuncu onu tanimadan tur 20'ye gelir.</summary>
         /// <remarks>Aralik: 2 .. 20 | JSON: boss.everyRounds</remarks>
         public readonly int BossEveryRounds;
@@ -145,7 +165,7 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public RoundsConfig(
-            int version = 4,
+            int version = 7,
             float countPerPlayerAtRoundOne = 6f,
             float countLinearAddPerPlayerPerRound = 1.5f,
             int countLinearPhaseUntilRound = 9,
@@ -163,16 +183,21 @@ namespace Bunker.Systems.Config
             float speedRunMetersPerSecond = 3.6f,
             int speedWalkUntilRound = 6,
             int speedJogUntilRound = 12,
+            float damageGrowthPerRound01 = 0.03f,
+            float damageMaxMultiplier = 2.5f,
+            int bossExtraEveryBossRoundsCoop = 1,
+            int bossExtraEveryBossRoundsSolo = 2,
+            int bossMaxPerRound = 8,
             int bossEveryRounds = 5,
             float bossHealthMultiplier = 14f,
             float bossSpeedMultiplier = 0.75f,
             float bossDamageMultiplier = 2f,
             float bossScaleMultiplier = 1.7f,
-            float bossPointsMultiplier = 6f,
-            float roundEndReserveAmmoFraction01 = 0.4f,
+            float bossPointsMultiplier = 15f,
+            float roundEndReserveAmmoFraction01 = 0.5f,
             float roundEndBarricadeBoardsFraction01 = 0.4f,
-            float pacingBreatherSecondsEarly = 10f,
-            float pacingBreatherSecondsLate = 20f,
+            float pacingBreatherSecondsEarly = 30f,
+            float pacingBreatherSecondsLate = 30f,
             int pacingBreatherEarlyUntilRound = 5,
             float pacingSpawnIntervalSecondsAtRoundOne = 2f,
             float pacingSpawnIntervalFloorSeconds = 0.25f)
@@ -195,6 +220,11 @@ namespace Bunker.Systems.Config
             SpeedRunMetersPerSecond = speedRunMetersPerSecond;
             SpeedWalkUntilRound = speedWalkUntilRound;
             SpeedJogUntilRound = speedJogUntilRound;
+            DamageGrowthPerRound01 = damageGrowthPerRound01;
+            DamageMaxMultiplier = damageMaxMultiplier;
+            BossExtraEveryBossRoundsCoop = bossExtraEveryBossRoundsCoop;
+            BossExtraEveryBossRoundsSolo = bossExtraEveryBossRoundsSolo;
+            BossMaxPerRound = bossMaxPerRound;
             BossEveryRounds = bossEveryRounds;
             BossHealthMultiplier = bossHealthMultiplier;
             BossSpeedMultiplier = bossSpeedMultiplier;

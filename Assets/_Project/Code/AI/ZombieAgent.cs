@@ -583,6 +583,9 @@ namespace Bunker.AI
 
             float gapToTarget = _target != null ? GapToTarget() : float.MaxValue;
 
+            // Mutlak tavanin olcusu (2026-09-10): yaricaplar dusulmeden merkez mesafesi.
+            float distanceToTarget = _target != null ? HorizontalDistanceToTarget() : float.MaxValue;
+
             float distanceToWindow = needsWindow
                 ? Vector3.Distance(_transform.position, _window.OutsidePoint)
                 : 0f;
@@ -602,7 +605,9 @@ namespace Bunker.AI
                 distanceToWindowMeters: distanceToWindow,
                 actualSpeedMetersPerSecond: actualSpeed,
                 windowBlocked: windowBlocked,
-                reachMultiplier: _bodyScale);
+                reachMultiplier: _bodyScale,
+                distanceToTargetMeters: distanceToTarget,
+                isBoss: IsBoss);
 
             ZombieState before = _brain.State;
             _brain.Tick(thinkDelta, senses);
@@ -910,6 +915,16 @@ namespace Bunker.AI
         {
             if (_target == null || !_target.IsTargetable) return;
 
+            // MUTLAK TAVAN (2026-09-10, gelistirici: "zombiler 1 m'den uzaktan vuramaz,
+            // bosslarda 2 m"). Beyin ayni soruyu dusunme adiminda sordu; burada inis
+            // karesinin GUNCEL konumuyla bir kez daha - iki kontrolun gerekcesi yukarida.
+            // Olcu yaricapsiz merkez mesafesi: bir yaricap yanlis olculse bile tavan tutar.
+            float hardCap = IsBoss
+                ? _config.AttackBossMaxHitDistanceMeters
+                : _config.AttackMaxHitDistanceMeters;
+
+            if (HorizontalDistanceToTarget() > hardCap) return;
+
             // Menzil GOVDE OLCEGIYLE buyur: boss'un kolu da buyuk.
             float reach = (_config.AttackRangeMeters + _config.AttackRangeToleranceMeters)
                           * _bodyScale;
@@ -964,6 +979,24 @@ namespace Bunker.AI
         /// </summary>
         private float GapToTarget()
         {
+            float distance = HorizontalDistanceToTarget();
+            if (distance == float.MaxValue) return float.MaxValue;
+
+            return distance
+                   - _navAgent.radius              // zaten _bodyScale ile olceklenir
+                   - _target.BodyRadiusMeters;
+        }
+
+        /// <summary>
+        /// Zombinin merkeziyle hedefin merkezi arasındaki <b>yatay mesafe</b>; dikeyde
+        /// uzanamayacağı kadar uzaksa <c>float.MaxValue</c>. 2026-09-10.
+        ///
+        /// <para>Gövde boşluğu (<see cref="GapToTarget"/>) ve mutlak tavan bu tek ölçüden
+        /// türer — dikey sınır iki yerde ayrı yazılsaydı, biri değiştiğinde kat arası
+        /// vuruş hatası (2026-09-06) sessizce geri gelirdi.</para>
+        /// </summary>
+        private float HorizontalDistanceToTarget()
+        {
             Vector3 toTarget = _target.GroundPosition - _transform.position;
 
             // Dikey sinir: zombinin boyunun yarisi kadar uzanabilir. Asilirsa vurus
@@ -973,10 +1006,7 @@ namespace Bunker.AI
             if (Mathf.Abs(toTarget.y) > verticalReach) return float.MaxValue;
 
             toTarget.y = 0f;
-
-            return toTarget.magnitude
-                   - _navAgent.radius              // zaten _bodyScale ile olceklenir
-                   - _target.BodyRadiusMeters;
+            return toTarget.magnitude;
         }
 
         /// <summary>

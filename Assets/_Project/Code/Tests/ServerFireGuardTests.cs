@@ -234,7 +234,7 @@ namespace Bunker.Systems.Tests
 
             guard.ApplyModifiers(new WeaponModifiers(
                 fireRate: 0.5f, reloadSpeed: 0f, damage: 0f,
-                magazine: 0f, headshotMultiplier: 0f));
+                magazine: 0f, reserve: 0, headshotMultiplier: 0f));
 
             // Istemcinin surdugu ritimle otuz atis. Bir tanesi bile reddedilirse
             // hata geri gelmis demektir - reddedilenler birikerek gelir.
@@ -256,7 +256,7 @@ namespace Bunker.Systems.Tests
 
             guard.ApplyModifiers(new WeaponModifiers(
                 fireRate: 0.5f, reloadSpeed: 0f, damage: 0f,
-                magazine: 0f, headshotMultiplier: 0f));
+                magazine: 0f, reserve: 0, headshotMultiplier: 0f));
 
             // Izin 0.10 sn; 0.01 sn araliklarla otuz atis acikca hile.
             float now = 100f;

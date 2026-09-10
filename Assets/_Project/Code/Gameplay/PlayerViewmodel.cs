@@ -48,6 +48,9 @@ namespace Bunker.Gameplay
         private Transform _gun;
         private Transform _knife;
 
+        /// <summary>0 = ates li silah elde, 1 = bicak elde. Gecis yumusatmasi.</summary>
+        private float _handBlend;
+
         // --- eller ve kollar (2026-09-07)
         private Transform _armRight;
         private Transform _armLeft;
@@ -163,6 +166,45 @@ namespace Bunker.Gameplay
         }
 
         private void OnSwingStarted() => _swingTimer = 0f;
+
+        /// <summary>
+        /// Bir eli görünür/görünmez yapar.
+        ///
+        /// <para><b><c>SetActive</c> değil, <c>Renderer.enabled</c>:</b> nesneyi
+        /// kapatmak namlu alevini, ışığını ve el/kol hiyerarşisini de kapatır ve
+        /// yeniden açıldığında bunların hepsi <c>Awake</c>'ten geçer. Görünürlük bir
+        /// çizim sorusu; nesnenin var olup olmaması ayrı bir soru (ui-code.md'nin
+        /// "Canvas bileşenini kapat, GameObject'i değil" kuralının aynısı).</para>
+        ///
+        /// <para><b>Zaten doğru durumdaysa dokunmaz:</b> kare başına <c>enabled</c>
+        /// yazmak Unity'de gereksiz bir durum değişikliği bildirimi üretir
+        /// (ui-code.md: değişmediyse yazma).</para>
+        /// </summary>
+        private static void SetVisible(Renderer[] renderers, bool visible)
+        {
+            if (renderers == null) return;
+
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null) continue;
+                if (renderers[i].enabled != visible) renderers[i].enabled = visible;
+            }
+        }
+
+        /// <summary>
+        /// Bir elin çizicilerini <b>bir kez</b> toplar.
+        ///
+        /// <para><c>GetComponentsInChildren</c> her çağrıda bir dizi ayırır; kare
+        /// başına çağrılması yasak (csharp-code.md). Gövdeler yalnızca silah ya da
+        /// bıçak <i>değiştiğinde</i> yeniden kuruluyor, yani önbelleğin tazelenmesi
+        /// gereken tek an da orası.</para>
+        /// </summary>
+        private static Renderer[] Collect(Transform hand) =>
+            hand == null ? System.Array.Empty<Renderer>()
+                         : hand.GetComponentsInChildren<Renderer>(true);
+
+        private Renderer[] _gunRenderers = System.Array.Empty<Renderer>();
+        private Renderer[] _knifeRenderers = System.Array.Empty<Renderer>();
 
         // ---------------------------------------------------------------- kare dongusu
 
@@ -316,6 +358,36 @@ namespace Bunker.Gameplay
             // tusun ne yaptigini okunmaz kilar.
             gunPos += new Vector3(0.05f, -0.30f, -0.05f) * Mathf.Sin(swing01 * Mathf.PI);
 
+            // BICAK 1 NUMARALI SLOT (2026-09-09): bicak elde iken silah tamamen
+            // indirilir, bicak kaldirilir. Onceki hâlde ikisi ayni anda ekrandaydi
+            // (silah elde, bicak altta bekliyor) cunku bicak bir KISAYOL'du. Artik
+            // ikisi ayri slot ve ekran hangisinin elde oldugunu SOYLEMEK zorunda -
+            // yoksa oyuncu neyle ates edecegini HUD'dan okumak zorunda kalir
+            // (PILLAR-04: kaosta okunabilirlik).
+            //
+            // Gecis yumusatilmis: ani bir takas, elin bos oldugu tek karede goze
+            // batar. 12'lik ussel yaklasim ~0.15 sn eder - ui-code.md'nin ekran
+            // gecisi bandinin (150-300 ms) alt ucu.
+            bool meleeActive = weapon != null && weapon.IsMeleeActive;
+            _handBlend = Mathf.Lerp(_handBlend, meleeActive ? 1f : 0f,
+                                    1f - Mathf.Exp(-12f * dt));
+
+            gunPos += new Vector3(0.06f, -0.42f, -0.10f) * _handBlend;
+
+            // ELDE OLMAYAN TAMAMEN GIZLENIR (2026-09-09, gelistirici: "melee silahla
+            // atesli silahlar ayni anda gozukuyor, bunu kaldir - hangisi eldeyse
+            // sadece o gozuksun").
+            //
+            // Ilk surum yalnizca KAYDIRIYORDU (silahi asagi, bicagi yukari) ve bu
+            // yetmedi: ekranin alt kenarinda duran ikinci nesne hala goruluyor ve
+            // "hangisiyle ates ediyorum" sorusunu ekran cevaplamak yerine
+            // BULANIKLASTIRIYOR. Slotun butun anlami o soruya tek bir cevap vermek.
+            //
+            // Esik gecisin ORTASINDA: bicak yariya geldiginde silah kapanir, yani
+            // takas aninda ikisi birden gorunmez bir kare bile olmaz.
+            SetVisible(_gunRenderers, _handBlend < 0.5f);
+            SetVisible(_knifeRenderers, _handBlend >= 0.5f);
+
             _gun.localPosition = gunPos;
             _gun.localRotation = Quaternion.Euler(
                 -_kick * 9f - _reloadBlend * 45f,
@@ -365,10 +437,20 @@ namespace Bunker.Gameplay
             }
             else
             {
-                // Bicak bekleme konumunda: ekranin altinda, gorunur ama yolda degil.
-                _knife.localPosition = Vector3.Lerp(_knife.localPosition, KnifeStowed + sway, 1f - Mathf.Exp(-10f * dt));
-                _knife.localRotation = Quaternion.Slerp(_knife.localRotation,
-                                                        Quaternion.Euler(15f, -20f, 20f),
+                // Bicak BEKLEME konumu artik hangi slotun elde oldugunu soyluyor:
+                // bicak seciliyse KALDIRILIR (KnifeHome), degilse indirilir
+                // (KnifeStowed). Iki konum arasinda ayni yumusatma - silahla bicak
+                // birbirinin tersine hareket ediyor ve takas gozle okunuyor.
+                Vector3 rest = Vector3.Lerp(KnifeStowed, KnifeHome, _handBlend);
+
+                _knife.localPosition = Vector3.Lerp(_knife.localPosition, rest + sway,
+                                                    1f - Mathf.Exp(-10f * dt));
+
+                Quaternion restRotation = Quaternion.Slerp(Quaternion.Euler(15f, -20f, 20f),
+                                                           Quaternion.Euler(-14f, -22f, -18f),
+                                                           _handBlend);
+
+                _knife.localRotation = Quaternion.Slerp(_knife.localRotation, restRotation,
                                                         1f - Mathf.Exp(-10f * dt));
             }
         }
@@ -423,6 +505,11 @@ namespace Bunker.Gameplay
             // Destek eli silahin boyuna gore kayar: tabancada govdenin dibinde,
             // tufekte on govdede.
             PlaceSupportHand();
+
+            // Govde degisti: gorunurluk onbellegi tazelenir (bkz. Collect).
+            // Kollar silahin COCUGU oldugu icin bu dizi onlari da kapsiyor - bicaga
+            // gecince eller de kaybolur, ki dogru olan da bu.
+            _gunRenderers = Collect(_gun);
         }
 
         private void BuildRig()
@@ -529,6 +616,9 @@ namespace Bunker.Gameplay
             Part(_knife, "Handle", new Vector3(0f, 0.00f, -0.05f), new Vector3(0.028f, 0.032f, 0.10f), _knifeHandleMaterial);
 
             _knifeTip = new Vector3(0f, 0.02f, 0.25f);
+
+            // Govde degisti: gorunurluk onbellegi tazelenir (bkz. Collect).
+            _knifeRenderers = Collect(_knife);
         }
 
         /// <summary>

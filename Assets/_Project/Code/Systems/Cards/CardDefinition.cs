@@ -51,6 +51,21 @@ namespace Bunker.Systems.Cards
         /// </summary>
         MagazineCapacity,
 
+        /// <summary>
+        /// Yedek mermi tavanı, <b>mutlak mermi</b> (120 = tavan +120). 2026-09-10'da
+        /// geri geldi.
+        ///
+        /// <para><b>2026-09-07'de silinmişti</b>, haklı bir sebeple: o gün yedek
+        /// merminin tavanı tamamen kaldırılmıştı ve kart, sayacı hiç değiştirmeyen
+        /// görünmez bir şey satıyordu. Tavan geri geldiği için kart da geri geldi —
+        /// ama artık tavan yalnızca <b>tur sonu bedava ikmalini</b> sınırlıyor. Yani
+        /// kartın vaadi somut: her tur sonu daha çok mermiyle başlarsın.</para>
+        ///
+        /// <para><b>Mutlak, oransal değil</b> — gerekçesi
+        /// <see cref="Bunker.Systems.Combat.WeaponModifiers.Reserve"/>'de.</para>
+        /// </summary>
+        ReserveCapacity,
+
         /// <summary>Kafa vuruşu çarpanına eklenir (1.0 = 2x'ten 3x'e).</summary>
         HeadshotMultiplier,
 

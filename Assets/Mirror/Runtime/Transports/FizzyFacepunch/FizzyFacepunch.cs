@@ -39,7 +39,17 @@ namespace Mirror.FizzySteam
       Debug.Assert(Channels != null && Channels.Length > 0, "No channel configured for FizzySteamworks.");
 
       if (!InitFacepunch) return;
-      
+
+      // BUNKER YAMASI (2026-09-10, ADR-0007, BUG-006): Steam zaten aciksa ikinci kez
+      // Init cagrilmaz. Menu sahnesi yeniden yuklendiginde yeni tasima ayni surecte
+      // Init'i tekrar deniyordu; Facepunch "already initialized" atiyor ve ekrana
+      // "Steam is closed" diyen yaniltici bir hata basiliyordu. Steam acikti.
+      if (SteamClient.IsValid)
+      {
+        FetchSteamID();
+        return;
+      }
+
       var initialised = InitialiseSteamworks(SteamAppID);
       if (!initialised) return;
       

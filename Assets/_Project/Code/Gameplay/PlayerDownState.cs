@@ -60,6 +60,24 @@ namespace Bunker.Gameplay
         /// <summary>Kaldırılan oyuncunun döndüğü can oranı.</summary>
         private const float ReviveHealthFraction01 = 0.5f;
 
+        /// <summary>
+        /// Yerde <b>kaç saniye</b> dayanılır (2026-09-09, geliştirici: <i>"kişiler
+        /// ölümcül hasar alınca önce bayılmalı, PUBG gibi; revive edilmezse 10 sn
+        /// içinde ölmeli"</i>).
+        ///
+        /// <para><b>Neden bir sayaç, "tur bitene kadar" değil:</b> önceki kural
+        /// düşmeyi turun uzunluğuna bağlıyordu — turun başında düşen oyuncu iki dakika
+        /// kurtarılabilir kalıyordu, sonunda düşen üç saniye. Aynı hata, iki bambaşka
+        /// ceza. Sabit bir süre kurtarmayı bir <b>karar</b> yapar: arkadaşın ateşi
+        /// bırakıp gelecek mi, on saniyesi var.</para>
+        ///
+        /// <para><b>Denge değeri değil de neden burada:</b> bu bir <i>his</i> sayısı —
+        /// kurtarma penceresi, kurtarma süresiyle (<see cref="ReviveSeconds"/>) birlikte
+        /// okunur ve ikisi aynı yerde durmalı. İkisi ayrılırsa 3,5 saniyelik bir
+        /// kurtarmanın 2 saniyelik bir pencereye sığmadığı fark edilmez.</para>
+        /// </summary>
+        public const float BleedOutSeconds = 10f;
+
         private static readonly List<PlayerDownState> All = new List<PlayerDownState>(4);
 
         /// <summary>Oturumdaki bütün oyuncular. HUD ve kurtarma taraması bunu okur.</summary>
@@ -149,13 +167,84 @@ namespace Bunker.Gameplay
         /// Yeni tur: ölüler döner. <b>Yarı canla</b> — tam canla dönmek turu izlemenin
         /// bedelini sıfırlar ve "nasılsa dirilirim" oynatır.
         /// </summary>
+        /// <summary>
+        /// Yeni tur: ölüler <b>kendi puanlarını ödeyerek</b> dirilir (2026-09-09).
+        ///
+        /// <para>Geliştirici: <i>"ölen kişi öder; eğer yeterli puan yoksa puanı cana
+        /// oranlayıp kaç puanı varsa ona göre canla dirilsin, hiç yoksa 1 HP ile
+        /// dirilir."</i></para>
+        ///
+        /// <para><b>Neden ödeyememek ölüm değil:</b> puanı yetmeyen oyuncuyu bir tur
+        /// daha beklettirmek, en kötü durumdaki oyuncuyu daha da geriye atardı — ve
+        /// puanı olmayan biri bir sonraki turda da puan kazanamaz, yani ceza kendi
+        /// kendini besleyen bir çukur olurdu. Oransal can bunun yerine <i>ölçekli</i>
+        /// bir ceza veriyor: parası yoksa dirilir ama bir vuruşluk canla dirilir ve
+        /// o turu son derece dikkatli oynamak zorunda kalır.</para>
+        ///
+        /// <para><b>1 can tabanı</b>: sıfır canla dirilmek, dirilir dirilmez tekrar
+        /// düşmek demek olurdu — oyuncunun hiç oynamadığı bir tur.</para>
+        ///
+        /// <para><b>Kaldırılan (Downed) oyuncu bedel ödemez</b>: onu arkadaşı zaten
+        /// ateşi bırakıp kurtardı, bedeli takım ödedi.</para>
+        /// </summary>
         [ServerCallback]
         private void OnRoundStarted(int round)
         {
             if (_state == LifeState.Alive) return;
 
-            ServerRevive(ReviveHealthFraction01);
+            if (_state == LifeState.Downed)
+            {
+                // Yerde tur basina girmek: kanama sayaci zaten oldururdu, ama
+                // sirali bir kare kaymasi ihtimaline karsi burada da kaldiriliyor.
+                ServerRevive(ReviveHealthFraction01);
+                return;
+            }
+
+            ServerRevive(ServerPayForRevive(round));
         }
+
+        /// <summary>
+        /// Diriliş bedelini oyuncunun kendi puanından tahsil eder ve <b>alabildiği can
+        /// oranını</b> döner.
+        /// </summary>
+        /// <returns>0'dan büyük bir oran; puan hiç yoksa bir vuruşluk taban.</returns>
+        [Server]
+        private float ServerPayForRevive(int round)
+        {
+            var score = GetComponent<PlayerScore>();
+            if (score == null) return ReviveHealthFraction01;
+
+            int cost = score.ReviveCostForRound(round);
+
+            // Fiyat sifirsa (config kapatmis) diriliş bedava ve TAM.
+            if (cost <= 0) return 1f;
+
+            int available = score.Spendable;
+
+            if (available >= cost)
+            {
+                score.ServerSpend(cost);
+                return 1f;
+            }
+
+            // YETMIYOR: eldeki her puan harcanir ve can ORANLANIR.
+            if (available > 0) score.ServerSpend(available);
+
+            float fraction = (float)available / cost;
+
+            // Bir vurusluk taban: sifir canla dirilmek, oyuncunun hic oynamadigi bir
+            // tur demek olurdu.
+            return Mathf.Max(MinimumReviveFraction01, fraction);
+        }
+
+        /// <summary>
+        /// Puanı hiç olmayan oyuncunun döndüğü can oranı — pratikte "1 can".
+        ///
+        /// <para>Oran olarak yazılıyor çünkü maksimum can karta göre değişiyor;
+        /// mutlak 1 yazmak, 300 canlı bir oyuncuda 250 canlı bir oyuncudan farklı bir
+        /// ceza olurdu.</para>
+        /// </summary>
+        private const float MinimumReviveFraction01 = 0.01f;
 
         // ------------------------------------------------------------- sunucu
 
@@ -170,9 +259,36 @@ namespace Bunker.Gameplay
 
             _state = LifeState.Downed;
             _reviveProgress01 = 0f;
+
+            // KANAMA SAYACI baslar (2026-09-09). Bu sayac dolarsa oyuncu olur;
+            // kaldirilirsa sifirlanir.
+            _bleedOutRemaining = BleedOutSeconds;
         }
 
-        /// <summary>Tur bitti, kaldırılmadı: bir sonraki tura kadar ölü.</summary>
+        /// <summary>Yerdeyken ölüme kalan süre. <b>HUD bunu gösterir</b> — görünmeyen
+        /// bir geri sayım, kurtarma kararını tahmine bırakır.</summary>
+        [SyncVar] private float _bleedOutRemaining;
+
+        /// <summary>Yerdeyken ölüme kalan saniye (0 = yerde değil).</summary>
+        public float BleedOutRemainingSeconds => _state == LifeState.Downed
+            ? _bleedOutRemaining
+            : 0f;
+
+        /// <summary>
+        /// Kaldırılmadı: <b>öldü</b>. Kanama sayacı dolduğunda ya da tur bittiğinde.
+        ///
+        /// <para><b>Ölümün iki bedeli var</b> (2026-09-09, geliştirici: <i>"ölen kişinin
+        /// dropları kaybolacak, mevcut mermi kapasitesi kaça kadar birikmişse
+        /// yarılanacak"</i>). İkisi de bilinçli olarak <i>kalıcı</i>: yere düşmek
+        /// zaten bir turluk bekleme cezası veriyordu ama o ceza <b>zaman</b>
+        /// cezasıydı ve zaman geri geliyor. Kaynak kaybı geri gelmiyor — ölmek artık
+        /// run'ın geri kalanında hissedilen bir şey.</para>
+        ///
+        /// <para><b>Neden eşyalar tamamen, mermi yarısı:</b> eşya bir <i>fırsat</i>
+        /// (zaten cepte bekliyordu, kullanmadın), mermi ise oyunun temel kaynağı.
+        /// Mermiyi de tamamen silmek, dirilen oyuncuyu silahsız bırakır ve bir sonraki
+        /// turda tekrar ölmesini garantiler — cezanın kendini beslemesi.</para>
+        /// </summary>
         [Server]
         public void ServerConfirmDead()
         {
@@ -180,6 +296,20 @@ namespace Bunker.Gameplay
 
             _state = LifeState.Dead;
             _reviveProgress01 = 0f;
+            _bleedOutRemaining = 0f;
+
+            // CEP BOSALIR: biriktirilen esyalar olumle gider.
+            var powerups = GetComponent<PlayerPowerups>();
+            if (powerups != null) powerups.ServerClearOnDeath();
+
+            // YEDEK MERMI YARILANIR - butun silahlarda, cantadakiler dahil.
+            if (_weapon != null) _weapon.ServerHalveReserves();
+
+            // RUN SONU BURADA DA SORULUR (2026-09-09). Onceki hâlde bu soru yalnizca
+            // olumcul vurusun geldigi anda soruluyordu (PlayerHealth); kanama sayaci
+            // gelince olum ARTIK BASKA BIR ANDA da olabiliyor ve o an sorulmazsa
+            // son ayakta kalan oyuncu yerde kanayip olur, run ise hic bitmezdi.
+            if (EveryoneOut()) RunSignals.RaisePlayerDied();
         }
 
         /// <summary>Yeni tur: ölüler dirilir, düşenler ayağa kalkar.</summary>
@@ -227,6 +357,20 @@ namespace Bunker.Gameplay
             if (!_beingRevivedThisTick && _reviveProgress01 > 0f)
             {
                 _reviveProgress01 = Mathf.Max(0f, _reviveProgress01 - Time.deltaTime * 0.5f);
+            }
+
+            // KANAMA (2026-09-09). Kaldirilma SIRASINDA da isliyor: durdurmak,
+            // kurtarmayi basladigi anda garantiye alirdi ve "yetisebilecek miyim"
+            // sorusu ortadan kalkardi. Tam da o soru, kurtarmayi bir karar yapan sey.
+            if (!RunSignals.IsRunOver)
+            {
+                _bleedOutRemaining -= Time.deltaTime;
+
+                if (_bleedOutRemaining <= 0f)
+                {
+                    _bleedOutRemaining = 0f;
+                    ServerConfirmDead();
+                }
             }
 
             _beingRevivedThisTick = false;

@@ -235,7 +235,21 @@ namespace Bunker.Gameplay
             {
                 case "weapon.smg": return BuildSmg(parent, scale, body, accent);
                 case "weapon.shotgun": return BuildShotgun(parent, scale, body, accent);
-                case "weapon.rifle": return BuildRifle(parent, scale, body, accent);
+
+                // AK-74, M4 ve M107 gri kutuda TUFEK silüetini paylasiyor
+                // (2026-09-09). Bilerek: bu yol yalnizca magaza modeli bulunamadiginda
+                // calisan bir YEDEK ve uc ayri gri kutu kutlesi cizmek, hicbir zaman
+                // gorulmeyecek bir ayrimi kodlamak olurdu. Model varken zaten uc silah
+                // uc ayri modelden gorunuyor.
+                //
+                // weapon.rifle EMEKLIYE AYRILDI (weapons.json v2) ama satiri duruyor:
+                // eski bir kayittan ya da sahnedeki eski bir duvar noktasindan gelen
+                // id, gri kutuya duser - null'a degil.
+                case "weapon.rifle":
+                case "weapon.ak74":
+                case "weapon.m4":
+                case "weapon.sniper": return BuildRifle(parent, scale, body, accent);
+
                 default: return BuildPistol(parent, scale, body, accent);
             }
         }

@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class RoundsConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 4;
+        [SerializeField] private int version = 7;
 
         [Header("count")]
         [Tooltip("Tur 1'de oyuncu basina zombi. Cok dusuk olursa ilk turlar bos ve sikici gecer, oyuncu daha kurallari ogrenmeden canı sikilir. Cok yuksek olursa oyuncu silah alacak puani biriktiremeden bogulur.")]
@@ -93,7 +93,28 @@ namespace Bunker.Config
         [Range(2, 20)]
         [SerializeField] private int speedJogUntilRound = 12;
 
+        [Header("damage")]
+        [Tooltip("Tur basina hasar artisi, DOGRUSAL (0.03 = her tur taban hasarin +%3'u). Hasar = attack.damage x (1 + bu x (tur - 1)). 0 yaparsan hasar yeniden sabitlenir ve gec turda zombi sayisi disinda sertlesen hicbir sey kalmaz; buyutursen can kartlari ve tezgahin DAYANIKLILIK hatti gec turda anlamsizlasir cunku her temas iki vurusta oldurur.")]
+        [Range(0f, 0.15f)]
+        [SerializeField] private float damageGrowthPerRound01 = 0.03f;
+
+        [Tooltip("Hasar carpaninin tavani. 100 canli oyuncuda 30 x 2.5 = 75: tavanda bile tek vurus oldurmez. Tavansiz ya da cok yuksek olursa yeterince ileri turda her temas olum olur ve oyun bir kacis sinavindan bir zar atisina doner.")]
+        [Range(1f, 4f)]
+        [SerializeField] private float damageMaxMultiplier = 2.5f;
+
         [Header("boss")]
+        [Tooltip("CO-OP'ta (oturumda birden fazla oyuncu) boss sayisi kac BOSS TURUNDA bir artar. 1 = her boss turunda bir fazla: 1, 2, 3... Buyutursen dort kisilik bir ekip tek bir bossa karsi kalir ve boss turu kalabalik bir takim icin olay olmaktan cikar.")]
+        [Range(1, 10)]
+        [SerializeField] private int bossExtraEveryBossRoundsCoop = 1;
+
+        [Tooltip("TEK OYUNCUDA boss sayisi kac boss turunda bir artar. 2 = 1, 1, 2, 2, 3... Co-op hizinda (1) artarsa solo oyuncu, dikkati dagitacak ikinci bir oyuncu olmadan uc bossla ayni odada kalir - bu bir savas degil bir kusatmadir.")]
+        [Range(1, 10)]
+        [SerializeField] private int bossExtraEveryBossRoundsSolo = 2;
+
+        [Tooltip("Bir turda en fazla boss. Tavan olmazsa co-op 50. turda on boss dogurur; her biri turun caninin 14 kati ve mermi ekonomisi de PERF-BUDGET de birlikte coker.")]
+        [Range(1, 10)]
+        [SerializeField] private int bossMaxPerRound = 8;
+
         [Tooltip("Kac turda bir boss cikar. Sik olursa boss sıradanlasir ve bir olay olmaktan cikar; seyrek olursa oyuncu onu tanimadan tur 20'ye gelir.")]
         [Range(2, 20)]
         [SerializeField] private int bossEveryRounds = 5;
@@ -116,12 +137,12 @@ namespace Bunker.Config
 
         [Tooltip("Oldurme puani carpani. Bossu oldurmek bir SECIM olmali: kacmak da mesru, ama oldurmek tezgaha gidecek puani vermeli.")]
         [Range(1f, 20f)]
-        [SerializeField] private float bossPointsMultiplier = 6f;
+        [SerializeField] private float bossPointsMultiplier = 15f;
 
         [Header("roundEnd")]
         [Tooltip("Tur temizlendiginde yedek mermi TAVANININ bu orani kadar mermi geri gelir. Sifir olursa mermi tamamen satin almaya baglanir ve tek harcama kalir; 1'e yaklasirsa mermi bir kaynak olmaktan cikar ve duvardaki mermi noktasi anlamsizlasir.")]
         [Range(0f, 1f)]
-        [SerializeField] private float roundEndReserveAmmoFraction01 = 0.4f;
+        [SerializeField] private float roundEndReserveAmmoFraction01 = 0.5f;
 
         [Tooltip("Tur temizlendiginde her pencerede tam barikatin bu orani kadar tahta geri gelir. Sifir olursa gec turlarda butun mola tamirle gecer ve tezgaha gitmek imkansizlasir; 1'e yaklasirsa tamir etmek bir karar olmaktan cikar.")]
         [Range(0f, 1f)]
@@ -130,11 +151,11 @@ namespace Bunker.Config
         [Header("pacing")]
         [Tooltip("ILK turlarin arasindaki nefes molasi (breatherEarlyUntilRound dahil). Erken turlarda molada yapilacak is azdir - barikat saglamdir, tezgahta alacak puan yoktur - ve uzun mola bos bekleme olur. Cok kisaltirsan kart secimi biter bitmez tur baslar ve oyuncu barikata donemez.")]
         [Range(3f, 30f)]
-        [SerializeField] private float pacingBreatherSecondsEarly = 10f;
+        [SerializeField] private float pacingBreatherSecondsEarly = 30f;
 
         [Tooltip("breatherEarlyUntilRound'dan SONRAKI turlarin arasindaki mola. Gec turda molada yapilacak is coktur: tamir, tezgah, silah, kart okuma. Erken molayla ayni olursa oyuncu bunlardan yalnizca birini secebilir ve turu, sebebini goremedigi bir hazirlik eksigi yuzunden kaybeder.")]
         [Range(3f, 45f)]
-        [SerializeField] private float pacingBreatherSecondsLate = 20f;
+        [SerializeField] private float pacingBreatherSecondsLate = 30f;
 
         [Tooltip("Bu tura KADAR (dahil) kisa mola gecerli, sonrasinda uzun mola. Buyutursen gec turlarin hazirlik zamani hic gelmez; 1 yaparsan iki deger tek degere doner ve ayrimin sebebi kaybolur.")]
         [Range(1, 20)]
@@ -170,6 +191,11 @@ namespace Bunker.Config
                 speedRunMetersPerSecond,
                 speedWalkUntilRound,
                 speedJogUntilRound,
+                damageGrowthPerRound01,
+                damageMaxMultiplier,
+                bossExtraEveryBossRoundsCoop,
+                bossExtraEveryBossRoundsSolo,
+                bossMaxPerRound,
                 bossEveryRounds,
                 bossHealthMultiplier,
                 bossSpeedMultiplier,

@@ -111,6 +111,12 @@ namespace Bunker.UI
             // E ile acildi, E ile kapanir - tezgahla ayni tek kural.
             if (keyboard.eKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame)
             {
+                // KAPANDIGI KARE DAMGALANIR (2026-09-09). Bu satir olmadan E hicbir
+                // sey yapmiyor gibi gorunuyordu: bu bilesen menuyu kapatiyor, ayni
+                // karede PlayerInteract ayni tus basisini gorup yeniden aciyordu.
+                // Bilesen sirasi tanimsiz oldugu icin hata bazen "calisiyor" bile
+                // goruluyordu - teshisi zorlastiran tam olarak buydu.
+                MenuSignals.NoteMenuClosed(Time.frameCount);
                 MenuSignals.SetWeaponShopOpen(false);
             }
         }
@@ -153,16 +159,42 @@ namespace Bunker.UI
 
             IReadOnlyList<WeaponDefinition> catalog = _weapon.Catalog;
 
-            const float rowWidth = 230f;
             const float rowHeight = 150f;
             const float gap = 14f;
 
+            // GENISLIK EKRANA UYAR (2026-09-09). Sabit 230 piksellik sutunlar, silah
+            // sayisi dortten ALTIYA cikinca 1450 piksel ediyordu ve 1280x800'de
+            // (Steam Deck - ui-code.md'nin guvenli alan listesinde) ekrandan tasiyordu.
+            //
+            // Kenarda 48 piksel pay birakilir; kalan genislik sutunlara bolunur ve
+            // 230'u ASMAZ - genis ekranda sutunlari sismek, panelin okunmasini
+            // kolaylastirmaz.
+            const float maxRowWidth = 230f;
+            const float sideMargin = 48f;
+
+            // SATIRLARA SARAR (2026-09-10). Silah Atolyesi'nden silah eklenebildigi
+            // icin sayi artik sabit degil. Tek satira sigdirmak 12 silahta sutunu 86
+            // piksele indirip "SATIN AL - 2200 puan" yazisini kesiyordu. Sutun bu
+            // genisligin altina inmez; sigmayan silah bir alt satira gecer.
+            const float minRowWidth = 170f;
+
+            int count = Mathf.Max(1, catalog.Count);
+            float usable = Screen.width - sideMargin * 2f;
+
+            int columns = Mathf.Clamp(Mathf.FloorToInt((usable + gap) / (minRowWidth + gap)), 1, count);
+            int rows = Mathf.CeilToInt(count / (float)columns);
+
+            float rowWidth = Mathf.Min(maxRowWidth, (usable - (columns - 1) * gap) / columns);
+
             float cx = Screen.width * 0.5f;
-            float totalWidth = catalog.Count * rowWidth + Mathf.Max(0, catalog.Count - 1) * gap;
+            float totalWidth = columns * rowWidth + Mathf.Max(0, columns - 1) * gap;
+            float gridHeight = rows * rowHeight + Mathf.Max(0, rows - 1) * gap;
+
             // Bicak siri eklendi (2026-09-08): panel asagi dogru ~145 piksel uzadi,
             // yani baslangic noktasi da yukari kaymali - yoksa "kapat" ipucu 1080p'de
-            // ekranin altindan tasar.
-            float top = Screen.height * 0.5f - 230f;
+            // ekranin altindan tasar. Her ek silah satiri paneli yarim satir daha
+            // yukari tasir, ama ekranin ustunden cikarmaz.
+            float top = Mathf.Max(8f, Screen.height * 0.5f - 230f - (gridHeight - rowHeight) * 0.5f);
 
             GUI.Label(new Rect(cx - 300f, top, 600f, 44f), "SILAH TEZGAHI", _titleStyle);
 
@@ -176,14 +208,19 @@ namespace Bunker.UI
 
             for (int i = 0; i < catalog.Count; i++)
             {
-                DrawWeapon(catalog[i], new Rect(x + i * (rowWidth + gap), y, rowWidth, rowHeight));
+                int column = i % columns;
+                int row = i / columns;
+
+                DrawWeapon(catalog[i], new Rect(x + column * (rowWidth + gap), y + row * (rowHeight + gap),
+                                                rowWidth, rowHeight));
             }
 
-            float meleeBottom = DrawMeleeRow(cx, y + rowHeight + 20f, rowWidth, gap);
+            float meleeBottom = DrawMeleeRow(cx, y + gridHeight + 20f, rowWidth, gap);
 
             GUI.color = new Color(1f, 1f, 1f, 0.7f);
             GUI.Label(new Rect(cx - 300f, meleeBottom + 14f, 600f, 24f),
-                      "E ya da Esc  -  kapat", _hintStyle);
+                      "2 / 3  -  elindekini degistir       E ya da Esc  -  kapat",
+                      _hintStyle);
             GUI.color = Color.white;
         }
 
@@ -255,7 +292,7 @@ namespace Bunker.UI
             if (equipped)
             {
                 GUI.color = new Color(0.6f, 0.9f, 0.6f);
-                GUI.Label(button, "   elinde  (V ile savur)", _bodyStyle);
+                GUI.Label(button, "   elinde  (1 tusu)", _bodyStyle);
                 GUI.color = Color.white;
                 return;
             }
@@ -276,8 +313,12 @@ namespace Bunker.UI
 
         private void DrawWeapon(in WeaponDefinition definition, Rect rect)
         {
+            // UC DURUM (2026-09-09): alinmamis / alinmis ama uzerinde degil / uzerinde.
+            // Ortadaki yeni ve BEDELSIZ - ekranin bunu soylememesi, oyuncunun
+            // "yeniden para odeyecegim" sanip hic denememesi demek olurdu.
             bool owned = _weapon.Owns(definition.Id);
-            bool equipped = owned && _weapon.Current.Id == definition.Id;
+            bool carrying = _weapon.IsCarrying(definition.Id);
+            bool equipped = carrying && _weapon.Current.Id == definition.Id;
 
             GUI.color = new Color(1f, 1f, 1f, equipped ? 0.18f : 0.10f);
             GUI.DrawTexture(rect, _pixel);
@@ -306,21 +347,51 @@ namespace Bunker.UI
                       $"sarjor {definition.MagazineCapacity}", _bodyStyle);
             GUI.color = Color.white;
 
-            if (equipped)
+            if (equipped || (owned && !carrying))
             {
-                GUI.color = new Color(0.6f, 0.9f, 0.6f);
+                GUI.color = equipped
+                    ? new Color(0.6f, 0.9f, 0.6f)
+                    : new Color(0.95f, 0.85f, 0.45f);
+
                 GUI.Label(new Rect(inner.x, inner.y + 90f, inner.width, 18f),
-                          "elinde", _bodyStyle);
+                          equipped ? "elinde" : "cantada", _bodyStyle);
+                GUI.color = Color.white;
+            }
+            else if (!carrying && _weapon.IsCarryFull)
+            {
+                // KURALI EKRAN SOYLER (2026-09-10): slotlar doluyken yeni silah
+                // ELDEKININ yerine gecer. Yazmayan bir kural, oyuncu icin "tabancam
+                // hic gitmiyor" diye okunuyordu - kurali degistirmeye gerek yoktu,
+                // gorunur kilmaya vardi. Tezgah acikken 2/3 tuslari calisiyor, yani
+                // cumlenin tarif ettigi secim buradan yapilabiliyor.
+                GUI.color = new Color(0.95f, 0.85f, 0.45f);
+                GUI.Label(new Rect(inner.x, inner.y + 90f, inner.width, 18f),
+                          $"{_weapon.Current.DisplayName} yerine", _bodyStyle);
                 GUI.color = Color.white;
             }
 
             var button = new Rect(rect.x + 12f, rect.yMax - 32f, rect.width - 24f, 24f);
 
-            int cost = owned
-                ? (definition.AmmoPrice > 0 ? definition.AmmoPrice : definition.Price)
-                : definition.Price;
+            // Uzerinde olan silah MERMI satar; cantadaki BEDELSIZ ele gecer; hic
+            // alinmamis olan fiyatini ister.
+            int cost;
+            string label;
 
-            string label = owned ? $"MERMI  -  {cost} puan" : $"SATIN AL  -  {cost} puan";
+            if (!owned)
+            {
+                cost = definition.Price;
+                label = $"SATIN AL  -  {cost} puan";
+            }
+            else if (!carrying)
+            {
+                cost = 0;
+                label = "ELE AL  -  bedava";
+            }
+            else
+            {
+                cost = definition.AmmoPrice > 0 ? definition.AmmoPrice : definition.Price;
+                label = $"MERMI  -  {cost} puan";
+            }
 
             // Bedava baslangic silahi satilmaz: fiyati sifir olan bir "SATIN AL"
             // dugmesi, oyuncuya ne oldugu belirsiz bir sey vaat eder.
@@ -328,6 +399,16 @@ namespace Bunker.UI
             {
                 GUI.color = new Color(1f, 1f, 1f, 0.35f);
                 GUI.Label(button, "   baslangic silahi", _bodyStyle);
+                GUI.color = Color.white;
+                return;
+            }
+
+            // ELDEKI SILAH DEGISTIRILEMEZ: kendisiyle takas anlamsiz ve dugme "MERMI"
+            // yaziyorsa zaten mermi satiyor - o durumda dugme acik kalir.
+            if (equipped && cost <= 0)
+            {
+                GUI.color = new Color(1f, 1f, 1f, 0.35f);
+                GUI.Label(button, "   zaten elinde", _bodyStyle);
                 GUI.color = Color.white;
                 return;
             }

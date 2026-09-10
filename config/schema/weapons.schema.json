@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/weapons",
+  "title": "Ates silahi katalogu (denge)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "retiredIds", "weapons"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "retiredIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$" },
+      "description": "Emekliye ayrilmis id'ler. Bir daha KULLANILAMAZ: telemetri ve kayitlar eski anlamini tasir; ayni ismi baska bir silaha vermek o gecmisi yalan yapar."
+    },
+
+    "weapons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "damage", "roundsPerMinute", "headshotMultiplier", "rangeMeters", "spreadDegrees", "pelletCount", "magazineCapacity", "reserveCapacity", "startingReserve", "reloadSeconds", "recoilPitchPerShot", "recoilYawPerShot", "recoilRecoveryPerSecond", "recoilMaxPitch", "price", "ammoPrice"],
+        "properties": {
+          "id": {
+            "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$",
+            "description": "KALICI id. Degistirmek kayitlari, telemetriyi ve duvar noktalarini bozar; gorunen ad icin 'name' kullan."
+          },
+          "name": { "type": "string", "minLength": 1, "description": "Tezgahta ve arayuzde gorunen ad." },
+          "text": { "type": "string", "description": "Tezgahtaki tek cumlelik aciklama." },
+
+          "damage": {
+            "type": "number", "minimum": 1, "maximum": 2000,
+            "description": "Tek mermi (pompalida tek sacma) hasari. Tur 1 zombisi 150 can. Cok dusukte silah hic oldurmez; 2000'in ustunde her zombi gec turlara kadar tek atis olur ve silah secmenin anlami kalmaz."
+          },
+          "roundsPerMinute": {
+            "type": "number", "minimum": 20, "maximum": 1500,
+            "description": "Dakikadaki atis. 20'nin altinda silah tetige tepki vermiyor gibi hissettirir; 1500'un ustunde sarjor bir goz kirpmasinda biter ve ses tek bir vizilti olur."
+          },
+          "headshotMultiplier": {
+            "type": "number", "minimum": 1, "maximum": 5,
+            "description": "Kafadan isabet carpani. 1'de nisan almanin odulu yok; 5'in ustunde vucuda ates etmek anlamsizlasir."
+          },
+          "rangeMeters": {
+            "type": "number", "minimum": 5, "maximum": 300,
+            "description": "Merminin kayboldugu mesafe. Harita icinde gorunen bir hedefe yetismeyen menzil gorunmez bir duvar gibi hissettirir (2026-09-06 pompali bulgusu)."
+          },
+          "spreadDegrees": {
+            "type": "number", "minimum": 0, "maximum": 15,
+            "description": "Dagilim konisi. 15 derecenin ustunde uc metrede bile iskalanir; 0 her silahi nisanci tufegine cevirir."
+          },
+          "pelletCount": {
+            "type": "integer", "minimum": 1, "maximum": 20,
+            "description": "Atis basina sacma. 1'den buyuk yalnizca pompali tipi silahlar icin; 20'nin ustu tek atista kalabaligi siler."
+          },
+          "magazineCapacity": {
+            "type": "integer", "minimum": 1, "maximum": 200,
+            "description": "Sarjor. Dolum ritmini belirler: kucuk sarjor dolumu atisin parcasi yapar, cok buyuk sarjor dolum kararini ortadan kaldirir."
+          },
+          "reserveCapacity": {
+            "type": "integer", "minimum": 0, "maximum": 2000,
+            "description": "Tavan DEGIL (2026-09-07): tur sonu ikmalinin olcusu (rounds.json roundEnd.reserveAmmoFraction01). Cok buyukse mermi hic bir kaynak olmaz."
+          },
+          "startingReserve": {
+            "type": "integer", "minimum": 0, "maximum": 2000,
+            "description": "Silah alindiginda gelen yedek mermi. 0'da yeni silah bir sarjorluk bir oyuncaktir."
+          },
+          "reloadSeconds": {
+            "type": "number", "minimum": 0.1, "maximum": 8,
+            "description": "Tam dolum suresi (reloadPerShell ise TEK mermi). 8 saniyenin ustunde dolum bir ceza, 0.1'in altinda bir karar olmaktan cikar."
+          },
+          "reloadPerShell": { "type": "boolean", "description": "Dolum mermi mermi ilerler ve her an kesilip ates edilebilir (pompali)." },
+          "scopeMagnification": {
+            "type": "number", "minimum": 1.01, "maximum": 12,
+            "description": "Sag tik buyutmesi. Durbun yoksa ANAHTAR HIC YAZILMAZ. 12 katin ustunde goruntu hedefi bulmayi imkansiz kilar."
+          },
+          "scopeStyle": {
+            "type": "string", "enum": ["None", "LongRange", "Prism"],
+            "description": "Nisan alirken ekran: LongRange ekrani karartir (cevreni feda edersin), Prism gövdeyi gosterir (kalabalikta kullanilabilir)."
+          },
+          "recoilPitchPerShot": {
+            "type": "number", "minimum": 0, "maximum": 20,
+            "description": "Atis basina yukari tepme (derece). 20'nin ustunde ikinci mermi tavana gider."
+          },
+          "recoilYawPerShot": {
+            "type": "number", "minimum": 0, "maximum": 10,
+            "description": "Atis basina yana tepme (derece). Buyudukce seri atis kontrol edilemez olur."
+          },
+          "recoilRecoveryPerSecond": {
+            "type": "number", "minimum": 1, "maximum": 60,
+            "description": "Nisan noktasinin geri donus hizi (derece/sn). 1'de tepme hic toparlanmaz; 60'ta tepme hissedilmez."
+          },
+          "recoilMaxPitch": {
+            "type": "number", "minimum": 0, "maximum": 40,
+            "description": "Birikebilecek en fazla yukari tepme (derece)."
+          },
+          "price": {
+            "type": "integer", "minimum": 0, "maximum": 50000,
+            "description": "Tezgah fiyati. 0 = bedava (baslangic silahi). Tur basi kazancin cok ustundeki fiyat silahi hic gorulmeyen bir satira cevirir."
+          },
+          "ammoPrice": {
+            "type": "integer", "minimum": 0, "maximum": 10000,
+            "description": "Mermi ikmal fiyati. 0 mermiyi kaynak olmaktan cikarir."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/weapon-art",
+  "title": "Silah gorunumu: model, yon, boy, el konumu, aksesuarlar",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "weapons"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "weapons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["weaponId", "model", "lengthMeters", "nativeForward", "nativeUp", "handOffsetMeters", "attachments"],
+        "properties": {
+          "weaponId": {
+            "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$",
+            "description": "weapons.json'daki kalici silah id'si."
+          },
+          "model": {
+            "type": "string", "minLength": 1,
+            "description": "Ucuncu parti silah prefab'inin yolu. Arac bunun URP kopyasini uretir; kaynaga dokunmaz."
+          },
+          "lengthMeters": {
+            "type": "number", "minimum": 0.15, "maximum": 2.0,
+            "description": "El modelindeki boy (tabanca 0.26, M107 1.35). 0.15'in altinda silah avucta kaybolur; 2 m'nin ustunde dipcik kameranin arkasina duser ve ekrani bir yuzey kaplar."
+          },
+          "nativeForward": {
+            "type": "string", "enum": ["+X", "-X", "+Y", "-Y", "+Z", "-Z"],
+            "description": "Modelin KENDI uzayinda namlunun baktigi yon. Yanlissa silah oyuncuya donuk ya da yan durur - geometriden cikarilamaz, pencerede gorerek secilir."
+          },
+          "nativeUp": {
+            "type": "string", "enum": ["+X", "-X", "+Y", "-Y", "+Z", "-Z"],
+            "description": "Modelin KENDI uzayinda silahin ustu. Yanlissa silah yan yatmis ya da ters durur. Namlu yonuyle ayni eksen olamaz."
+          },
+          "handOffsetMeters": {
+            "type": "array", "minItems": 3,
+            "items": {
+              "type": "number", "minimum": -0.25, "maximum": 0.25,
+              "description": "Silahin eldeki konumuna ek kaydirma (sag, yukari, ileri). 25 cm'yi asarsa silah elden kopar ya da kameranin icine girer."
+            },
+            "description": "Otomatik yerlesim (kabza elde, silahin %18'i elin arkasinda) bir modelde yanlis oturuyorsa duzeltme."
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "prefab", "alongBarrel01", "gapOfWeaponHeight", "sideOfWeaponWidth", "scaleMultiplier", "eulerDegrees"],
+              "properties": {
+                "name": {
+                  "type": "string", "pattern": "^[A-Za-z0-9_]+$",
+                  "description": "Silah icinde tekil ad. Prefab'daki cocuk nesne 'Att_<ad>' olur."
+                },
+                "prefab": {
+                  "type": "string", "minLength": 1,
+                  "description": "Ucuncu parti aksesuar prefab'inin yolu."
+                },
+                "alongBarrel01": {
+                  "type": "number", "minimum": -0.5, "maximum": 1.5,
+                  "description": "Aksesuar MERKEZININ namlu boyunca yeri: 0 = namlu agzi, 1 = dipcik ucu. Eksi degerler namlunun ONUNE tasar (susturucu). Yarim silah boyundan fazla disari cikan parca, silahtan kopuk havada gorunur."
+                },
+                "gapOfWeaponHeight": {
+                  "type": "number", "minimum": -3, "maximum": 1,
+                  "description": "Aksesuarin ALT kenari ile govdenin tepesi arasi, silah yuksekliginin orani olarak. 0 = tepeye oturur, -1 = alt kenar govdenin altinda (tutamak). Uc silah boyundan asagisi ya da bir silah boyundan yukarisi parcayi govdeden koparir."
+                },
+                "sideOfWeaponWidth": {
+                  "type": "number", "minimum": -3, "maximum": 3,
+                  "description": "Yana kaydirma, silah genisliginin orani olarak. 0 = tam orta, arti = silahin sagi. Uc genisligi asan parca govdenin yaninda havada durur."
+                },
+                "scaleMultiplier": {
+                  "type": "number", "minimum": 0.1, "maximum": 5,
+                  "description": "Aksesuarin kendi boyunun carpani. Paketler farkli olcekte geliyor; 0.1'in altinda parca gorunmez, 5'in ustunde silahtan buyuk olur."
+                },
+                "eulerDegrees": {
+                  "type": "array", "minItems": 3,
+                  "items": {
+                    "type": "number", "minimum": -360, "maximum": 360,
+                    "description": "Aksesuarin donusu (derece). Baska bir paketten gelen parca ters yonde cizilmis olabilir."
+                  },
+                  "description": "X, Y, Z donusu. Genelde 0 ya da 90'in katlari."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

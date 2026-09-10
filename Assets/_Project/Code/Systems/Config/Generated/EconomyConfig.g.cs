@@ -76,6 +76,14 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0 .. 500 | JSON: prices.cardRerollAddPerRound</remarks>
         public readonly int PricesCardRerollAddPerRound;
 
+        /// <summary>Tur basinda dirilmenin TAM fiyati (2026-09-09). Olen oyuncu KENDI puanindan oder ve puani yetmezse yettigi kadar CANLA dirilir (hic yoksa 1 can). Sifir yaparsan olmek bedelsiz olur ve yerde kalmak bir sey kaybettirmez; cok buyutursen gec turda dirilmek imkansizlasir ve oyuncu izleyiciye doner - ki bu, yere dusme sisteminin varlik sebebinin tam tersi.</summary>
+        /// <remarks>Aralik: 0 .. 5000 | JSON: prices.reviveBase</remarks>
+        public readonly int PricesReviveBase;
+
+        /// <summary>Diriltme fiyatinin tur basina artisi. Kart yenilemesiyle ayni gerekce: sabit fiyat gec turlarda bedavaya doner ve olum bir sonuc olmaktan cikar. Artis, dirilmenin bedelini turun puan olcegiyle ayni bantta tutar.</summary>
+        /// <remarks>Aralik: 0 .. 1000 | JSON: prices.reviveAddPerRound</remarks>
+        public readonly int PricesReviveAddPerRound;
+
         /// <summary>Bir alimda verilen sarjor sayisi. Gercek mermi = bu sayi x weapon.json'daki sarjor kapasitesi. Bu, TURUN RITMINI belirleyen bir denge sayisidir: dusurursen oyuncu tur icinde duvara tekrar tekrar doner ve tur parcalanir (PILLAR-03: 'oyuncu hicbir zaman menu isi yapiyorum moduna gecmemeli'); buyutursen mermi bir kaynak olmaktan cikar ve puanin harcanacak yeri kalmaz. Simulasyon 5 ile tur 14'te ON BES ayri sefer ongoruyor - bkz. design/economy/curves.md.</summary>
         /// <remarks>Aralik: 1 .. 40 | JSON: ammo.magazinesPerPurchase</remarks>
         public readonly int AmmoMagazinesPerPurchase;
@@ -89,7 +97,7 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public EconomyConfig(
-            int version = 4,
+            int version = 5,
             int awardsHit = 10,
             int awardsBodyKill = 60,
             int awardsHeadshotKill = 100,
@@ -104,6 +112,8 @@ namespace Bunker.Systems.Config
             int pricesMysteryBox = 950,
             int pricesCardRerollBase = 200,
             int pricesCardRerollAddPerRound = 50,
+            int pricesReviveBase = 500,
+            int pricesReviveAddPerRound = 100,
             int ammoMagazinesPerPurchase = 5,
             int ammoRefillCost = 250)
         {
@@ -122,6 +132,8 @@ namespace Bunker.Systems.Config
             PricesMysteryBox = pricesMysteryBox;
             PricesCardRerollBase = pricesCardRerollBase;
             PricesCardRerollAddPerRound = pricesCardRerollAddPerRound;
+            PricesReviveBase = pricesReviveBase;
+            PricesReviveAddPerRound = pricesReviveAddPerRound;
             AmmoMagazinesPerPurchase = ammoMagazinesPerPurchase;
             AmmoRefillCost = ammoRefillCost;
         }

@@ -98,12 +98,23 @@ namespace Bunker.Systems.Combat
             Math.Max(1, (int)Math.Ceiling(_config.MagazineCapacity * _mods.MagazineMultiplier));
 
         /// <summary>
-        /// Tur sonu ikmalinin ölçü birimi. <b>Bir tavan değildir</b> (2026-09-07):
-        /// yedek mermi sınırı kaldırıldı, çünkü sınırın tek görünür sonucu, toplanan
-        /// merminin sessizce buharlaşmasıydı. Silahın <c>reserveCapacity</c> değeri
-        /// artık yalnızca "bir tur sonu ikmali ne kadardır" sorusunun referansı.
+        /// Yedek mermi tavanı: silahın kendi <c>reserveCapacity</c>'si artı kart
+        /// katkısı (2026-09-10).
+        ///
+        /// <para><b>Kısmi bir tavan.</b> 2026-09-07'de sınır tamamen kalkmıştı çünkü
+        /// tek görünür sonucu satın alınan merminin sessizce buharlaşmasıydı. Geri
+        /// gelen şey o değil: tavan yalnızca <b>bedava gelen</b> mermiyi sınırlar — tur
+        /// sonu ikmali, yerden toplama, öldürme ödülü. Tavanı <b>yalnızca satın alınan
+        /// mermi</b> aşabilir, çünkü orada buharlaşan şey ödenmiş bir bedel olurdu
+        /// (2026-09-10, geliştiricinin dört kuralı: <see cref="ReserveAmmo"/>).</para>
+        ///
+        /// <para>Aynı zamanda ikmalin <b>ölçü birimi</b>: bir tur sonu bu sayının
+        /// <c>rounds.json → roundEnd.reserveAmmoFraction01</c> kadarını verir.</para>
         /// </summary>
-        public int ReserveRestockReference => Math.Max(0, _config.ReserveCapacity);
+        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
+
+        /// <summary>Tur sonu ikmalinin ölçü birimi — tavanın kendisi.</summary>
+        public int ReserveRestockReference => ReserveCapacity;
 
         /// <summary>Kart etkileriyle dolum suresi.</summary>
         public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
@@ -230,6 +241,23 @@ namespace Bunker.Systems.Combat
 
             Reserve += amount;
             return amount;
+        }
+
+        /// <summary>
+        /// Yedekten mermi <b>siler</b> (2026-09-09: olum cezasi).
+        ///
+        /// <para><b>Neden ayri bir metot, negatif AddReserve degil:</b> AddReserve'in
+        /// sozlesmesi "eklenen ne varsa girer" ve negatifi sessizce yutuyor. O
+        /// sozlesmeyi gevsetmek, mermi ekleyen her cagriya "ya negatif gelirse"
+        /// sorusunu tasimak olurdu. Silme ayri bir niyet, ayri bir metot.</para>
+        ///
+        /// <para>Sifirin altina inmez.</para>
+        /// </summary>
+        public void RemoveReserve(int amount)
+        {
+            if (amount <= 0) return;
+
+            Reserve = Math.Max(0, Reserve - amount);
         }
 
         /// <summary>Silahı ilk hâline döndürür — yeni run, ya da havuzdan çıkan oyuncu.</summary>

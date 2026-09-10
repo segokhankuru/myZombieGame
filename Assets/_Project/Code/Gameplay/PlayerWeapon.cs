@@ -6,6 +6,7 @@ using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
 using Bunker.Systems.Pickups;
 using Bunker.Systems.Rounds;
+using Bunker.Systems.Ui;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -54,8 +55,11 @@ namespace Bunker.Gameplay
                  "gosteren tek sey bu.")]
         [SerializeField] private LineRenderer tracer;
 
-        /// <summary>Oyuncunun her run'a basladigi silah. Katalogdaki id ile ayni.</summary>
-        private const string StarterWeaponId = "weapon.pistol";
+        /// <summary>
+        /// Oyuncunun her run'a basladigi silah. Katalogdaki id ile ayni. Silah Atolyesi
+        /// bu silahin oyundan kaldirilmasina izin vermez.
+        /// </summary>
+        public const string StarterWeaponId = "weapon.pistol";
 
         /// <summary>
         /// Bu atis hizinin ustundeki silahlar OTOMATIK ates eder.
@@ -68,16 +72,70 @@ namespace Bunker.Gameplay
 
         private System.Collections.Generic.List<WeaponDefinition> _catalog;
 
-        // Envanter: her silahin KENDI mermisi ve kendi dogrulayicisi var. Ortak bir
-        // sayac, pompaliyla tabancanin ayni mermiyi paylasmasi demek olurdu.
-        private readonly System.Collections.Generic.List<WeaponDefinition> _owned =
-            new System.Collections.Generic.List<WeaponDefinition>(4);
+        /// <summary>
+        /// <b>Cephanelik</b>: bu run'da satın alınmış BÜTÜN silahlar (2026-09-09).
+        ///
+        /// <para>Geliştirici: <i>"satın alınmış silahlara puan harcamadan
+        /// değiştirebilme olayımız olsun."</i> Yani satın almak <b>kalıcı</b>; taşımak
+        /// geçici. Tezgâhta daha önce aldığın bir silahı seçmek bedelsiz — çünkü onu
+        /// zaten ödedin.</para>
+        ///
+        /// <para><b>Durum da burada kalıyor</b> (şarjör ve yedek mermi). Silah bırakılıp
+        /// geri alındığında sıfırdan kurulsaydı, tezgâhta iki kez tıklamak <i>bedava
+        /// dolum</i> olurdu — sömürülmesi en kolay tür. Cephanelikteki silah, bıraktığın
+        /// mermiyle bekler.</para>
+        ///
+        /// <para>Her silahın KENDI mermisi ve kendi doğrulayıcısı var; ortak bir sayaç,
+        /// pompalıyla tabancanın aynı mermiyi paylaşması demek olurdu.</para>
+        /// </summary>
+        private readonly System.Collections.Generic.List<WeaponDefinition> _arsenal =
+            new System.Collections.Generic.List<WeaponDefinition>(6);
         private readonly System.Collections.Generic.List<WeaponState> _states =
-            new System.Collections.Generic.List<WeaponState>(4);
+            new System.Collections.Generic.List<WeaponState>(6);
         private readonly System.Collections.Generic.List<ServerFireGuard> _guards =
-            new System.Collections.Generic.List<ServerFireGuard>(4);
+            new System.Collections.Generic.List<ServerFireGuard>(6);
+
+        /// <summary>
+        /// <b>Üzerinde taşınanlar</b>: cephanelikteki sıraları. En fazla
+        /// <see cref="CarrySlots"/> tane.
+        ///
+        /// <para>Geliştirici: <i>"silahlar numaralara sığmadı, o yüzden 2 ateşli silah
+        /// sınırımız olsun."</i> Şikâyet bir arayüz şikâyetiydi ama çözümü bir
+        /// <b>tasarım</b> çözümü: taşıma sınırı, tezgâhta "hangisini bırakayım"
+        /// sorusunu üretir ve altı silahın hepsini biriktirip hiç seçim yapmamayı
+        /// imkânsız kılar. Tuş düzeni de kendiliğinden toparlanıyor — 1 bıçak,
+        /// 2-3 silah, 4-8 eşya.</para>
+        /// </summary>
+        private readonly System.Collections.Generic.List<int> _carried =
+            new System.Collections.Generic.List<int>(4);
+
+        /// <summary>Aynı anda taşınabilen ateşli silah sayısı (weapon.json).</summary>
+        private int CarrySlots => _carrySlots;
+
+        private int _carrySlots = 2;
 
         private int _slot = -1;
+
+        /// <summary>
+        /// Elde bıçak mı var (slot 1). 2026-09-09.
+        ///
+        /// <para><b>Neden burada, ayrı bir bileşende değil:</b> "elimde ne var" tek bir
+        /// sorudur ve tek bir yerde cevaplanmalı. İki bileşen kendi cevabını tutsaydı
+        /// (silah "ben aktifim", bıçak "hayır ben") ikisinin ayrıştığı bir kare
+        /// kaçınılmazdı — ve o karede oyuncu hem ateş eder hem bıçak sallardı.
+        /// <c>PlayerMelee</c> buraya <b>bakar</b>, kendi bayrağını tutmaz
+        /// (csharp-code.md: aynı iş kuralı iki yerde duramaz).</para>
+        /// </summary>
+        private bool _meleeActive;
+
+        /// <summary>Elde bıçak mı var. <c>PlayerMelee</c> ve HUD bunu okur.</summary>
+        public bool IsMeleeActive => _meleeActive;
+
+        /// <summary>
+        /// Ekranda görünen slot numarası: bıçak <b>1</b>, ateşli silahlar <b>2..5</b>.
+        /// HUD çubuğu bunu yazar.
+        /// </summary>
+        public int ActiveSlotNumber => _meleeActive ? 1 : _slot + 2;
 
         private WeaponDefinition _config;
 
@@ -121,8 +179,17 @@ namespace Bunker.Gameplay
         /// <summary>Bir zombi öldürüldü — ekonomi buna bağlanır.</summary>
         public event Action<DamageKind, bool> KillConfirmed;
 
+        /// <summary>
+        /// Eldeki şey değişti: bıçak ↔ ateşli silah, ya da silahtan silaha
+        /// (2026-09-09). El modeli (<c>PlayerViewmodel</c>) buna bağlanır.
+        /// </summary>
+        public event Action HandChanged;
+
         public int RoundsInMagazine => _state?.RoundsInMagazine ?? 0;
         public int Reserve => _state?.Reserve ?? 0;
+
+        /// <summary>Eldeki silahın yedek tavanı, kartlarla. HUD yazar (2026-09-10).</summary>
+        public int ReserveCapacity => _state?.ReserveCapacity ?? 0;
         public int MagazineCapacity => _state?.MagazineCapacity ?? 0;
         public bool IsReloading => _state?.IsReloading ?? false;
         public float ReloadProgress01 => _state?.ReloadProgress01 ?? 0f;
@@ -171,8 +238,11 @@ namespace Bunker.Gameplay
             WeaponDefinition pistol = FindInCatalog(StarterWeaponId);
             if (!pistol.IsValid) pistol = WeaponDefinition.FromConfig(starter);
 
+            // Tasima slotu sayisi config'ten (weapon.json loadout.firearmSlots).
+            _carrySlots = Math.Max(1, starter.LoadoutFirearmSlots);
+
+            // AddWeapon ele almayi da yapiyor - ayrica EquipSlot cagirmak gereksiz.
             AddWeapon(pistol);
-            EquipSlot(0);
 
             if (tracer != null) tracer.enabled = false;
         }
@@ -184,33 +254,97 @@ namespace Bunker.Gameplay
         /// taşınır. Tek bir ortak sayaç, pompalıyla tabancanın aynı mermiyi paylaşması
         /// demek olurdu ve silah seçimi bir karar olmaktan çıkardı.</para>
         /// </summary>
-        /// <returns>Yeni eklendiyse <c>true</c>; zaten varsa <c>false</c>.</returns>
+        /// <returns>
+        /// Silah <b>ele alındıysa</b> <c>true</c>. Zaten elde tutuluyorsa
+        /// <c>false</c> — çağıran taraf bunu "bir şey değişmedi" diye okur.
+        /// </returns>
         public bool AddWeapon(in WeaponDefinition definition)
         {
             if (!definition.IsValid) return false;
 
-            for (int i = 0; i < _owned.Count; i++)
+            // 1) CEPHANELIK: bu run'da bir kez alinan silah bir daha unutulmaz.
+            int arsenal = ArsenalIndexOf(definition.Id);
+
+            if (arsenal < 0)
             {
-                if (_owned[i].Id == definition.Id) return false;
+                var newState = new WeaponState(definition);
+                var newGuard = new ServerFireGuard(definition);
+
+                // KART ETKILERI DOGUMDA UYGULANIR (2026-09-10). Onceki surum kartlari
+                // yalnizca ELE ALINAN silaha uyguluyordu: cepteki silahin yedek tavani
+                // kartsiz kaliyor ve tur sonu ikmali onu eski tavana kirpiyordu -
+                // "yedek mermi duzgun calismiyor hissi"nin iki sebebinden biri.
+                WeaponModifiers mods = BuildModifiers();
+                newState.ApplyModifiers(mods);
+                newGuard.ApplyModifiers(mods);
+
+                _arsenal.Add(definition);
+                _states.Add(newState);
+                _guards.Add(newGuard);
+                arsenal = _arsenal.Count - 1;
             }
 
-            _owned.Add(definition);
-            _states.Add(new WeaponState(definition));
-            _guards.Add(new ServerFireGuard(definition));
+            // 2) TASIMA: zaten uzerindeyse yalnizca ona gecilir.
+            int carried = _carried.IndexOf(arsenal);
+
+            if (carried >= 0)
+            {
+                if (carried == _slot && !_meleeActive) return false;
+
+                EquipSlot(carried);
+                return true;
+            }
+
+            // 3) YER VARSA EKLE, YOKSA ELDEKININ YERINE KOY (2026-09-09, gelistirici:
+            //    "hangisi elimizdeyken tezgahtan silah alirsak onun yerine satin
+            //    alinsin").
+            //
+            //    <b>Neden eldeki, en eski degil:</b> hangi silahin gidecegini oyuncu
+            //    SECIYOR - tezgaha gitmeden once elini degistirerek. Otomatik bir
+            //    kural (en eski, en ucuz, en az kullanilan) oyuncunun kontrolunu alir
+            //    ve "yanlis silahimi sildi" diye okunur. Elindeki silah, oyuncunun
+            //    zaten bildigi tek sey.
+            if (_carried.Count < CarrySlots)
+            {
+                _carried.Add(arsenal);
+                EquipSlot(_carried.Count - 1);
+                return true;
+            }
+
+            int target = _slot >= 0 && _slot < _carried.Count ? _slot : 0;
+            _carried[target] = arsenal;
+
+            // Yerine koyma AYNI slota yaziyor, yani EquipSlot'un "zaten bu slottayim"
+            // kisa devresi buraya takilir. Once bagi kopariyoruz.
+            _slot = -1;
+            EquipSlot(target);
 
             return true;
         }
 
-        /// <summary>Envanterdeki bir silaha geçer.</summary>
+        /// <summary>Bu id cephanelikte kaçıncı sırada; yoksa <c>-1</c>.</summary>
+        private int ArsenalIndexOf(string weaponId)
+        {
+            for (int i = 0; i < _arsenal.Count; i++)
+            {
+                if (_arsenal[i].Id == weaponId) return i;
+            }
+
+            return -1;
+        }
+
+        /// <summary>Taşınan bir slota geçer (0 tabanlı; ekranda 2..N olarak görünür).</summary>
         public void EquipSlot(int slot)
         {
-            if (slot < 0 || slot >= _owned.Count) return;
+            if (slot < 0 || slot >= _carried.Count) return;
             if (slot == _slot && _state != null) return;
 
+            int arsenal = _carried[slot];
+
             _slot = slot;
-            _config = _owned[slot];
-            _state = _states[slot];
-            _guard = _guards[slot];
+            _config = _arsenal[arsenal];
+            _state = _states[arsenal];
+            _guard = _guards[arsenal];
 
             // Savas gunlugunun etiketi silah DEGISINCE kurulur (2026-09-08): atis
             // basina string birlestirmek, otomatik atista saniyede on tahsis olurdu
@@ -234,15 +368,21 @@ namespace Bunker.Gameplay
             GameAudio.Play(SfxId.ReloadIn, 0.7f);
         }
 
-        /// <summary>Bu id envanterde var mı (duvar satın alma noktası sorar).</summary>
-        public bool Owns(string weaponId)
-        {
-            for (int i = 0; i < _owned.Count; i++)
-            {
-                if (_owned[i].Id == weaponId) return true;
-            }
+        /// <summary>
+        /// Bu silah <b>satın alınmış mı</b> — yani bedelsiz geçilebilir mi.
+        ///
+        /// <para><b>Taşıyor olmakla aynı şey değil</b> (2026-09-09): cephanelikte olup
+        /// üzerinde olmayan bir silah da "sahip olunmuş"tur ve tezgâhta puan
+        /// istemez. Duvar satın alma noktası da bunu sorar — aynı silahı ikinci kez
+        /// satmak, oyuncunun ödediği şeyi unutmak olurdu.</para>
+        /// </summary>
+        public bool Owns(string weaponId) => ArsenalIndexOf(weaponId) >= 0;
 
-            return false;
+        /// <summary>Bu silah şu anda <b>üzerinde mi</b> (slot çubuğunda görünüyor mu).</summary>
+        public bool IsCarrying(string weaponId)
+        {
+            int arsenal = ArsenalIndexOf(weaponId);
+            return arsenal >= 0 && _carried.Contains(arsenal);
         }
 
         /// <summary>Katalogdan bir silah tanımı. Bulunamazsa geçersiz tanım döner.</summary>
@@ -269,8 +409,15 @@ namespace Bunker.Gameplay
         /// <summary>Eldeki silahın tanımı. HUD ve durum paneli okur.</summary>
         public WeaponDefinition Current => _config;
 
-        /// <summary>Envanterdeki silah sayısı.</summary>
-        public int OwnedCount => _owned.Count;
+        /// <summary>Uzerinde tasinan silah sayisi. HUD slot cubugu bunu okur.</summary>
+        public int OwnedCount => _carried.Count;
+
+        /// <summary>
+        /// Taşıma slotları dolu mu — yani <b>bir sonraki alım eldekinin yerine mi
+        /// geçecek</b>. Tezgâh ekranı bunu yazar (2026-09-10): kuralı bilmeyen oyuncu,
+        /// tabancasının neden hiç gitmediğini anlayamıyordu.
+        /// </summary>
+        public bool IsCarryFull => _carried.Count >= CarrySlots;
 
         /// <summary>
         /// Silahı envantere ekler ve isteğe bağlı olarak <b>ele alır</b>.
@@ -279,11 +426,12 @@ namespace Bunker.Gameplay
         [Server]
         public void ServerGrantWeapon(WeaponDefinition definition, bool equip)
         {
+            // AddWeapon artik ele almayi da yapiyor (yer varsa ekler, yoksa eldekinin
+            // yerine koyar). Ayrica EquipSlot cagirmak, yerine koyma durumunda YANLIS
+            // slota gecmek olurdu - _owned.Count-1 artik "yeni eklenen" demek degil.
             if (!AddWeapon(definition)) return;
 
             TargetGrantWeapon(connectionToClient, definition.Id, equip);
-
-            if (equip) EquipSlot(_owned.Count - 1);
         }
 
         /// <summary>
@@ -301,12 +449,13 @@ namespace Bunker.Gameplay
             WeaponDefinition definition = FindInCatalog(weaponId);
             if (!definition.IsValid) return;
 
-            if (!AddWeapon(definition)) return;
-            if (equip) EquipSlot(_owned.Count - 1);
+            AddWeapon(definition);
         }
 
         public string OwnedName(int slot) =>
-            slot >= 0 && slot < _owned.Count ? _owned[slot].DisplayName : string.Empty;
+            slot >= 0 && slot < _carried.Count
+                ? _arsenal[_carried[slot]].DisplayName
+                : string.Empty;
 
         public int EquippedSlot => _slot;
 
@@ -342,7 +491,9 @@ namespace Bunker.Gameplay
             int rounds = Mathf.RoundToInt(_state.MagazineCapacity * amount);
             if (rounds <= 0) return;
 
-            ServerAddReserve(rounds);
+            // YERDEN TOPLANAN MERMI BEDAVADIR (2026-09-10): tavana kadar doldurur,
+            // tavanin ustune tasimaz - o yalnizca satin almanin hakki (ReserveAmmo, K4).
+            ServerAddFreeReserve(rounds);
         }
 
         /// <summary>
@@ -358,20 +509,46 @@ namespace Bunker.Gameplay
         ///
         /// <para>Oran <c>rounds.json → roundEnd.reserveAmmoFraction01</c>'de; buraya bir
         /// sayı yazılmaz (config-data.md).</para>
+        ///
+        /// <para><b>İkmal SAHIP OLUNAN HER SILAHA gider</b> (2026-09-09, geliştirici:
+        /// <i>"her tur sonunda gelen mermiler kişinin elindeki silaha geliyor, böyle
+        /// olmamalı, bütün silahlarına gelmeli"</i>). Doğru tespit ve önceki hâl bir
+        /// hataydı: ikmali yalnızca elde tutulan silaha vermek, oyuncuyu <b>tur
+        /// bitmeden önce doğru silahı eline almaya</b> zorluyordu — yani ödül,
+        /// oynanışla ilgisi olmayan bir muhasebe hilesine bağlıydı ve o hileyi bilmeyen
+        /// oyuncu, ikinci silahının hiç dolmadığını sebebini anlamadan yaşıyordu.
+        /// Silah çeşitliliği tam da bu yüzden cezalandırılıyordu.</para>
+        ///
+        /// <para><b>Her silah KENDI referansına göre alır</b>, hepsi aynı sayıyı değil:
+        /// pompalının 90'ı ile SMG'nin 480'i aynı şeyi söylüyor — "bir tur sonunun
+        /// bu silahta ettiği mermi". Sabit bir sayı, pompalıyı tur başına on beş dolum
+        /// zengini yapardı.</para>
         /// </summary>
         private void OnRoundEndRestock(float reserveAmmoFraction01, float boardsFraction01)
         {
-            if (!isServer || _state == null) return;
+            if (!isServer) return;
             if (reserveAmmoFraction01 <= 0f) return;
 
-            // Olcu birimi silahin kendi yedek referansi (weapons.json reserveCapacity).
-            // 2026-09-07'de o sayi bir TAVAN olmaktan cikti; ikmalin buyuklugunu
-            // soylemeye devam ediyor, cunku "bir tur sonu ne kadar mermi eder"
-            // sorusunun silaha gore cevabi hala o.
-            int amount = Mathf.RoundToInt(_state.ReserveRestockReference * reserveAmmoFraction01);
-            if (amount <= 0) return;
+            for (int i = 0; i < _guards.Count; i++)
+            {
+                if (_guards[i] == null) continue;
 
-            ServerAddReserve(amount);
+                // KURAL TEK YERDE (2026-09-10): ReserveAmmo.RoundEndRestock - tavanin
+                // yarisi, tavani asmadan. Olcu birimi silahin KENDI tavani (weapons.json
+                // reserveCapacity + kartlar); kart katkisi artik cepteki silaha da
+                // uygulaniyor (OnLoadoutChanged), yani tavan her silahta dogru.
+                //
+                // <b>Hesap SUNUCUNUN sayacindan</b> (_guards), istemcininkinden (_states)
+                // degil: otorite sunucuda ve iki taraf ayni sayiyi eklemek zorunda.
+                // Istemcinin sayaci bir kare geride oldugunda kendi kirpmasini yapsaydi,
+                // ikisi ayrisir ve BUG-001'in sinifi geri gelirdi - istemci mermiyi
+                // gorur, sunucu atisi reddeder.
+                int amount = ReserveAmmo.RoundEndRestock(_guards[i].Reserve,
+                                                         _guards[i].ReserveCapacity,
+                                                         reserveAmmoFraction01);
+
+                ServerAddReserve(i, amount);
+            }
         }
 
         /// <summary>
@@ -389,8 +566,16 @@ namespace Bunker.Gameplay
         {
             WeaponModifiers mods = BuildModifiers();
 
-            _state?.ApplyModifiers(mods);
-            _guard?.ApplyModifiers(mods);
+            // SAHIP OLUNAN HER SILAH (2026-09-10, gelistirici: "yedek mermi kapasitesi
+            // kartlarla arttirilir"). Onceki surum yalnizca ELDEKI silahi guncelliyordu:
+            // cepteki silah kartsiz tavanla kaliyor, tur sonu ikmali onu eski tavana
+            // kirpiyordu ve EquipSlot'a kadar kimse fark etmiyordu. Liste en fazla alti
+            // silah; kart secimi turda bir kez - maliyeti yok.
+            for (int i = 0; i < _states.Count; i++)
+            {
+                _states[i]?.ApplyModifiers(mods);
+                _guards[i]?.ApplyModifiers(mods);
+            }
         }
 
         /// <summary>Kart VE tezgah etkileri tek noktadan okunur (RunModifiers).</summary>
@@ -400,6 +585,8 @@ namespace Bunker.Gameplay
                 reloadSpeed: RunModifiers.Total(CardStat.ReloadSpeed),
                 damage: RunModifiers.Total(CardStat.WeaponDamage),
                 magazine: RunModifiers.Total(CardStat.MagazineCapacity),
+                // Yedek tavani MUTLAK mermi (kartlar toplanir): 120 + 200 = +320.
+                reserve: Mathf.RoundToInt(RunModifiers.Total(CardStat.ReserveCapacity)),
                 headshotMultiplier: RunModifiers.Total(CardStat.HeadshotMultiplier));
 
         /// <summary>
@@ -425,8 +612,25 @@ namespace Bunker.Gameplay
         /// </summary>
         private void OnRunRestarted()
         {
-            _state.Reset();
-            _guard.Reset();
+            // CEPHANELIK DE SIFIRLANIR (2026-09-09). Satin alinan silahlar run boyunca
+            // hatirlaniyor; hatirlamaya devam ederlerse ikinci run, birincinin M107'si
+            // elde baslardi - CardLoadout.Reset ile ayni sinif hata.
+            //
+            // Baslangic silahi yeniden kuruluyor: listeleri bosaltip birakmak, silahi
+            // olmayan bir oyuncu birakirdi.
+            WeaponDefinition pistol = _arsenal.Count > 0 ? _arsenal[0] : _config;
+
+            _arsenal.Clear();
+            _states.Clear();
+            _guards.Clear();
+            _carried.Clear();
+
+            _slot = -1;
+            _state = null;
+            _guard = null;
+            _meleeActive = false;
+
+            AddWeapon(pistol);
         }
 
         // ---------------------------------------------------------------- kare dongusu
@@ -445,7 +649,7 @@ namespace Bunker.Gameplay
             // Dolumun BITTIGI an: sarjorun oturdugu ses. Zamanlayici tutmuyoruz,
             // durumun kendisinden okuyoruz - iki ayri sayac hep birbirinden kayar
             // (audio-code.md: geri bildirim oyun durumundan tetiklenir).
-            if (isLocalPlayer && wasReloading && !_state.IsReloading) GameAudio.Play(SfxId.ReloadIn);
+            if (isLocalPlayer && wasReloading && !_state.IsReloading) PlayWeaponSound(WeaponSoundKind.ReloadIn);
 
             // Yalnizca yerel oyuncu kendi silahini surer.
             if (!isLocalPlayer) return;
@@ -456,32 +660,75 @@ namespace Bunker.Gameplay
             // Run bitti YA DA tur arasi ekrani acik: girdi kesilir. Ekran acikken
             // ates etmek, bakis cevirmek ya da satin almak, fareyle kart secmeyi
             // imkansiz kilardi.
-            if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen) return;
+            if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen)
+            {
+                // TEZGAH ACIKKEN EL DEGISTIRME SERBEST (2026-09-10, oyun testi:
+                // "tabanca hic gitmiyor, tufek + M4 tasiyamiyorum").
+                //
+                // Tasima slotlari doluyken satin alinan silah ELDEKININ yerine gecer
+                // - bu, hangisini birakacagina oyuncunun karar vermesi icin secilmis
+                // bir kuraldi. Ama tezgah acikken butun girdi kesiliyordu, yani o
+                // karari verecek tus calismyordu: oyuncu tezgahin onunde elindekini
+                // degistiremiyor, dolayisiyla tabancayi asla birakamiyordu. Kural
+                // dogruydu, kurali kullanmanin yolu yoktu.
+                //
+                // ATES VE DOLUM HALA KESIK: acik olan sey yalnizca el degistirme.
+                // Menunun arkasindan ates etmek, fareyle secim yapmayi imkansiz
+                // kilardi - o gerekce yerinde duruyor.
+                if (MenuSignals.IsWeaponShopOpen && !RunSignals.IsRunOver)
+                {
+                    ReadWeaponSwitch(Keyboard.current, null);
+                }
+
+                return;
+            }
 
             ReadInput();
         }
 
         /// <summary>
-        /// Silah değiştirme: <b>1..4</b> ya da fare tekerleği.
+        /// El değiştirme: <b>1 bıçak, 2..5 ateşli silahlar</b>, ya da fare tekerleği.
         ///
-        /// <para><b>İki yol birden</b>, çünkü ikisi iki farklı ana ait: sayı tuşu
-        /// "şimdi pompalıyı istiyorum" der, tekerlek "bir öncekine dön" der. Sürünün
-        /// içinde ikincisi hayat kurtarır, çünkü hangi yuvada ne olduğunu düşünmeye
-        /// zaman yoktur.</para>
+        /// <para><b>Bıçak 2026-09-09'da bir SLOT oldu</b> (geliştirici: <i>"melee
+        /// atağı V'ye basarak yapıyorduk, bunu değiştiriyoruz ve silah gibi slota
+        /// yerleştiriyoruz"</i>). Önceki hâlde bıçak ayrı bir tuştaydı ve bu, onu
+        /// bir <i>silah</i> değil bir <i>kısayol</i> yapıyordu: elindeki silahı
+        /// bırakmadan bıçak sallayabilmek, bıçağın bedelini (ateş edememek) sıfıra
+        /// indiriyordu. Artık bıçağa geçmek bir <b>karar</b> — mermi biriktirmenin
+        /// yolu, ama o sırada uzaktaki zombiye cevabın yok.</para>
+        ///
+        /// <para><b>Tekerlek bıçağı da dolaşır</b>, çünkü döngü artık "elimdekiler"
+        /// listesi ve bıçak onun ilk üyesi. Bıçağı döngüden çıkarmak, tekerleği
+        /// kullanan oyuncunun bıçağa hiç ulaşamaması demekti.</para>
         ///
         /// <para><b>Dolum sırasında değiştirmek serbest</b> ve dolumu iptal eder — bu
         /// bir hile değil, bir bedel: yarım kalan dolum baştan başlar.</para>
         /// </summary>
         private void ReadWeaponSwitch(Keyboard keyboard, Mouse mouse)
         {
-            if (_owned.Count <= 1) return;
-
             if (keyboard != null)
             {
-                if (keyboard.digit1Key.wasPressedThisFrame) SwitchTo(0);
-                else if (keyboard.digit2Key.wasPressedThisFrame) SwitchTo(1);
-                else if (keyboard.digit3Key.wasPressedThisFrame) SwitchTo(2);
-                else if (keyboard.digit4Key.wasPressedThisFrame) SwitchTo(3);
+                // 1 = bicak. Her zaman var: baslangic bicagi hic kaybedilmez, yani
+                // bu tus HER run'in her aninda bir sey yapar.
+                if (keyboard.digit1Key.wasPressedThisFrame)
+                {
+                    SwitchToMelee();
+                }
+                else
+                {
+                    // 2..(1 + tasima slotu). SINIR CONFIG'DEN, elle yazilmiyor
+                    // (2026-09-09): esya slotlari hemen ardindan basliyor
+                    // (PowerupInventory.FirstSlotNumber) ve iki taraf ayni tusu
+                    // okursa bir tusa basmak hem silah degistirir hem esya harcar.
+                    // Sinir tek bir sayidan turedigi surece bu cakisma imkansiz.
+                    for (int i = 0; i < CarrySlots; i++)
+                    {
+                        if (!DigitPressed(keyboard, i + 2)) continue;
+
+                        SwitchTo(i);
+                        break;
+                    }
+                }
             }
 
             if (mouse == null) return;
@@ -489,17 +736,190 @@ namespace Bunker.Gameplay
             float wheel = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(wheel) < 0.01f) return;
 
-            int step = wheel > 0f ? 1 : -1;
-            SwitchTo((_slot + step + _owned.Count) % _owned.Count);
+            // Dongu: bicak (-1) + sahip olunan silahlar (0..n-1), toplam n+1 durak.
+            int stops = _carried.Count + 1;
+            if (stops <= 1) return;
+
+            int current = _meleeActive ? 0 : _slot + 1;
+            int next = (current + (wheel > 0f ? 1 : -1) + stops) % stops;
+
+            if (next == 0) SwitchToMelee();
+            else SwitchTo(next - 1);
         }
+
+        /// <summary>
+        /// Bir rakam tuşuna bu karede basıldı mı (2..9).
+        ///
+        /// <para>Yeni girdi sisteminde rakam tuşları ayrı ayrı alanlar; dizi yok. Bir
+        /// <c>switch</c>, döngüyü config'ten gelen bir sayıya bağlayabilmenin tek
+        /// yolu.</para>
+        /// </summary>
+        private static bool DigitPressed(Keyboard keyboard, int number) => number switch
+        {
+            2 => keyboard.digit2Key.wasPressedThisFrame,
+            3 => keyboard.digit3Key.wasPressedThisFrame,
+            4 => keyboard.digit4Key.wasPressedThisFrame,
+            5 => keyboard.digit5Key.wasPressedThisFrame,
+            _ => false
+        };
+
+        /// <summary>
+        /// Bıçağa geçer. <b>Ateşli silah elden bırakılır</b> ve yarım dolum iptal olur.
+        ///
+        /// <para>Silahın kendi durumu (şarjör, yedek) korunur — geri döndüğünde
+        /// bıraktığı yerden devam eder. Bıçağa geçmenin bedeli mermi kaybı değil,
+        /// <i>menzil</i> kaybı olmalı.</para>
+        /// </summary>
+        private void SwitchToMelee()
+        {
+            if (_meleeActive) return;
+
+            _state?.CancelReload();
+            CloseScope();
+            _meleeActive = true;
+
+            HandChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Dürbün: <b>sağ tık basılı tutulduğu sürece</b> yakınlaştırır (2026-09-09,
+        /// geliştirici: <i>"bu pakette attachment olan scope'u da buna ekle"</i>).
+        ///
+        /// <para><b>Basılı tut, aç-kapa değil:</b> dürbün bir <i>taahhüt</i> — içinden
+        /// bakarken çevreni göremezsin ve bir zombi yanına gelirse bunu fark etmen
+        /// gerekir. Aç-kapa bir dürbün, oyuncuyu yanlışlıkla dürbünde bırakır ve ölüm
+        /// bir okuma hatası değil bir tuş hatası olur (PILLAR-04).</para>
+        ///
+        /// <para><b>Yalnızca dürbünlü silahta çalışır</b> (<c>weapons.json →
+        /// scopeMagnification</c>). Dürbünsüz silahta sağ tık hiçbir şey yapmaz —
+        /// sessizce, çünkü her silaha bir nişan alma vermek "hangi silah uzun
+        /// menzillidir" sorusunu ortadan kaldırırdı.</para>
+        ///
+        /// <para><b>Silah değişince ve bıçağa geçince kapanır:</b> açık kalan bir
+        /// dürbün, elinde pompalıyla dört kat yakından bakmak demek olurdu.</para>
+        /// </summary>
+        private void ReadScope(Mouse mouse)
+        {
+            if (controller == null) return;
+
+            bool scoped = _config.HasScope && mouse.rightButton.isPressed;
+
+            IsScoped = scoped;
+            controller.SetScopeMagnification(scoped ? _config.ScopeMagnification : 1f);
+        }
+
+        /// <summary>
+        /// Şu an dürbünden mi bakılıyor. <b>HUD bunu okur</b> ve dürbün görüntüsünü
+        /// çizer (<see cref="ScopeStyle"/>).
+        ///
+        /// <para><b>Yerel bir durum, senkronize edilmiyor:</b> dürbün görüntüsü yalnızca
+        /// bakan oyuncunun ekranında var. Ağa göndermek, hiçbir yerde kullanılmayan bir
+        /// alan için bant genişliği harcamak olurdu (netcode.md: yerelde türetilebilen
+        /// şey replike edilmez).</para>
+        /// </summary>
+        public bool IsScoped { get; private set; }
+
+        /// <summary>Eldeki silahın dürbün türü. Dürbün yoksa <c>None</c>.</summary>
+        public ScopeStyle ScopeStyle => _config.ScopeStyle;
+
+        /// <summary>Dürbünü kapatır. El değişiminin her yolu buradan geçer.</summary>
+        private void CloseScope()
+        {
+            IsScoped = false;
+            if (controller != null) controller.SetScopeMagnification(1f);
+        }
+
+        /// <summary>
+        /// Silahın sesi: <b>önce katalogdan, yoksa sentezlenmiş</b> (2026-09-09).
+        ///
+        /// <para>Geliştirici Free Weapon Sound Effects paketini ekledi. Katalog o
+        /// paketten gelen klibi taşıyor; bulunamazsa <see cref="SfxBank"/>'ın
+        /// sentezlediği ses çalıyor — yani bir silahın ses ailesinin eksik olması onu
+        /// <b>sessiz bırakmıyor</b>. Sessiz bir silah, oyun testinde teşhis edilmesi en
+        /// pahalı hata türüdür (audio-code.md: her oyuncu eylemi bir ses üretmeli).</para>
+        ///
+        /// <para><b>Ses eldeki silahın id'sinden seçilir</b>, bir bileşen alanından
+        /// değil: silah değiştiğinde sesin de değişmesi kendiliğinden olur ve
+        /// unutulacak bir bağlantı kalmaz.</para>
+        /// </summary>
+        private void PlayWeaponSound(WeaponSoundKind kind)
+        {
+            AudioCatalogAsset.WeaponSounds family = GameAudio.Catalog?.FindWeapon(_config.Id);
+
+            AudioClip clip = null;
+
+            if (family != null)
+            {
+                switch (kind)
+                {
+                    case WeaponSoundKind.Fire:
+                        if (family.fire != null && family.fire.Length > 0)
+                        {
+                            // Ayni varyant art arda calmaz: otomatik ates ederken iki
+                            // ayni klip, sesi tek varyantli gibi okutur.
+                            _lastFireVariant = family.fire.Length == 1
+                                ? 0
+                                : (_lastFireVariant + 1 +
+                                   UnityEngine.Random.Range(0, family.fire.Length - 1)) %
+                                  family.fire.Length;
+
+                            clip = family.fire[_lastFireVariant];
+                        }
+                        break;
+
+                    case WeaponSoundKind.ReloadOut: clip = family.reloadOut; break;
+                    case WeaponSoundKind.ReloadIn: clip = family.reloadIn; break;
+                    case WeaponSoundKind.DryFire: clip = family.dryFire; break;
+                }
+            }
+
+            if (clip != null)
+            {
+                // Ates sesi en yuksek oncelikli: kalabalikta kesilmemesi gereken tek
+                // sey, oyuncunun kendi tetiginin karsiligi.
+                GameAudio.PlayClip(clip, Vector3.zero, spatial: false,
+                                   volumeScale: kind == WeaponSoundKind.Fire ? 0.85f : 0.6f,
+                                   pitchJitter: kind == WeaponSoundKind.Fire ? 0.05f : 0.03f,
+                                   priority: kind == WeaponSoundKind.Fire ? 9 : 5,
+                                   basePitch: family.basePitch);
+                return;
+            }
+
+            // Yedek yol: sentezlenmis ses (ADR-0006'nin birakti gi hat).
+            GameAudio.Play(kind switch
+            {
+                WeaponSoundKind.Fire => SfxId.GunShot,
+                WeaponSoundKind.ReloadOut => SfxId.ReloadOut,
+                WeaponSoundKind.ReloadIn => SfxId.ReloadIn,
+                _ => SfxId.GunDryFire
+            });
+        }
+
+        private enum WeaponSoundKind { Fire, ReloadOut, ReloadIn, DryFire }
+
+        private int _lastFireVariant = -1;
 
         private void SwitchTo(int slot)
         {
-            if (slot < 0 || slot >= _owned.Count || slot == _slot) return;
+            if (slot < 0 || slot >= _carried.Count) return;
+
+            // Bicaktan ates li silaha donus: slot ayni olsa bile bir DEGISIM.
+            if (_meleeActive)
+            {
+                _meleeActive = false;
+                HandChanged?.Invoke();
+
+                if (slot == _slot) return;
+            }
+            else if (slot == _slot)
+            {
+                return;
+            }
 
             // Yarim kalan dolum iptal olur: silah degistirmek onu tamamlamis saymak,
             // dolumu bedava bir iptal tusuna cevirirdi.
             _state?.CancelReload();
+            CloseScope();
 
             EquipSlot(slot);
         }
@@ -509,14 +929,23 @@ namespace Bunker.Gameplay
             Mouse mouse = Mouse.current;
             Keyboard keyboard = Keyboard.current;
 
+            // El degistirme HER ZAMAN okunur - bicak elindeyken de. Aksi hâlde bicaga
+            // gecen oyuncu bir daha silaha donemezdi.
+            ReadWeaponSwitch(keyboard, mouse);
+
+            // BICAK ELDE: ates ve dolum yok. Sol tik PlayerMelee'ye ait ve o, buradaki
+            // IsMeleeActive'e bakiyor - yani iki bilesen ayni karede ikisini birden
+            // yapamaz.
+            if (_meleeActive) return;
+
             if (keyboard != null && keyboard.rKey.wasPressedThisFrame)
             {
                 StartReload();
             }
 
-            ReadWeaponSwitch(keyboard, mouse);
-
             if (mouse == null) return;
+
+            ReadScope(mouse);
 
             // OTOMATIK ATES: dakikada 400'un ustundeki silahlar basili tutmayla ateş
             // eder (2026-09-06). Yari otomatik his tabancanin KARAKTERI, bir motor
@@ -542,7 +971,7 @@ namespace Bunker.Gameplay
                     // R.ye basmasini beklemek, sürünün icinde ceza gibi hissettirir.
                     // Bos tetik SESI de var: hicbir sey olmamasi, tusun calismadigi
                     // gibi okunur.
-                    GameAudio.Play(SfxId.GunDryFire);
+                    PlayWeaponSound(WeaponSoundKind.DryFire);
                     StartReload();
                     break;
             }
@@ -560,7 +989,7 @@ namespace Bunker.Gameplay
         {
             if (!_state.TryStartReload()) return;
 
-            GameAudio.Play(SfxId.ReloadOut);
+            PlayWeaponSound(WeaponSoundKind.ReloadOut);
             CmdReload();
         }
 
@@ -570,7 +999,15 @@ namespace Bunker.Gameplay
         /// diye yerel durum da tazelenir - mermi almanin karsiligi aninda gorulmeli.
         /// </summary>
         [Server]
-        public void ServerAddReserve(int amount) => ServerAddReserve(_slot, amount);
+        public void ServerAddReserve(int amount)
+        {
+            // _slot bir TASIMA slotu, _states ise CEPHANELIK sirasiyla indeksleniyor.
+            // Ikisini karistirmak, mermiyi baska bir silaha yazmak demek - hem de
+            // sessizce (2026-09-09 yeniden yapilandirmasi).
+            if (_slot < 0 || _slot >= _carried.Count) return;
+
+            ServerAddReserve(_carried[_slot], amount);
+        }
 
         /// <summary>
         /// <b>Belirli bir silaha</b> mermi ekler.
@@ -583,9 +1020,9 @@ namespace Bunker.Gameplay
         [Server]
         public void ServerAddReserveTo(string weaponId, int amount)
         {
-            for (int i = 0; i < _owned.Count; i++)
+            for (int i = 0; i < _arsenal.Count; i++)
             {
-                if (_owned[i].Id != weaponId) continue;
+                if (_arsenal[i].Id != weaponId) continue;
 
                 // TAVAN KONTROLU KALKTI (2026-09-07): yedek merminin tavani yok artik.
                 // Odenen her mermi yedege girer; "para gitti mermi gelmedi" durumu
@@ -597,22 +1034,86 @@ namespace Bunker.Gameplay
             Debug.LogWarning($"[Silah] '{weaponId}' envanterde yok - mermi yazilamadi.", this);
         }
 
+        /// <summary>
+        /// <b>Bedava</b> mermi ekler: yerden toplama, öldürme ödülü (2026-09-10). Eldeki
+        /// silaha, <b>yalnızca tavana kadar</b> (<see cref="ReserveAmmo"/>, kural 4).
+        ///
+        /// <para><b>Satın alma buradan geçmez</b> — <see cref="ServerAddReserve(int)"/> ve
+        /// <see cref="ServerAddReserveTo"/> kırpmaz, çünkü ödenmiş merminin buharlaşması
+        /// 2026-09-07'de tavanın bütünüyle kaldırılma sebebiydi.</para>
+        ///
+        /// <para>Tavan <b>sunucunun</b> sayacından hesaplanır ve istemciye aynı sayı gider:
+        /// iki tarafın ayrı ayrı kırpması BUG-001'in sınıfıdır.</para>
+        /// </summary>
         [Server]
-        private void ServerAddReserve(int slot, int amount)
+        public void ServerAddFreeReserve(int amount)
+        {
+            if (_slot < 0 || _slot >= _carried.Count) return;
+
+            int arsenal = _carried[_slot];
+            if (arsenal < 0 || arsenal >= _guards.Count) return;
+
+            ServerAddReserve(arsenal, ReserveAmmo.UpToCapacity(_guards[arsenal].Reserve,
+                                                               _guards[arsenal].ReserveCapacity,
+                                                               amount));
+        }
+
+        /// <summary>
+        /// Oyuncu öldü: <b>bütün silahların yedek mermisi yarıya iner</b> (2026-09-09,
+        /// geliştirici: <i>"mevcut mermi kapasitesi kaça kadar birikmişse
+        /// yarılanacak"</i>).
+        ///
+        /// <para><b>Cephanelikteki silahlar da dahil</b>: yalnızca eldekini cezalandırmak,
+        /// ölmeden önce boş bir silaha geçmeyi bir hile hâline getirirdi — tur sonu
+        /// ikmalinin bütün silahlara yayılmasıyla aynı gerekçe.</para>
+        ///
+        /// <para><b>Şarjördeki mermiye dokunulmaz</b>, yalnızca yedeğe: dirilen oyuncu
+        /// dolu bir şarjörle kalkmalı. Boş silahla dirilmek, bir sonraki ölümü
+        /// garantiler ve ceza kendini besler.</para>
+        /// </summary>
+        [Server]
+        public void ServerHalveReserves()
+        {
+            for (int i = 0; i < _states.Count; i++)
+            {
+                WeaponState state = _states[i];
+                if (state == null) continue;
+
+                int loss = state.Reserve / 2;
+                if (loss <= 0) continue;
+
+                // Otorite tarafi ve gorunen sayac AYRI AYRI: ikisi ayni anda
+                // dusurulmezse istemci silahi dolu sanip ates etmeye calisir ve
+                // sunucu reddeder - BUG-001'in tam olarak bu sinifi.
+                _guards[i].RemoveReserve(loss);
+                TargetRemoveReserve(connectionToClient, i, loss);
+            }
+        }
+
+        [Server]
+        private void ServerAddReserve(int arsenalIndex, int amount)
         {
             if (amount <= 0) return;
-            if (slot < 0 || slot >= _guards.Count) return;
+            if (arsenalIndex < 0 || arsenalIndex >= _guards.Count) return;
 
-            _guards[slot].AddReserve(amount);
-            TargetAddReserve(connectionToClient, slot, amount);
+            _guards[arsenalIndex].AddReserve(amount);
+            TargetAddReserve(connectionToClient, arsenalIndex, amount);
         }
 
         [TargetRpc]
-        private void TargetAddReserve(NetworkConnection target, int slot, int amount)
+        private void TargetRemoveReserve(NetworkConnection target, int arsenalIndex, int amount)
         {
-            if (slot < 0 || slot >= _states.Count) return;
+            if (arsenalIndex < 0 || arsenalIndex >= _states.Count) return;
 
-            _states[slot].AddReserve(amount);
+            _states[arsenalIndex].RemoveReserve(amount);
+        }
+
+        [TargetRpc]
+        private void TargetAddReserve(NetworkConnection target, int arsenalIndex, int amount)
+        {
+            if (arsenalIndex < 0 || arsenalIndex >= _states.Count) return;
+
+            _states[arsenalIndex].AddReserve(amount);
         }
 
         /// <summary>
@@ -669,7 +1170,7 @@ namespace Bunker.Gameplay
 
             // El modeli ve ses ayni karede: ates ettigini gosteren sey namlu alevi ve
             // patlama sesidir, sunucunun bir kare sonra donen onayi degil.
-            GameAudio.Play(SfxId.GunShot);
+            PlayWeaponSound(WeaponSoundKind.Fire);
             Fired?.Invoke();
 
             CmdFire(origin.position, direction);
@@ -775,8 +1276,11 @@ namespace Bunker.Gameplay
                 return;
             }
 
-            if (!Physics.Raycast(origin, direction, out RaycastHit serverHit,
-                                 _config.RangeMeters, Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore))
+            // OYUNCU GOVDESI MERMIYI DURDURMAZ VE HASAR ALMAZ (2026-09-10). Build
+            // gunluklerinde 'Oyuncu[M4] -> Oyuncu 112.93' satirlari vardi: isin bir oyuncu
+            // kapsulune carpiyor ve PlayerHealth bir IDamageable oldugu icin hasar
+            // yaziliyordu. Oyunda PvP yok; gecisin kurali RaycastPastPlayers'ta.
+            if (!RaycastPastPlayers(origin, direction, out RaycastHit serverHit))
             {
                 return;
             }
@@ -836,6 +1340,14 @@ namespace Bunker.Gameplay
                 RaycastHit hit = PenetrationHits[i];
                 if (hit.collider == null) continue;
 
+                // Oyuncu govdesi: mermi GECER, hasar yazmaz ve penetrasyon hakki
+                // harcanmaz (2026-09-10; gerekce RaycastPastPlayers'ta).
+                if (IsPlayerCollider(hit.collider))
+                {
+                    NotePassedThroughPlayer();
+                    continue;
+                }
+
                 var target = hit.collider.GetComponent<IDamageable>();
 
                 if (target == null)
@@ -867,6 +1379,79 @@ namespace Bunker.Gameplay
 
                 remaining--;
             }
+        }
+
+        /// <summary>
+        /// En yakın isabeti bulur, <b>oyuncu gövdelerini yok sayarak</b>. 2026-09-10.
+        ///
+        /// <para><b>Neden</b> (geliştirici: <i>"zombiler bir şekilde uzak mesafeden hasar
+        /// verebiliyor"</i>): build günlüklerinde zombi vuruşu (30 hasar) yerine
+        /// <c>Oyuncu[M4] -> Oyuncu 112.93</c> satırları vardı — dört oturumda yedi kez,
+        /// geç turlarda tek vuruşta ölüm. Işın bir oyuncu kapsülüne çarpıyordu ve
+        /// <c>PlayerHealth</c> bir <see cref="IDamageable"/> olduğu için hasar yazılıyordu.
+        /// Yakında zombi yokken gelen bu hasar "uzaktan vuruldum" diye okundu.</para>
+        ///
+        /// <para><b>Neden fizik katmanı değil:</b> oyuncuları ayrı bir katmana almak prefab
+        /// ve proje ayarı değişikliği ister, ve katmanı bilmeyen yeni bir ışın sorgusu
+        /// hatayı sessizce geri getirirdi. Kural hasarı yazan yerde duruyor.</para>
+        ///
+        /// <para><b>Maliyet:</b> önce tek <c>Physics.Raycast</c> — atışların neredeyse
+        /// hepsi orada biter. Yalnızca ilk isabet bir oyuncuysa sıralı tampona düşülür;
+        /// tahsis yok (csharp-code.md).</para>
+        /// </summary>
+        private bool RaycastPastPlayers(Vector3 origin, Vector3 direction, out RaycastHit hit)
+        {
+            int mask = Bunker.Config.GameLayers.WorldMask;
+
+            if (!Physics.Raycast(origin, direction, out hit, _config.RangeMeters, mask,
+                                 QueryTriggerInteraction.Ignore))
+            {
+                return false;
+            }
+
+            if (!IsPlayerCollider(hit.collider)) return true;
+
+            NotePassedThroughPlayer();
+
+            int count = Physics.RaycastNonAlloc(origin, direction, PenetrationHits,
+                                                _config.RangeMeters, mask,
+                                                QueryTriggerInteraction.Ignore);
+
+            // RaycastNonAlloc SIRASIZ doner; en yakin oyuncu-olmayan isabet aranir.
+            System.Array.Sort(PenetrationHits, 0, count, RaycastDistanceComparer.Instance);
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider collider = PenetrationHits[i].collider;
+                if (collider == null || IsPlayerCollider(collider)) continue;
+
+                hit = PenetrationHits[i];
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Bu çarpıştırıcı bir oyuncuya mı ait — kendisi ya da takım arkadaşı.</summary>
+        private static bool IsPlayerCollider(Collider collider) =>
+            collider.GetComponentInParent<PlayerHealth>() != null;
+
+        private static float _lastPlayerPassNoteTime = -99f;
+
+        /// <summary>
+        /// Işın bir oyuncu gövdesinden geçti. <b>Sessiz kalmaz</b> ama hız sınırlı: beş
+        /// saniyede bir satır. Bir sonraki oyun testinde bu satırın varlığı, "kendi
+        /// mermimle vuruluyordum" teşhisini tahminden ölçüme çevirir.
+        /// </summary>
+        private void NotePassedThroughPlayer()
+        {
+            if (Time.unscaledTime - _lastPlayerPassNoteTime < 5f) return;
+            _lastPlayerPassNoteTime = Time.unscaledTime;
+
+            Debug.Log("[Silah] Isin bir oyuncu govdesinden gecti - eskiden burada oyuncuya " +
+                      "hasar yaziliyordu (dost atesi yok).", this);
+            Bunker.Systems.Telemetry.CombatLog.Event(
+                "DOST", "mermi bir oyuncu govdesinden gecti, hasar yazilmadi");
         }
 
         /// <summary>
@@ -914,8 +1499,8 @@ namespace Bunker.Gameplay
                 Vector3 pelletDirection =
                     (direction + right * offset.x + up * offset.y).normalized;
 
-                if (!Physics.Raycast(origin, pelletDirection, out RaycastHit hit,
-                                     _config.RangeMeters, Bunker.Config.GameLayers.WorldMask, QueryTriggerInteraction.Ignore))
+                // Sacma da oyuncu govdesinden gecer (2026-09-10).
+                if (!RaycastPastPlayers(origin, pelletDirection, out RaycastHit hit))
                 {
                     continue;
                 }

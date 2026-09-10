@@ -72,6 +72,10 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0 .. 30 | JSON: recoil.maxPitchDegrees</remarks>
         public readonly float RecoilMaxPitchDegrees;
 
+        /// <summary>Ayni anda tasinabilen atesli silah sayisi. Tuş duzeninin ta kendisi: 1 bicak, 2..(1+bu sayi) atesli silahlar, sonrasi esya slotlari. Buyutursen esyalar parmak menzilinin disina cikar ve oyuncu tur ortasinda tus arar - 'silahlar numaralara sigmadi' sikayetinin sebebi tam olarak buydu. Kucultursen (1) silah secimi diye bir sey kalmaz: tezgahtan alinan her silah oncekini siler ve karsilastirma yapilamaz. SATIN ALINAN silah sayisini SINIRLAMAZ - alinmis silahlar run boyunca hatirlanir ve tezgahta bedelsiz degistirilir; bu sayi yalnizca UZERINDE kac tane tasidigini soyler.</summary>
+        /// <remarks>Aralik: 1 .. 4 | JSON: loadout.firearmSlots</remarks>
+        public readonly int LoadoutFirearmSlots;
+
         /// <summary>Merminin izinin ekranda kaldigi sure. Kisa olursa atisin nereye gittigi okunmaz ve oyuncu isabetsizligin sebebini ogrenemez; uzun olursa ekran cizgilerle dolar ve kaosta okunabilirlik (PILLAR-04) bozulur.</summary>
         /// <remarks>Aralik: 0.01 .. 0.5 | JSON: feel.tracerSeconds</remarks>
         public readonly float FeelTracerSeconds;
@@ -89,7 +93,7 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public WeaponConfig(
-            int version = 1,
+            int version = 2,
             float fireRoundsPerMinute = 400f,
             float fireDamage = 55f,
             float fireHeadshotMultiplier = 2f,
@@ -103,6 +107,7 @@ namespace Bunker.Systems.Config
             float recoilYawDegreesPerShot = 0.35f,
             float recoilRecoverySpeedDegreesPerSecond = 14f,
             float recoilMaxPitchDegrees = 6f,
+            int loadoutFirearmSlots = 2,
             float feelTracerSeconds = 0.14f,
             float feelHitMarkerSeconds = 0.12f,
             float feelInputBufferSeconds = 0.15f)
@@ -121,6 +126,7 @@ namespace Bunker.Systems.Config
             RecoilYawDegreesPerShot = recoilYawDegreesPerShot;
             RecoilRecoverySpeedDegreesPerSecond = recoilRecoverySpeedDegreesPerSecond;
             RecoilMaxPitchDegrees = recoilMaxPitchDegrees;
+            LoadoutFirearmSlots = loadoutFirearmSlots;
             FeelTracerSeconds = feelTracerSeconds;
             FeelHitMarkerSeconds = feelHitMarkerSeconds;
             FeelInputBufferSeconds = feelInputBufferSeconds;

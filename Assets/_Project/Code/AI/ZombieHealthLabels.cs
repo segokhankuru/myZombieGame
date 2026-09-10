@@ -41,7 +41,6 @@ namespace Bunker.AI
         private float _lastCameraSearch = -99f;
 
         private GUIStyle _healthStyle;
-        private GUIStyle _damageStyle;
 
         private readonly StringBuilder _text = new StringBuilder(24);
 
@@ -87,7 +86,6 @@ namespace Bunker.AI
             Transform cameraTransform = _camera.transform;
             Vector3 cameraPosition = cameraTransform.position;
             Vector3 cameraForward = cameraTransform.forward;
-            Vector3 cameraRight = cameraTransform.right;
 
             float maxDistanceSqr = LabelDistanceMeters * LabelDistanceMeters;
             int drawn = 0;
@@ -128,32 +126,23 @@ namespace Bunker.AI
                 var healthRect = new Rect(center.x - 70f, y - 34f, 140f, 18f);
                 Draw(healthRect, _text.ToString(), _healthStyle);
 
-                // --- vurdugu hasar: barin SOL tarafinda.
+                // --- vurdugu hasar: ARTIK BURADA DEGIL (2026-09-09).
                 //
-                // Sol kenar ekranda nerede? Barin sol ucunu dunyada bulup ayrica
-                // yansitiyoruz: sabit bir piksel payi, iki metredeki zombide barin
-                // icine, yirmi metredekinde ekranin yarisina duserdi.
-                Vector3 leftEdgeWorld = barPosition - cameraRight * bar.BarHalfWidthMeters;
-                Vector3 leftEdge = _camera.WorldToScreenPoint(leftEdgeWorld);
-
-                // YALNIZCA SAYI (2026-09-08, gelistirici: "yanindaki 'vurus hasari'
-                // yazisini sil, sadece gucu yazsin"). Etiket ilk surumde eklenmisti
-                // cunku iki ciplak sayi birbirine karisiyordu; artik can sayisi "CAN"
-                // ile etiketli, yani ayrimi zaten o tasiyor. Renk de ayri (turuncu).
+                // Gelistirici: "zombilerin hasarini ... zombilerin can barinin yaninda
+                // degil de ekranin solunda belirt". Sayi CombatHud'un sol tehdit
+                // panelinde (RoundThreat) ve orada olmasinin iki sebebi var:
                 //
-                // <b>Sayi HER ZAMAN GUNCEL:</b> agent.AttackDamage bir onbellek degil,
-                // config x boss carpani hesabinin kendisi - ekranda o karedeki gercek
-                // deger duruyor. Sayinin turlar boyunca degismemesi bir gosterim
-                // hatasi DEGIL: zombie.json'da attack.damage sabit 30 ve tur
-                // olceklemesi (RoundScaling) yalnizca CAN, HIZ ve ADET uretiyor. Tek
-                // degisen sey boss (rounds.json boss.damageMultiplier = 2), o da
-                // burada carpilmis hâlde gorunuyor.
-                _text.Clear();
-                _text.Append(Mathf.CeilToInt(agent.AttackDamage));
-
-                var damageRect = new Rect(leftEdge.x - 122f, Screen.height - leftEdge.y - 9f,
-                                          114f, 18f);
-                Draw(damageRect, _text.ToString(), _damageStyle);
+                // (1) Burada KIRK KERE TEKRAR EDIYORDU. Ayni sabit sayinin ekrandaki
+                //     her zombinin yaninda yazmasi, PILLAR-04'un (kaosta okunabilirlik)
+                //     tam tersi - gozun ayirt etmesi gereken sey zombinin KENDISI iken,
+                //     etraf ayni sayiyla doluyordu.
+                //
+                // (2) Zombi ekranda yokken HIC GORUNMUYORDU. Oysa "bu tur ne kadar
+                //     sert" sorusu tam da hazirlik molasinda soruluyor - yani sayinin
+                //     en gerekli oldugu anda ekranda degildi.
+                //
+                // Boss'un iki katli hasari da panelde ayrica yaziyor, yani zombiye
+                // gore degisen tek bilgi de kaybolmadi.
 
                 drawn++;
             }
@@ -183,16 +172,6 @@ namespace Bunker.AI
                 alignment = TextAnchor.MiddleCenter,
                 richText = false,
                 normal = { textColor = new Color(0.95f, 0.95f, 0.92f) }
-            };
-
-            // Hasar sayisi TURUNCU ve saga dayali: canla ayni renkte olsaydi hangi
-            // sayinin hangi soruyu cevapladigi okunmazdi.
-            _damageStyle ??= new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13,
-                alignment = TextAnchor.MiddleRight,
-                richText = false,
-                normal = { textColor = new Color(1f, 0.62f, 0.25f) }
             };
         }
 

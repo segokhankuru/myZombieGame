@@ -12,21 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb53835df92369847abc7a074989166c, type: 3}
   m_Name: weapons
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.WeaponCatalogAsset
-  version: 1
+  version: 2
   weapons:
   - id: weapon.pistol
-    displayName: TABANCA
-    text: Baslangic silahi. Dengeli, sabirli, kafa vurusunu odullendirir.
-    damage: 55
+    displayName: M1911
+    text: Baslangic silahi. Sekiz mermi, hizli dolum - ritmi dolumun kendisi.
+    damage: 45
     roundsPerMinute: 400
-    headshotMultiplier: 2
+    headshotMultiplier: 1.6
     rangeMeters: 60
     spreadDegrees: 0.6
     pelletCount: 1
-    magazineCapacity: 12
+    magazineCapacity: 8
     reserveCapacity: 300
     startingReserve: 120
-    reloadSeconds: 1.6
+    reloadSeconds: 1.15
     recoilPitchPerShot: 1.1
     recoilYawPerShot: 0.35
     recoilRecoveryPerSecond: 14
@@ -34,10 +34,12 @@ MonoBehaviour:
     price: 0
     ammoPrice: 250
     reloadPerShell: 0
+    scopeMagnification: 0
+    scopeStyle: 0
   - id: weapon.smg
-    displayName: MP-KISA
+    displayName: UZI
     text: Hizli ve affedici. Kalabaligi tarar, mermiyi hizla yer.
-    damage: 55
+    damage: 45
     roundsPerMinute: 750
     headshotMultiplier: 1.6
     rangeMeters: 35
@@ -54,14 +56,16 @@ MonoBehaviour:
     price: 900
     ammoPrice: 250
     reloadPerShell: 0
+    scopeMagnification: 0
+    scopeStyle: 0
   - id: weapon.shotgun
-    displayName: POMPALI
+    displayName: BENELLI M4
     text: Yakin mesafenin cevabi. Sekiz sacma; uzakta dagilir, bir ikisi tutar.
-    damage: 24
+    damage: 30
     roundsPerMinute: 90
-    headshotMultiplier: 1.4
-    rangeMeters: 45
-    spreadDegrees: 3
+    headshotMultiplier: 1.8
+    rangeMeters: 50
+    spreadDegrees: 2
     pelletCount: 8
     magazineCapacity: 6
     reserveCapacity: 90
@@ -74,23 +78,73 @@ MonoBehaviour:
     price: 1200
     ammoPrice: 250
     reloadPerShell: 1
-  - id: weapon.rifle
-    displayName: TUFEK
-    text: Yavas ve agir. Kafadan vurdugun surece gec turlarin cevabi.
-    damage: 130
-    roundsPerMinute: 150
-    headshotMultiplier: 2.5
-    rangeMeters: 90
-    spreadDegrees: 0.2
+    scopeMagnification: 0
+    scopeStyle: 0
+  - id: weapon.ak74
+    displayName: AK-74
+    text: Sert vurus, kisa sarjor. Yirmi mermi iki saniyede biter - nisan alarak
+      kullan.
+    damage: 80
+    roundsPerMinute: 600
+    headshotMultiplier: 2
+    rangeMeters: 55
+    spreadDegrees: 1.4
     pelletCount: 1
-    magazineCapacity: 8
-    reserveCapacity: 160
-    startingReserve: 64
-    reloadSeconds: 2.4
-    recoilPitchPerShot: 3.2
-    recoilYawPerShot: 0.5
-    recoilRecoveryPerSecond: 12
-    recoilMaxPitch: 10
-    price: 1500
+    magazineCapacity: 20
+    reserveCapacity: 320
+    startingReserve: 120
+    reloadSeconds: 2.2
+    recoilPitchPerShot: 1.6
+    recoilYawPerShot: 0.6
+    recoilRecoveryPerSecond: 15
+    recoilMaxPitch: 11
+    price: 1800
     ammoPrice: 250
     reloadPerShell: 0
+    scopeMagnification: 0
+    scopeStyle: 0
+  - id: weapon.m4
+    displayName: M4
+    text: AK'nin dengeli kardesi. ELCAN durbunlu (sag tik 3x). Orta menzilin cevabi.
+    damage: 65
+    roundsPerMinute: 700
+    headshotMultiplier: 1.9
+    rangeMeters: 60
+    spreadDegrees: 1
+    pelletCount: 1
+    magazineCapacity: 30
+    reserveCapacity: 420
+    startingReserve: 150
+    reloadSeconds: 2.1
+    recoilPitchPerShot: 1
+    recoilYawPerShot: 0.4
+    recoilRecoveryPerSecond: 18
+    recoilMaxPitch: 8
+    price: 2200
+    ammoPrice: 250
+    reloadPerShell: 0
+    scopeMagnification: 2
+    scopeStyle: 2
+  - id: weapon.sniper
+    displayName: M107
+    text: Uzun menzil durbunu (sag tik 6x). Bes mermi, kafadan tek atis - ama kalabalikta
+      ise yaramaz.
+    damage: 132
+    roundsPerMinute: 50
+    headshotMultiplier: 3
+    rangeMeters: 120
+    spreadDegrees: 0.05
+    pelletCount: 1
+    magazineCapacity: 5
+    reserveCapacity: 100
+    startingReserve: 30
+    reloadSeconds: 3
+    recoilPitchPerShot: 6
+    recoilYawPerShot: 0.7
+    recoilRecoveryPerSecond: 10
+    recoilMaxPitch: 16
+    price: 3000
+    ammoPrice: 400
+    reloadPerShell: 0
+    scopeMagnification: 4
+    scopeStyle: 1

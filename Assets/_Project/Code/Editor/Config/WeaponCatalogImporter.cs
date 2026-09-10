@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Bunker.Config;
+using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
 using UnityEditor;
 using UnityEngine;
@@ -21,7 +22,7 @@ namespace Bunker.Editor.ConfigTools
     public static class WeaponCatalogImporter
     {
         private const string SourcePath = "config/content/weapons.json";
-        private const string AssetPath = "Assets/_Project/Config/weapons.asset";
+        internal const string AssetPath = "Assets/_Project/Config/weapons.asset";
 
         [MenuItem("Bunker/Config/Silahlari Ice Aktar", false, 22)]
         public static void ImportMenu() => Import();
@@ -112,6 +113,46 @@ namespace Bunker.Editor.ConfigTools
                 // bir "false" satiri yazdirmak olurdu.
                 entry.reloadPerShell = w["reloadPerShell"].Kind == JsonKind.Bool &&
                                        w["reloadPerShell"].AsBool;
+
+                // ISTEGE BAGLI, varsayilani 0 (durbun yok). Ayni gerekce: durbun bir
+                // SILAH KIMLIGI, kural degil - alti silahin besine "scopeMagnification:
+                // 0" yazdirmak, okuyani bunun bir ayar oldugu sanisina goturur.
+                //
+                // Sayi geldiginde DOGRULANIYOR: 1'den kucuk bir buyutme, sag tikta
+                // goruntuyu UZAKLASTIRIR - kimsenin istemedigi ve oyun testinde
+                // "durbun bozuk" diye rapor edilecek bir sonuc. Sessizce kirpmak
+                // yerine hata: sema bir sozlesme (config-data.md).
+                if (w.Has("scopeMagnification"))
+                {
+                    if (!Number(w, "scopeMagnification", id, errors,
+                                out entry.scopeMagnification)) continue;
+
+                    if (entry.scopeMagnification != 0f && entry.scopeMagnification < 1f)
+                    {
+                        errors.Add($"{id}: 'scopeMagnification' {entry.scopeMagnification} - " +
+                                   "1'den kucuk bir buyutme goruntuyu UZAKLASTIRIR. " +
+                                   "Durbun yoksa alani hic yazma, varsa 1'den buyuk olmali.");
+                        continue;
+                    }
+                }
+
+                // Durbun STILI: yazilmadiysa buyutmeden turetilir - durbunu olan ama
+                // stili yazilmamis bir silah, sessizce "hicbir sey gorunmez" olmak
+                // yerine klasik nisanci durbunune duser.
+                if (w.Has("scopeStyle"))
+                {
+                    if (!w["scopeStyle"].IsString ||
+                        !System.Enum.TryParse(w["scopeStyle"].AsString, out entry.scopeStyle))
+                    {
+                        errors.Add($"{id}: bilinmeyen 'scopeStyle'. Gecerli: " +
+                                   string.Join(", ", System.Enum.GetNames(typeof(ScopeStyle))));
+                        continue;
+                    }
+                }
+                else if (entry.scopeMagnification > 1f)
+                {
+                    entry.scopeStyle = ScopeStyle.LongRange;
+                }
 
                 entries.Add(entry);
             }

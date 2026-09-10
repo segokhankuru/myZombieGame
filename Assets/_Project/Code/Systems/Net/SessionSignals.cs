@@ -210,10 +210,18 @@ namespace Bunker.Systems.Net
             IsInLobby = inLobby;
             IsHost = isHost;
 
-            _lobbyPlayers.Clear();
-
-            if (players != null)
+            // LISTENIN KENDISI geri verilebiliyor (2026-09-11):
+            // BunkerNetworkManager.ServerStartGame bu metodu LobbyPlayers ile cagiriyor.
+            // Once Clear edilince kaynak da bosaliyor, dongu hicbir sey kopyalamiyor ve
+            // oyun basladigi anda oyuncu listesi SESSIZCE sifira iniyordu. Co-op boss
+            // sayisi bu listeden okunuyor; bos liste her oturumu "tek oyuncu" yapardi.
+            if (players == null)
             {
+                _lobbyPlayers.Clear();
+            }
+            else if (!ReferenceEquals(players, _lobbyPlayers))
+            {
+                _lobbyPlayers.Clear();
                 for (int i = 0; i < players.Count; i++) _lobbyPlayers.Add(players[i]);
             }
 

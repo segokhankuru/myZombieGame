@@ -40,11 +40,71 @@ namespace Bunker.Audio
         /// </summary>
         public static float MasterVolume { get; set; } = 1f;
 
+        /// <summary>
+        /// Mağazadan gelen gerçek ses dosyaları (2026-09-09). <c>null</c> ise <b>her şey
+        /// eskisi gibi sentezlenir</b> — katalog bir yükseltme, bir bağımlılık değil.
+        ///
+        /// <para><c>AudioBootstrap</c> sahnede bir kez bağlar.</para>
+        /// </summary>
+        public static AudioCatalogAsset Catalog { get; private set; }
+
+        /// <summary>Katalogu bağlar. <b>Sahne başına bir kez</b> (AudioBootstrap).</summary>
+        public static void AttachCatalog(AudioCatalogAsset catalog) => Catalog = catalog;
+
         /// <summary>Dünyada bir noktadan gelen ses. Yönü ve mesafesi duyulur.</summary>
         public static void PlayAt(SfxId id, Vector3 position, float volumeScale = 1f)
         {
             Runtime r = EnsureRuntime();
             if (r != null) r.Play(id, position, true, volumeScale);
+        }
+
+        /// <summary>
+        /// Doğrudan bir klip çalar — katalogdan gelen ayak sesi ve silah sesi bu yolu
+        /// kullanır.
+        ///
+        /// <para><b>Neden <see cref="SfxId"/> yerine klip:</b> ayak sesinin on varyantı
+        /// var ve hangisinin çalacağına karar veren şey zemin ve hız — yani bir
+        /// <i>oyun</i> bilgisi. Onu <see cref="SfxBank"/>'a taşımak, bankaya oyun kuralı
+        /// koymak olurdu. Kanal yönetimi, öncelik ve mesafe eğrisi yine burada:
+        /// <b>hiçbir yer <c>AudioSource</c>'a kendi başına dokunmuyor</b>
+        /// (audio-code.md).</para>
+        /// </summary>
+        public static void PlayClip(AudioClip clip, Vector3 position, bool spatial,
+                                    float volumeScale = 1f, float pitchJitter = 0.08f,
+                                    int priority = 4, float basePitch = 1f)
+        {
+            if (clip == null) return;
+
+            Runtime r = EnsureRuntime();
+            if (r != null) r.PlayClip(clip, position, spatial, volumeScale, pitchJitter,
+                                      priority, basePitch);
+        }
+
+        /// <summary>
+        /// Müziği başlatır (döngü). Aynı klip zaten çalıyorsa <b>hiçbir şey yapmaz</b> —
+        /// sahne yeniden yüklendiğinde müziğin baştan başlaması, menüye her dönüşte
+        /// duyulan bir kesinti olurdu.
+        /// </summary>
+        public static void PlayMusic(AudioClip clip)
+        {
+            Runtime r = EnsureRuntime();
+            if (r != null) r.PlayMusic(clip);
+        }
+
+        /// <summary>Müziği durdurur. Oyuna girerken çağrılır.</summary>
+        public static void StopMusic()
+        {
+            if (_runtime != null) _runtime.StopMusic();
+        }
+
+        /// <summary>
+        /// Müzik seviyesini tazeler. Ayar değişince çağrılır — çalan müziği
+        /// <b>kesmeden</b> seviyeyi değiştirir, yoksa kaydıracı sürüklemek müziği
+        /// baştan başlatırdı.
+        /// </summary>
+        public static void RefreshMusicVolume()
+        {
+            if (_runtime != null) _runtime.RefreshMusicVolume();
         }
 
         /// <summary>
@@ -82,6 +142,10 @@ namespace Bunker.Audio
         {
             _runtime = null;
             MasterVolume = 1f;
+
+            // Katalog da sifirlanir: bir onceki oturumun varligina bakan referans,
+            // domain reload kapaliyken "null degil ama olu" olur.
+            Catalog = null;
         }
 
         /// <summary>
@@ -129,6 +193,86 @@ namespace Bunker.Audio
                 }
 
                 for (int i = 0; i < _lastPlayed.Length; i++) _lastPlayed[i] = float.NegativeInfinity;
+
+                // MUZIK KENDI KANALINDA, havuzun disinda. Havuzdan bir kanal alsaydi
+                // yirmi dorduncu ses onu kesebilirdi - muzik bir "en dusuk oncelikli
+                // efekt" degil, ayri bir bus (audio-code.md).
+                var musicHost = new GameObject("Music");
+                musicHost.transform.SetParent(transform, false);
+
+                _music = musicHost.AddComponent<AudioSource>();
+                _music.playOnAwake = false;
+                _music.loop = true;
+                _music.spatialBlend = 0f;
+            }
+
+            private AudioSource _music;
+
+            public void PlayMusic(AudioClip clip)
+            {
+                if (clip == null || _music == null) return;
+
+                // Ayni klip zaten caliyorsa dokunma: sahne her yuklendiginde bastan
+                // baslatmak, menuye her donuste duyulan bir kesinti olurdu.
+                if (_music.clip == clip && _music.isPlaying)
+                {
+                    RefreshMusicVolume();
+                    return;
+                }
+
+                _music.clip = clip;
+                RefreshMusicVolume();
+                _music.Play();
+            }
+
+            public void StopMusic()
+            {
+                if (_music == null) return;
+
+                _music.Stop();
+                _music.clip = null;
+            }
+
+            public void RefreshMusicVolume()
+            {
+                if (_music == null) return;
+
+                _music.volume = Mathf.Clamp01(Systems.Settings.GameSettings.EffectiveMusicVolume);
+            }
+
+            /// <summary>
+            /// Katalogdan gelen bir klibi çalar. Kanal yönetimi, öncelik ve mesafe
+            /// eğrisi <see cref="Play"/> ile <b>aynı</b> — tek fark, hangi klibin
+            /// çalacağına çağıranın karar vermesi.
+            /// </summary>
+            public void PlayClip(AudioClip clip, Vector3 position, bool spatial,
+                                 float volumeScale, float pitchJitter, int priority,
+                                 float basePitch)
+            {
+                if (clip == null || MasterVolume <= 0f) return;
+
+                int voice = ClaimVoice(priority);
+                if (voice < 0) return;
+
+                AudioSource source = _voices[voice];
+                source.transform.position = position;
+                source.spatialBlend = spatial ? 1f : 0f;
+                source.clip = clip;
+                source.volume = Mathf.Clamp01(volumeScale * MasterVolume);
+                float pitch = basePitch <= 0f ? 1f : basePitch;
+                source.pitch = pitchJitter <= 0f
+                    ? pitch
+                    : pitch * (1f + Random.Range(-pitchJitter, pitchJitter));
+
+                // Klip yolunun kendi SfxId'si yok: kanal "hicbir sey" olarak
+                // isaretlenir, yani CountPlaying'in ses basina limiti burada islemez.
+                // Limit yerine PRIORITY koruyor - ayak sesi dusuk oncelikli, bir
+                // patlamanin kanalini calamaz.
+                _playing[voice] = SfxId.None;
+                _priorities[voice] = priority;
+                _startedAt[voice] = Time.unscaledTime;
+
+                source.Play();
             }
 
             public void Play(SfxId id, Vector3 position, bool spatial, float volumeScale)

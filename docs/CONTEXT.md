@@ -56,7 +56,7 @@ prototipte bile girmez.
 | Netcode | Mirror (MIT), host otoriteli, hareket client-authoritative | ADR-0004 |
 | Transport | FizzyFacepunch (Steam), Steam kapalıysa **KCP'ye düşer ve söyler** | ADR-0004 / ADR-0007 |
 | Mağaza sanatı | Altı paket; üçüncü parti salt okunur, oyun üretilmiş URP kopyasını kullanır | ADR-0008 |
-| Ses | Varlıksız: `Bunker.Audio` sesleri çalışma anında sentezler | ADR-0006 |
+| Ses | Mağaza kayıtları (`audio.asset` kataloğu); sentez **yedek** yol olarak kalır | ADR-0006 / ADR-0009 |
 
 **ADR-0001 supersede edildi** (FishNet). Gerekçe zinciri belgede duruyor.
 
@@ -90,6 +90,34 @@ M-01'in dışına taşan işler de girdi ve **oyun artık gri kutu değil**: ana
 kaldırılma, kart havuzu (37 kart) ve tezgâh, dört ateşli silah + üç yakın dövüş silahı,
 eşya düşürme (drop), dış hava ve dış arazi. Kararların tamamı `docs/DECISIONS.md`'de bir
 satır; uzun anlatımları `docs/archive/`'da.
+
+**2026-09-09 — envanter, ses ve karakter turu.** Bıçak V tuşundan **1 numaralı slota**
+taşındı (2-5 ateşli silahlar, 6-0 eşyalar); droplar artık cepte **birikiyor** ve
+istenen anda harcanıyor. Tur içinde can yenilenmesi kapandı, tur sonunda **tam dolum**.
+Silah envanteri tek pakete taşındı ve **altıya çıktı** (M1911, Uzi, Benelli M4, AK-74,
+M4, M107 + işlevsel dürbün). Oyuncunun **gerçek bir gövdesi** var (Human Basic Motions).
+Ses artık sentez değil kayıt: ayak sesi, silah sesleri ve ana menü müziği (ADR-0009).
+Nuke sahayı silmiyor, en yakın 15 zombiyi öldürüyor.
+
+**Aynı gün, ikinci tur.** Slot düzeni oturdu: **1 bıçak, 2-3 silah, 4-8 eşya** ve aynı
+anda en fazla **2 ateşli silah** taşınıyor — satın alınanlar run boyunca hatırlanıyor ve
+tezgâhta bedelsiz değiştiriliyor. M4'e ELCAN dürbünü geldi; iki dürbün de artık
+**gerçekten dürbün görüntüsü** çiziyor (M107 çevreyi alan nişancı dürbünü, M4 çevreyi
+bırakan prizmalı optik). Co-op tarafında: tur arası **sabit 30 sn** + F ile hazır,
+yere düşen **10 saniyede** kanıyor, tur başı dirilişi **kendi puanından** ödeniyor ve
+ölüm artık kalıcı bir bedel bırakıyor (eşyalar gider, yedek mermi yarılanır).
+
+**2026-09-10 — oyun testinin beş bulgusu.** Yükseltme tezgâhı E ile kapanıyor. Yedek
+mermi dört kurala bağlandı (`ReserveAmmo`): tur sonu tavanın yarısı, tavanı aşmaz, tavan
+kartla büyür (artık cepteki silahta da), tavanın üstü **yalnızca satın alma**; HUD tavanı
+yazıyor. **"Zombi uzaktan vuruyor" hissinin asıl sebebi oyuncunun kendi mermisiydi**
+(build günlüklerinde `Oyuncu[M4] -> Oyuncu 112.93`): silah ve bıçak artık hiçbir oyuncu
+gövdesine hasar yazmıyor; zombiye ayrıca mutlak tavan geldi (1 m, boss 2 m — `zombie.json`
+v11) ve vuruş satırı mesafeyi yazıyor. Dış sis bir **yer** oldu, kamera durumu değil:
+içeriden pencereden bakınca dışarısı sisli ve yağmurlu. **Build 673 MB → 155 MB** (mağaza
+dokularına tavan + sıkıştırma, editör rafı build dışı, LZ4HC). 369 test yeşil; hepsi oyun
+testi bekliyor. Açık riskler: co-op'ta host istemci oyuncuyu ~100 ms geriden görüyor; dış
+sis tam ekran bir geçiş ekledi ve kare bütçesinde ölçülmedi.
 
 **Teşhis hattı iki dosyaya çıktı** (2026-09-08): `telemetry/runs.jsonl` run özetini,
 `telemetry/session-<zaman>.log` her hasar olayını satır satır tutuyor — ölüm anında son

@@ -43,6 +43,39 @@ namespace Bunker.Systems.Ui
         /// <summary>Silah tezgâhı açıldı ya da kapandı.</summary>
         public static event Action<bool> WeaponShopVisibilityChanged;
 
+        /// <summary>
+        /// Bir menünün <b>kapandığı kare</b> (2026-09-09).
+        ///
+        /// <para><b>Neden gerekli</b> (geliştirici: <i>"tezgâh açıkken E ile tezgâhtan
+        /// çıkamıyoruz, ESC'ye basmak hoş olmuyor"</i>): E hem menüyü kapatıyor hem
+        /// menüyü açıyordu ve ikisi <b>aynı karede</b> oluyordu. Bileşen sırası
+        /// tanımsız: tezgâh ekranı önce koşarsa menü kapanıyor, hemen ardından
+        /// <c>PlayerInteract</c> aynı karenin <c>wasPressedThisFrame</c>'ini görüp
+        /// tezgâhı yeniden açıyordu. Oyuncuya görünen şey: E hiçbir şey yapmıyor.</para>
+        ///
+        /// <para><b>Neden bir kare damgası, "tuş bırakılana kadar bekle" değil:</b>
+        /// bırakma şartı kullanıcının tuşu ne kadar tuttuğuna bağlı bir durum tutmayı
+        /// gerektirir ve iki bileşenin ikisinde de tekrarlanırdı. Kare numarası tek bir
+        /// sayı ve sorunun kendisini —<i>aynı kare</i>— tarif ediyor.</para>
+        ///
+        /// <para>Aynı sorun her "aynı tuşla aç-kapa" menüsünde çıkar; o yüzden çözüm
+        /// menüde değil <b>burada</b>, ortak yerde.</para>
+        /// </summary>
+        public static int LastMenuClosedFrame { get; private set; } = int.MinValue;
+
+        /// <summary>
+        /// Bir menünün kapandığını damgalar. <b>Unity'yi bilmeyen bir katmanda</b>
+        /// olduğumuz için kare numarasını çağıran taraf veriyor
+        /// (<c>Bunker.Systems</c> motor referansı taşımaz — ADR'ler bunun üstüne
+        /// kurulu).
+        /// </summary>
+        public static void NoteMenuClosed(int frame) => LastMenuClosedFrame = frame;
+
+        /// <summary>
+        /// Bu karede bir menü kapandı mı — etkileşim tuşu <b>yutulmalı</b> mı.
+        /// </summary>
+        public static bool ClosedThisFrame(int frame) => frame == LastMenuClosedFrame;
+
         public static void SetWeaponShopOpen(bool open)
         {
             if (IsWeaponShopOpen == open) return;
@@ -59,6 +92,8 @@ namespace Bunker.Systems.Ui
 
             WeaponShopVisibilityChanged = null;
             IsWeaponShopOpen = false;
+
+            LastMenuClosedFrame = int.MinValue;
         }
     }
 }

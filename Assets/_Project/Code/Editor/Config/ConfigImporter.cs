@@ -36,6 +36,86 @@ namespace Bunker.Editor.ConfigTools
     {
         private const string SchemaFolder = "config/schema";
         private const string BalanceFolder = "config/balance";
+        private const string ContentFolder = "config/content";
+
+        /// <summary>Bir şemanın verisinin nerede durduğu.</summary>
+        private enum DomainSource
+        {
+            /// <summary><c>config/balance/</c> — bu içe aktarıcının işi.</summary>
+            Balance,
+
+            /// <summary>
+            /// <c>config/content/</c> — katalog içe aktarıcılarının işi
+            /// (<c>WeaponCatalogImporter</c>, silah sanatı/sesi araçları). Atlanır.
+            /// </summary>
+            Content,
+
+            /// <summary>Veri dosyası hiçbir yerde yok — sert hata.</summary>
+            Missing,
+
+            /// <summary>İki klasörde birden var — aynı alanın iki kaynağı, sert hata.</summary>
+            Ambiguous
+        }
+
+        /// <summary>
+        /// Şemayı verisinin yerine göre sınıflar. 2026-09-10.
+        ///
+        /// <para><b>Neden gerekti:</b> <c>weapons</c>, <c>weapon-art</c> ve
+        /// <c>weapon-audio</c> şemaları da <c>config/schema/</c>'da duruyor ama verileri
+        /// <c>config/content/</c>'ta ve kendi içe aktarıcıları var. İçe aktarıcı her şemayı
+        /// bir denge alanı sayıyordu; doğru kurulmuş bir proje her koşuda "HATALI"
+        /// dönüyordu. Her zaman hata veren bir araç, gerçek hatayı da gizler — bu
+        /// projede tekrar eden "sessizce eskiyen içe aktarma" sınıfı tam olarak buradan
+        /// beslenir.</para>
+        ///
+        /// <para><b>Tek kural, iki geçiş:</b> kod üretimi ve varlık doldurma bu fonksiyonu
+        /// okur. Önceden birincisi hata veriyor, ikincisi aynı durumu sessizce
+        /// atlıyordu.</para>
+        /// </summary>
+        private static DomainSource Classify(string root, string domain)
+        {
+            bool balance = File.Exists(Path.Combine(root, BalanceFolder, domain + ".json"));
+            bool content = File.Exists(Path.Combine(root, ContentFolder, domain + ".json"));
+
+            if (balance && content) return DomainSource.Ambiguous;
+            if (balance) return DomainSource.Balance;
+
+            return content ? DomainSource.Content : DomainSource.Missing;
+        }
+
+        /// <summary>
+        /// Denge alanı olmayan bir şema için hata satırı; içerik alanıysa listeye ekler
+        /// ve <c>null</c> döner.
+        /// </summary>
+        private static string ExplainNonBalance(DomainSource source, string domain,
+                                                List<string> skippedContent)
+        {
+            switch (source)
+            {
+                case DomainSource.Content:
+                    skippedContent.Add(domain);
+                    return null;
+
+                case DomainSource.Ambiguous:
+                    return $"{domain}: hem {BalanceFolder}/{domain}.json hem " +
+                           $"{ContentFolder}/{domain}.json var. Ayni alanin iki kaynagi " +
+                           "olamaz (SSoT) - hangisi gecerliyse digerini sil.";
+
+                default:
+                    return $"{domain}: semasi var ama veri dosyasi yok - ne " +
+                           $"{BalanceFolder}/{domain}.json ne {ContentFolder}/{domain}.json. " +
+                           "Sema tek basina oyuna hicbir sey vermez.";
+            }
+        }
+
+        /// <summary>Atlanan içerik şemalarını tek satırda söyler — sessiz atlama yok.</summary>
+        private static void LogSkippedContent(List<string> skippedContent)
+        {
+            if (skippedContent.Count == 0) return;
+
+            Debug.Log($"[Config] Icerik semalari atlandi ({ContentFolder}, kendi katalog " +
+                      $"ice aktaricilari var): {string.Join(", ", skippedContent)}");
+        }
         private const string RuntimeCodeFolder = "Assets/_Project/Code/Systems/Config/Generated";
         private const string AssetCodeFolder = "Assets/_Project/Code/Config/Generated";
         private const string AssetFolder = "Assets/_Project/Config";
@@ -109,17 +189,19 @@ namespace Bunker.Editor.ConfigTools
 
             var errors = new List<string>();
             var generated = new List<string>();
+            var skippedContent = new List<string>();
 
             foreach (string schemaPath in Directory.GetFiles(schemaDir, "*.schema.json"))
             {
                 string domain = Path.GetFileName(schemaPath).Replace(".schema.json", string.Empty);
                 string balancePath = Path.Combine(root, BalanceFolder, domain + ".json");
 
-                if (!File.Exists(balancePath))
+                DomainSource source = Classify(root, domain);
+
+                if (source != DomainSource.Balance)
                 {
-                    errors.Add($"{domain}: semasi var ama denge dosyasi yok " +
-                               $"({BalanceFolder}/{domain}.json). Sema tek basina oyuna " +
-                               "hicbir sey vermez.");
+                    string error = ExplainNonBalance(source, domain, skippedContent);
+                    if (error != null) errors.Add(error);
                     continue;
                 }
 
@@ -163,6 +245,8 @@ namespace Bunker.Editor.ConfigTools
                 generated.Add(schema.ClassName);
                 domainCount++;
             }
+
+            LogSkippedContent(skippedContent);
 
             if (errors.Count > 0)
             {
@@ -324,6 +408,7 @@ namespace Bunker.Editor.ConfigTools
 
             var errors = new List<string>();
             var filled = new List<string>();
+            var skippedContent = new List<string>();
 
             try
             {
@@ -334,7 +419,17 @@ namespace Bunker.Editor.ConfigTools
                     string domain = Path.GetFileName(schemaPath).Replace(".schema.json", string.Empty);
                     string balancePath = Path.Combine(root, BalanceFolder, domain + ".json");
 
-                    if (!File.Exists(balancePath)) continue;
+                    // Kod uretimiyle AYNI kural (Classify). Onceki surum veri dosyasi
+                    // olmayan semayi burada SESSIZCE atliyordu - kod uretimi ayni durumda
+                    // hata verirken. Iki gecis ayni soruya iki farkli cevap vermemeli.
+                    DomainSource source = Classify(root, domain);
+
+                    if (source != DomainSource.Balance)
+                    {
+                        string error = ExplainNonBalance(source, domain, skippedContent);
+                        if (error != null) errors.Add(error);
+                        continue;
+                    }
 
                     ConfigDomain schema = ConfigDomain.Load(domain, File.ReadAllText(schemaPath));
                     var domainErrors = new List<string>();
@@ -361,6 +456,8 @@ namespace Bunker.Editor.ConfigTools
                 AssetDatabase.StopAssetEditing();
                 AssetDatabase.SaveAssets();
             }
+
+            LogSkippedContent(skippedContent);
 
             if (errors.Count > 0)
             {

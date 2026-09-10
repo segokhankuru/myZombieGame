@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/economy.schema.json",
-  "version": 4,
+  "version": 5,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-ekonomi",
@@ -29,7 +29,9 @@
     "wallWeaponMid": 1200,
     "mysteryBox": 950,
     "cardRerollBase": 200,
-    "cardRerollAddPerRound": 50
+    "cardRerollAddPerRound": 50,
+    "reviveBase": 500,
+    "reviveAddPerRound": 100
   },
 
   "ammo": {

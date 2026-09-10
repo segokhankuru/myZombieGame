@@ -67,7 +67,7 @@ namespace Bunker.Config
 
         [Tooltip("Her alimda eklenen atis hizi orani. Cok buyutursen mermi tuketimi patlar ve mermi ekonomisi kilitlenir (design/economy/curves.md).")]
         [Range(0.01f, 1f)]
-        [SerializeField] private float firerateIncrement = 0.06f;
+        [SerializeField] private float firerateIncrement = 0.01f;
 
         [Tooltip("Hattin tavani.")]
         [Range(1, 30)]

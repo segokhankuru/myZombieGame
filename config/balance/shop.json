@@ -4,8 +4,10 @@
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-02",
-    "lastTuned": "2026-09-07"
+    "lastTuned": "2026-09-11"
   },
+
+  "_v3": "2026-09-11, gelistirici: 'yukseltme tezgahindaki (TETIK) artis sabit %1 olsun'. firerate.increment 0.06 -> 0.01; alti alimin tavani +%36'dan +%6'ya indi. Ayni gun kartlar da %2,5/%5/%8'e indi (cards.json _v7) - atis hizinin TAMAMI kucultuldu, yalnizca tezgah degil. Fiyat egrisi bilerek DEGISMEDI. Beklenen his: atis hizi bir build kimligi olmaktan cikar, silahin kendi temposu one gecer; TETIK tezgahta en son alinan hat olur. Oyun testinde 'almaya degmiyor' denirse ayarlanacak sey increment degil baseCost.",
 
   "_note": "v2 (2026-09-07): SARJOR HATTI ORANSAL OLDU (kart tarafiyla ayni degisiklik - CardStat.MagazineCapacity). Kademe basina +2 mermi, pompalida +%33 SMG'de +%7 ediyordu; artik ikisinde de +%10. M-03 tezgahi, BASLANGIC degerleri. Hicbiri kanit degil, hepsi hipotez - oynanarak ayarlanacak. Tasarim niyeti: artislar KUCUK, fiyat her alimda ARTIYOR. Tezgah taban kurar, kimlik vermez; kimlik kartlardan gelir. Ilk alimlar kapinin (750) altinda kalsin ki erken turda gercek bir tercih olsun, ama ucuncu-dorduncu alim kapiyla yarissin.",
 
@@ -26,7 +28,7 @@
   "firerate": {
     "baseCost": 450,
     "costGrowth": 1.50,
-    "increment": 0.06,
+    "increment": 0.01,
     "maxTier": 6
   },
 

@@ -1,11 +1,19 @@
 {
   "$schema": "../schema/rounds.schema.json",
-  "version": 4,
+  "version": 7,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-tur",
-    "lastTuned": "2026-09-06"
+    "lastTuned": "2026-09-11"
   },
+
+  "_v9": "2026-09-11, gelistirici: 'zombilerin hasari her tur sabit kalmis, her tur ufak artsin' + 'coop ise boss turlarinda boss sayisi artsin: ilk boss turu 1, ikinci 2, ucuncu 3; coop degilse 2 boss turunda bir artis'. SEMA SURUMU 7 - yeni zorunlu anahtarlar. (1) DAMAGE: vurus = attack.damage x min(1 + 0.03 x (tur - 1), 2.5). DOGRUSAL, bilesik degil: bilesik %3 50. turda dort kat eder ve can kartlarini siler. Dogrusalda tur 10 = 38, tur 20 = 47, tur 30 = 56, tavan 75 (tur 51). Boss carpani bunun USTUNE biner: tur 10 boss = 76. Beklenen his: ilk uc tur ayni (fark 1-2 puan); orta turda 100 cana 'dort vurus' uce iner ve DAYANIKLILIK hatti ile can kartlari ilk kez gercek bir cevap olur. (2) BOSS SAYISI: co-op 5/10/15. turda 1/2/3, tek oyuncu 1/1/2/2/3. Co-op = oturumda birden fazla oyuncu, TUR BASINDA okunur. Tavan 8. Bosslar turun dogum sirasina ESIT ARALIKLA yayilir: ilki yine turun ilk zombisi, digerleri turun devaminda - hepsi birden gelseydi boss turu kacilabilir bir olay olmaktan cikip bir duvar olurdu. Beklenen his: co-op 15. tur bir takim sinavi; solo oyuncu ikinci bossu ilk kez 15. turda gorur. Hicbiri kanit degil, hepsi hipotez.",
+
+  "_v8": "2026-09-10, gelistirici: 'yedek mermi konusu duzgun calismiyor hissi veriyor' + dort kural: (1) tur sonu her silah kendi tavaninin YARISI kadar alir, (2) ikmal tavani asmaz, (3) tavan kartlarla artar, (4) tavanin ustune YALNIZCA SATIN ALARAK cikilir ve tuketilince tavana iner. SAYI DEGISMEDI (0.50 zaten dogruydu), KURAL DUZELDI - kodda iki hata vardi: (a) kart tavani yalnizca ELDEKI silaha uygulaniyordu, yani cepteki silah tur sonunda kartsiz tavana kirpiliyordu; (b) yerden toplanan mermi ve oldurme odulu tavani asiyordu - _v7 bunu bilerek serbest birakmisti ('oyuncunun kendi eylemiyle aldigi mermi') ama gelistiricinin kurali yalnizca SATIN ALMAYI sayiyor. Bedava gelen her mermi artik tavana kadar doldurur. Kural tek yerde: Bunker.Systems.Combat.ReserveAmmo. HUD mermi satiri tavani da yaziyor: '8 / 120  (300)'.",
+
+  "_v7": "2026-09-10, gelistirici: '120 mermim var, o tur 70 harcadim; sonraki turda yenileme max kapasitenin YARISI kadar olmali ve max kapasiteyi ASMAMALI'. reserveAmmoFraction01 0.40 -> 0.50 ve tavan geri geldi (kodda: PlayerWeapon.OnRoundEndRestock artik ikmali tavana kirpar). Yani 120 tavanli bir silahta: 50 mermiyle biten tur -> 110, 70 mermiyle biten tur -> 130 degil 120. Neden tavan yalnizca burada: TUR SONU IKMALI bedava mermi ve bedava olan sey birikirse mermi bir kaynak olmaktan cikar. Oyuncunun kendi eylemiyle aldigi mermi (tezgah, yerden toplama, oldurme odulu) tavani ASABILIR - orada kirpmak, odenmis bir bedeli buharlastirmak olurdu (2026-09-07'de tavanin tamamen kaldirilma sebebi tam olarak buydu; bu kez tavan yalnizca bedavaya biniyor). Oran 0.40 yerine 0.50 cunku artik bir TAVAN da var: iki sinir ust uste binerken ikmalin kendisini kismak, tur arasini yeniden bir mermi kovalamacasina cevirirdi.",
+
+  "_v6": "2026-09-09, gelistirici: 'tur aralari direk 30 sn olsun ve herkes ready (F tusu) verirse zaman direk bitsin ve sonraki tur baslasin'. MOLA ARTIK SABIT 30 SN - v4 in iki degerli yapisi (erken 10, gec 20) kaldirilmadi ama IKISI DE 30 yazildi. Sebep: iki degerin varlik gerekcesi 'ilk turlarda molada yapacak is yok, gec turlarda sigmiyor' idi; HAZIR sistemi bu sorunun ikisini birden cozuyor. Isi biten oyuncu 30 saniye beklemez, F ye basar - yani erken turlarda mola artik SIFIRA kadar inebiliyor. Gec turlarda ise 30 saniye tam da istenen tavan. Anahtarlar duruyor cunku silmek bir sema surumu ve migrasyon isi; ikisini esitlemek ayni sonucu bedelsiz veriyor ve gerekce burada yaziyor. HAZIR KURALI: herkes hazir verirse mola aninda biter. Tek kisi hazir verirse hicbir sey olmaz - bekleme suresi bir CEZA degil, hazirlik icin ayrilmis zaman ve onu bir oyuncunun elinden almak co-op'u sabirsizin hizinda oynatmak olurdu.",
 
   "_note": "v5 (2026-09-07, gelistirici): BOSS DAHA COK ODUL VERIYOR. 'bossu oldurunce daha fazla odul versin, bunu puan olarak sagla'. pointsMultiplier 6 -> 15. Gerekce: boss 14 kat cana sahip, yani oldurmek bir turun mermisini yiyor. Alti kat puan bu bedeli karsilamiyordu ve dogru oynanis bossu GORMEZDEN GELMEKTI - yani oyunun en buyuk anini atlamak. On bes kat, bossu oldurmeyi bir tezgah ziyaretine cevirir: bedeli var, karsiligi da var. Kacmak hala mesru, ama artik bir sey birakiyorsun. v4 (2026-09-06, gelistirici): MOLA IKI DEGERLI. Tek bir breatherSeconds vardi ve 20 sn'ydi; ilk turlarda molada yapilacak hicbir sey yok (barikat saglam, puan yok) ve oyun bos bekleyerek basliyordu. Artik ilk bes turun arasi 10 sn, sonrasi 20 sn - gec turda tamir + tezgah + silah + kart okumanin hepsi ayni molaya sigmali. Anahtar ADI degisti (breatherSeconds -> breatherSecondsEarly/Late + breatherEarlyUntilRound), o yuzden surum artti. v3 (2026-09-06): BOSS. Her besinci turda bir tane, tek. Cok cani ve cok hasari var ama YAVAS - kacilabilir olmasi sart, yoksa boss bir savas degil bir zar atisi olur. Buyuk oldugu icin kalabaligin icinde de okunur (PILLAR-04) ve olunce alti kat puan verir: onu oldurmek bir SECIM olmali, mecburiyet degil. v2 (2026-09-05, oyun testi): iki yeni kural. (1) ANLIK CANLI TAVANI - turun butun zombileri kisa araliklarla arka arkaya doguyordu, sahada 20 zombi birikince oyuncunun barikata donup tamir etmesi imkansizdi. Artik sahada en fazla aliveCapAtRoundOne + aliveCapAddPerRound*(tur-1) zombi durur; biri olunce yenisi gelir. Tavan hem oynanabilirlik hem PERF-BUDGET icin. (2) TUR SONU KISMI YENILEME - her tur temizlendiginde yedek mermi ve barikat tahtalari %40 oraninda geri gelir; tur arasi tamamen tamir ve alisveris olmaktan cikip bir SECIM kalir. 2026-09-05 oyun testi (hiz): kademeler cok erken ve cok sert geliyordu - tur 8de zombi 4.6 m/s ile oyuncunun 5 m/s hizina yapisiyordu, kacmak imkansizdi. Kademeler geriye cekildi (yurume tur 6, tempolu tur 12), tavan hiz 3.6 (semanin alt siniri 3.5). Oyuncu hala kacabilmeli; bosluk azalarak kapanmali. Baslangic degerleri. Klon tabaninin amaci olcum referansi uretmek; bu sayilar M1'de arkadas testiyle kalibre edilecek. Hicbiri kanit degil, hepsi hipotez.",
 
@@ -35,7 +43,15 @@
     "jogUntilRound": 12
   },
 
+  "damage": {
+    "growthPerRound01": 0.03,
+    "maxMultiplier": 2.5
+  },
+
   "boss": {
+    "extraEveryBossRoundsCoop": 1,
+    "extraEveryBossRoundsSolo": 2,
+    "maxPerRound": 8,
     "everyRounds": 5,
     "healthMultiplier": 14.0,
     "speedMultiplier": 0.75,
@@ -45,13 +61,13 @@
   },
 
   "roundEnd": {
-    "reserveAmmoFraction01": 0.40,
+    "reserveAmmoFraction01": 0.50,
     "barricadeBoardsFraction01": 0.40
   },
 
   "pacing": {
-    "breatherSecondsEarly": 10,
-    "breatherSecondsLate": 20,
+    "breatherSecondsEarly": 30,
+    "breatherSecondsLate": 30,
     "breatherEarlyUntilRound": 5,
     "spawnIntervalSecondsAtRoundOne": 2.0,
     "spawnIntervalFloorSeconds": 0.25

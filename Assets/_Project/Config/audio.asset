@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0396fc996058e9446aa64086d2b822a6, type: 3}
+  m_Name: audio
+  m_EditorClassIdentifier: Bunker.Audio::Bunker.Audio.AudioCatalogAsset
+  menuMusic: {fileID: 8300000, guid: fc7476b0a644e0b43beb81ea4b985485, type: 3}
+  footstepsWalk:
+  - {fileID: 8300000, guid: 9ea11a2d13d536e4e8441a0f5895995c, type: 3}
+  - {fileID: 8300000, guid: 203ac8b6f07070e4f93f1c1a6fff06c3, type: 3}
+  - {fileID: 8300000, guid: ac6649006dbee9e4685752e124111da7, type: 3}
+  - {fileID: 8300000, guid: f42914d98b070f741b2feee96a2988ee, type: 3}
+  - {fileID: 8300000, guid: feb62160ad1f8334ab037017b843d162, type: 3}
+  - {fileID: 8300000, guid: 001f691d110d55648871a03f446ffa08, type: 3}
+  - {fileID: 8300000, guid: 6478d7fb30f301b4fa8f74d5d1dad094, type: 3}
+  - {fileID: 8300000, guid: f1547ad8fbfa4f24d83e5a445aee860d, type: 3}
+  - {fileID: 8300000, guid: 47832b56ccba5bc408b1d5aac1871746, type: 3}
+  - {fileID: 8300000, guid: 3d132da7af60f1145a3deb6a8bc42a08, type: 3}
+  footstepsRun:
+  - {fileID: 8300000, guid: 9e68ea1ebd76aa44c8cfa5beb9850830, type: 3}
+  - {fileID: 8300000, guid: 1deb201b8bf8f89479323a74e421150b, type: 3}
+  - {fileID: 8300000, guid: 7c518e8469a403b4c981664ecb28a79a, type: 3}
+  - {fileID: 8300000, guid: 1f2844efbf7abf647ba3d75d510f823a, type: 3}
+  - {fileID: 8300000, guid: fa95ebee958fb0e41a42a832aab767eb, type: 3}
+  - {fileID: 8300000, guid: 0cfeb72dea261a54cb7672590d2d1656, type: 3}
+  - {fileID: 8300000, guid: 924e3e09c67130946a6d7b666e8b8b68, type: 3}
+  - {fileID: 8300000, guid: 6da235e2573048249bcbe608f984ff48, type: 3}
+  - {fileID: 8300000, guid: fdc05ea2699023143ba7e93533cc5a0b, type: 3}
+  - {fileID: 8300000, guid: f26cf9ded47cf0140957490a16f85acc, type: 3}
+  footstepsLand:
+  - {fileID: 8300000, guid: 7131d701ae015a54aa3d856feccd513f, type: 3}
+  - {fileID: 8300000, guid: 942019cf9ecd5854ebeb343b12b7f779, type: 3}
+  - {fileID: 8300000, guid: 1a88f429c4a7b734f9c4254f0c654cea, type: 3}
+  weapons:
+  - weaponId: weapon.pistol
+    fire:
+    - {fileID: 8300000, guid: f9ab20b4342184a46921955b3300481d, type: 3}
+    - {fileID: 8300000, guid: fc96ad27ad7acc246bc0bf45b3ffd5c8, type: 3}
+    - {fileID: 8300000, guid: e3a46507263c1f04d9cee05cf2ebc532, type: 3}
+    reloadOut: {fileID: 8300000, guid: 74b34124f68768a4eb45af871e0f7606, type: 3}
+    reloadIn: {fileID: 8300000, guid: e7e7fb1fcb8b2e247994afc502a6c252, type: 3}
+    dryFire: {fileID: 8300000, guid: 98809d2fe68d3ef4ebb406d5ade3df36, type: 3}
+    equip: {fileID: 8300000, guid: 084fe0db42757e04e9b4e43752754a84, type: 3}
+    basePitch: 1
+  - weaponId: weapon.smg
+    fire:
+    - {fileID: 8300000, guid: 74fd11f66ca8110418be57a810d2fad8, type: 3}
+    - {fileID: 8300000, guid: 76cfb7f0b7f354545b18c07b7d0bff61, type: 3}
+    - {fileID: 8300000, guid: 385137d1f615f524ea78bc1569276ee5, type: 3}
+    reloadOut: {fileID: 8300000, guid: 0de87080feb9e4d46b1133b7a197ac4e, type: 3}
+    reloadIn: {fileID: 8300000, guid: 17e1fac9dd649c048a8e57b51b3b7d0e, type: 3}
+    dryFire: {fileID: 8300000, guid: 82ab12c3d05cb3244a685281f8934e26, type: 3}
+    equip: {fileID: 8300000, guid: fc675cf8365542549aa7b2d58d54583f, type: 3}
+    basePitch: 1.22
+  - weaponId: weapon.shotgun
+    fire:
+    - {fileID: 8300000, guid: e07faa26d7d74e348b43973cb93fa6bd, type: 3}
+    - {fileID: 8300000, guid: 345e09e37e315704a8ef418ee7ee8097, type: 3}
+    - {fileID: 8300000, guid: 28b4b9c0fbdb06c4b8e57c5bcd6a9af0, type: 3}
+    reloadOut: {fileID: 8300000, guid: d521e0d9b3021674cbe2821f3012f6e4, type: 3}
+    reloadIn: {fileID: 8300000, guid: 320e642ad32a207438ba4121b8e6b7e9, type: 3}
+    dryFire: {fileID: 8300000, guid: 320e642ad32a207438ba4121b8e6b7e9, type: 3}
+    equip: {fileID: 8300000, guid: 930ba5b2b5dbda44495e19f1206205b9, type: 3}
+    basePitch: 1
+  - weaponId: weapon.ak74
+    fire:
+    - {fileID: 8300000, guid: 74fd11f66ca8110418be57a810d2fad8, type: 3}
+    - {fileID: 8300000, guid: 76cfb7f0b7f354545b18c07b7d0bff61, type: 3}
+    - {fileID: 8300000, guid: 385137d1f615f524ea78bc1569276ee5, type: 3}
+    reloadOut: {fileID: 8300000, guid: 0de87080feb9e4d46b1133b7a197ac4e, type: 3}
+    reloadIn: {fileID: 8300000, guid: 17e1fac9dd649c048a8e57b51b3b7d0e, type: 3}
+    dryFire: {fileID: 8300000, guid: 82ab12c3d05cb3244a685281f8934e26, type: 3}
+    equip: {fileID: 8300000, guid: fc675cf8365542549aa7b2d58d54583f, type: 3}
+    basePitch: 0.92
+  - weaponId: weapon.m4
+    fire:
+    - {fileID: 8300000, guid: 74fd11f66ca8110418be57a810d2fad8, type: 3}
+    - {fileID: 8300000, guid: 76cfb7f0b7f354545b18c07b7d0bff61, type: 3}
+    - {fileID: 8300000, guid: 385137d1f615f524ea78bc1569276ee5, type: 3}
+    reloadOut: {fileID: 8300000, guid: 0de87080feb9e4d46b1133b7a197ac4e, type: 3}
+    reloadIn: {fileID: 8300000, guid: 17e1fac9dd649c048a8e57b51b3b7d0e, type: 3}
+    dryFire: {fileID: 8300000, guid: 82ab12c3d05cb3244a685281f8934e26, type: 3}
+    equip: {fileID: 8300000, guid: fc675cf8365542549aa7b2d58d54583f, type: 3}
+    basePitch: 1.05
+  - weaponId: weapon.sniper
+    fire:
+    - {fileID: 8300000, guid: 74fd11f66ca8110418be57a810d2fad8, type: 3}
+    - {fileID: 8300000, guid: 76cfb7f0b7f354545b18c07b7d0bff61, type: 3}
+    - {fileID: 8300000, guid: 385137d1f615f524ea78bc1569276ee5, type: 3}
+    reloadOut: {fileID: 8300000, guid: 0de87080feb9e4d46b1133b7a197ac4e, type: 3}
+    reloadIn: {fileID: 8300000, guid: 17e1fac9dd649c048a8e57b51b3b7d0e, type: 3}
+    dryFire: {fileID: 8300000, guid: 82ab12c3d05cb3244a685281f8934e26, type: 3}
+    equip: {fileID: 8300000, guid: fc675cf8365542549aa7b2d58d54583f, type: 3}
+    basePitch: 0.62

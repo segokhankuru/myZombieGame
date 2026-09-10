@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "_meta": {
+    "owner": "audio-director",
+    "system": "SYS-silah",
+    "lastTuned": "2026-09-10"
+  },
+
+  "_note": "Her ates silahinin sesleri. Elle degil Unity'de 'Bunker > Silah Atolyesi > Ses' sekmesinden duzenle: klipler dinlenerek secilir, Kaydet ses katalogunu yeniden uretir. Perde neden var: pakette dort ses ailesi, oyunda alti silah; ayni kaydi paylasan silahlar ayni perdeden calarsa kulakla ayirt edilemez (Uzi yukari, M107 asagi). Perde kaydirmak gercek kaydin yerini tutmaz - sanat yonu kilitlenene kadar bir kopru. Bos birakilan dolum/bos tetik sesi SENTEZLENMIS yola duser, silah sessiz kalmaz (ADR-0009). AudioIntegration'daki tablonun yerini aldi (2026-09-10).",
+
+  "presets": [
+    {
+      "name": "Tabanca",
+      "fire": ["Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_gunshot_01.wav", "Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_gunshot_02.wav", "Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/Handgun/Foley/02_drop_the_mag_handgun_reload_1.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/Handgun/Foley/03_insert_the_mag_handgun_reload_1.wav",
+      "dryFire": "Assets/FreeWeaponSounds/Handgun/Foley/01_slide_lock_handgun_reload_1.wav",
+      "equip": "Assets/FreeWeaponSounds/Handgun/Foley/handgun_weapon_equip.wav",
+      "basePitch": 1
+    },
+    {
+      "name": "Tabanca (susturuculu)",
+      "fire": ["Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_sil_gunshot_01.wav", "Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_sil_gunshot_02.wav", "Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_sil_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/Handgun/Foley/02_drop_the_mag_handgun_reload_1.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/Handgun/Foley/03_insert_the_mag_handgun_reload_1.wav",
+      "dryFire": "Assets/FreeWeaponSounds/Handgun/Foley/01_slide_lock_handgun_reload_1.wav",
+      "equip": "Assets/FreeWeaponSounds/Handgun/Foley/handgun_weapon_equip.wav",
+      "basePitch": 1
+    },
+    {
+      "name": "Tufek",
+      "fire": ["Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_01.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_02.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/AssaultRifle/Foley/01_assault_rifle_reload_1_drop_the_mag.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/AssaultRifle/Foley/02_assault_rifle_reload_1_insert_the_mag.wav",
+      "dryFire": "Assets/FreeWeaponSounds/AssaultRifle/Foley/03_assault_rifle_reload_1_bolt.wav",
+      "equip": "Assets/FreeWeaponSounds/AssaultRifle/Foley/assault_rifle_weapon_equip.wav",
+      "basePitch": 1
+    },
+    {
+      "name": "Tufek (susturuculu)",
+      "fire": ["Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_sil_gunshot_01.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_sil_gunshot_02.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_sil_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/AssaultRifle/Foley/01_assault_rifle_reload_1_drop_the_mag.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/AssaultRifle/Foley/02_assault_rifle_reload_1_insert_the_mag.wav",
+      "dryFire": "Assets/FreeWeaponSounds/AssaultRifle/Foley/03_assault_rifle_reload_1_bolt.wav",
+      "equip": "Assets/FreeWeaponSounds/AssaultRifle/Foley/assault_rifle_weapon_equip.wav",
+      "basePitch": 1
+    },
+    {
+      "name": "Pompali",
+      "fire": ["Assets/FreeWeaponSounds/Shotgun/Gunshots/shotgun_gunshot_01.wav", "Assets/FreeWeaponSounds/Shotgun/Gunshots/shotgun_gunshot_02.wav", "Assets/FreeWeaponSounds/Shotgun/Gunshots/shotgun_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_reload_chambering.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_reload_slide_action.wav",
+      "dryFire": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_reload_slide_action.wav",
+      "equip": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_weapon_equip.wav",
+      "basePitch": 1
+    },
+    {
+      "name": "Bombaatar",
+      "fire": ["Assets/FreeWeaponSounds/GrenadeLauncher/GL_fire.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/GrenadeLauncher/01_GL_reload_breech_open.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/GrenadeLauncher/04_GL_reload_breech_close.wav",
+      "dryFire": "Assets/FreeWeaponSounds/GrenadeLauncher/02_GL_reload_empty_casing_extract.wav",
+      "equip": "",
+      "basePitch": 1
+    }
+  ],
+
+  "weapons": [
+    {
+      "weaponId": "weapon.pistol",
+      "fire": ["Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_gunshot_01.wav", "Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_gunshot_02.wav", "Assets/FreeWeaponSounds/Handgun/Gunshots/handgun_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/Handgun/Foley/02_drop_the_mag_handgun_reload_1.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/Handgun/Foley/03_insert_the_mag_handgun_reload_1.wav",
+      "dryFire": "Assets/FreeWeaponSounds/Handgun/Foley/01_slide_lock_handgun_reload_1.wav",
+      "equip": "Assets/FreeWeaponSounds/Handgun/Foley/handgun_weapon_equip.wav",
+      "basePitch": 1
+    },
+    {
+      "weaponId": "weapon.smg",
+      "fire": ["Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_01.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_02.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/AssaultRifle/Foley/01_assault_rifle_reload_1_drop_the_mag.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/AssaultRifle/Foley/02_assault_rifle_reload_1_insert_the_mag.wav",
+      "dryFire": "Assets/FreeWeaponSounds/AssaultRifle/Foley/03_assault_rifle_reload_1_bolt.wav",
+      "equip": "Assets/FreeWeaponSounds/AssaultRifle/Foley/assault_rifle_weapon_equip.wav",
+      "basePitch": 1.22
+    },
+    {
+      "weaponId": "weapon.shotgun",
+      "fire": ["Assets/FreeWeaponSounds/Shotgun/Gunshots/shotgun_gunshot_01.wav", "Assets/FreeWeaponSounds/Shotgun/Gunshots/shotgun_gunshot_02.wav", "Assets/FreeWeaponSounds/Shotgun/Gunshots/shotgun_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_reload_chambering.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_reload_slide_action.wav",
+      "dryFire": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_reload_slide_action.wav",
+      "equip": "Assets/FreeWeaponSounds/Shotgun/Foley/shotgun_weapon_equip.wav",
+      "basePitch": 1
+    },
+    {
+      "weaponId": "weapon.ak74",
+      "fire": ["Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_01.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_02.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/AssaultRifle/Foley/01_assault_rifle_reload_1_drop_the_mag.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/AssaultRifle/Foley/02_assault_rifle_reload_1_insert_the_mag.wav",
+      "dryFire": "Assets/FreeWeaponSounds/AssaultRifle/Foley/03_assault_rifle_reload_1_bolt.wav",
+      "equip": "Assets/FreeWeaponSounds/AssaultRifle/Foley/assault_rifle_weapon_equip.wav",
+      "basePitch": 0.92
+    },
+    {
+      "weaponId": "weapon.m4",
+      "fire": ["Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_01.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_02.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/AssaultRifle/Foley/01_assault_rifle_reload_1_drop_the_mag.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/AssaultRifle/Foley/02_assault_rifle_reload_1_insert_the_mag.wav",
+      "dryFire": "Assets/FreeWeaponSounds/AssaultRifle/Foley/03_assault_rifle_reload_1_bolt.wav",
+      "equip": "Assets/FreeWeaponSounds/AssaultRifle/Foley/assault_rifle_weapon_equip.wav",
+      "basePitch": 1.05
+    },
+    {
+      "weaponId": "weapon.sniper",
+      "fire": ["Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_01.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_02.wav", "Assets/FreeWeaponSounds/AssaultRifle/Gunshots/assault_rifle_gunshot_03.wav"],
+      "reloadOut": "Assets/FreeWeaponSounds/AssaultRifle/Foley/01_assault_rifle_reload_1_drop_the_mag.wav",
+      "reloadIn": "Assets/FreeWeaponSounds/AssaultRifle/Foley/02_assault_rifle_reload_1_insert_the_mag.wav",
+      "dryFire": "Assets/FreeWeaponSounds/AssaultRifle/Foley/03_assault_rifle_reload_1_bolt.wav",
+      "equip": "Assets/FreeWeaponSounds/AssaultRifle/Foley/assault_rifle_weapon_equip.wav",
+      "basePitch": 0.62
+    }
+  ]
+}

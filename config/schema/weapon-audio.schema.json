@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bunker/weapon-audio",
+  "title": "Silah sesleri",
+  "_note": "presets ve weapons ayni sekli tasiyor ama $ref KULLANILMADI: config-validate.ps1 $ref cozmuyor ve referansli bir alt sema sessizce hic dogrulanmazdi.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "_meta", "presets", "weapons"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sema surumu. Anahtar adi degisir ya da silinirse artar."
+    },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "system", "lastTuned"],
+      "properties": {
+        "owner": { "type": "string" },
+        "system": { "type": "string" },
+        "lastTuned": { "type": "string" }
+      }
+    },
+
+    "presets": {
+      "type": "array",
+      "description": "Silah Atolyesi'ndeki 'Hazir aileden doldur' listesi. Bir silaha KOPYALANIR, baglanti kurmaz.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "fire", "reloadOut", "reloadIn", "dryFire", "equip", "basePitch"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "description": "Hazir ailenin adi." },
+          "fire": {
+            "type": "array", "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Ates sesi varyantlari."
+          },
+          "reloadOut": { "type": "string", "description": "Dolum baslangici. Bos = sentezlenmis ses." },
+          "reloadIn": { "type": "string", "description": "Dolum sonu. Bos = sentezlenmis ses." },
+          "dryFire": { "type": "string", "description": "Bos tetik. Bos = sentezlenmis ses." },
+          "equip": { "type": "string", "description": "Ele alma. Bos = yok." },
+          "basePitch": {
+            "type": "number", "minimum": 0.5, "maximum": 2,
+            "description": "Taban perde. 0.5'in altinda ses camura, 2'nin ustunde oyuncak tabancaya doner."
+          }
+        }
+      }
+    },
+
+    "weapons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["weaponId", "fire", "reloadOut", "reloadIn", "dryFire", "equip", "basePitch"],
+        "properties": {
+          "weaponId": {
+            "type": "string", "pattern": "^weapon\\.[a-z0-9_]+$",
+            "description": "weapons.json'daki kalici silah id'si."
+          },
+          "fire": {
+            "type": "array", "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Ates sesi varyantlari. Tek varyantli bir silah sesi saniyede on kez tekrar edince makine sesine doner; en az uc-dort tane olmali (audio-code.md)."
+          },
+          "reloadOut": { "type": "string", "description": "Dolum baslangici (sarjor cikar). Bos = sentezlenmis ses, silah sessiz kalmaz." },
+          "reloadIn": { "type": "string", "description": "Dolum sonu (sarjor oturur). Bos = sentezlenmis ses." },
+          "dryFire": { "type": "string", "description": "Bos tetik. Bos = sentezlenmis ses." },
+          "equip": { "type": "string", "description": "Silahi ele alma. Bos = yok." },
+          "basePitch": {
+            "type": "number", "minimum": 0.5, "maximum": 2,
+            "description": "Taban perde. Ayni kaydi paylasan silahlari kulakla ayirir (Uzi ince, M107 agir). 0.5'in altinda ses camura, 2'nin ustunde oyuncak tabancaya doner."
+          }
+        }
+      }
+    }
+  }
+}

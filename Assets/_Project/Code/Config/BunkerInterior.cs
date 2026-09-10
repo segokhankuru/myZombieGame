@@ -57,6 +57,24 @@ namespace Bunker.Config
             floorY = floor; ceilingY = ceiling;
         }
 
+        /// <summary>
+        /// Ayak izinin alt köşesi, <b>pay olmadan</b> — duvarın dış yüzü. Dış sis hacmi
+        /// ve yağmurun "çatının altına düşme" kuralı bununla ölçer (2026-09-10).
+        /// </summary>
+        public Vector3 Min => new Vector3(west, floorY, south);
+
+        /// <summary>Ayak izinin üst köşesi, pay olmadan.</summary>
+        public Vector3 Max => new Vector3(east, ceilingY, north);
+
+        /// <summary>
+        /// Bu (x, z) binanın <b>çatısının altında</b> mı — yükseklikten bağımsız,
+        /// pay olmadan. Yağmur damlası buna göre doğar ya da doğmaz.
+        /// </summary>
+        public bool CoversXZ(float x, float z)
+        {
+            return x >= west && x <= east && z >= south && z <= north;
+        }
+
         /// <summary>Bu nokta binanın içinde mi?</summary>
         public bool Contains(Vector3 point)
         {

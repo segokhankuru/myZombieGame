@@ -6,6 +6,7 @@ using Bunker.Systems.Ai;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Combat;
 using Bunker.Systems.Config;
+using Bunker.Systems.Net;
 using Bunker.Systems.Pickups;
 using Bunker.Systems.Rounds;
 using UnityEngine;
@@ -80,6 +81,13 @@ namespace Bunker.AI
         /// zincirleme, oyuncunun hicbir karar vermedigi bir tur sonu.
         /// </summary>
         private bool _suppressDrops;
+
+        // Nuke'un secim tamponlari. Bir kez ayrilir, her kullanimda temizlenir -
+        // esya nadir de olsa, kullanimda yeni liste ayirmak aliskanlik bozar
+        // (csharp-code.md: koleksiyonlar bir kez ayrilir ve yeniden kullanilir).
+        private readonly HashSet<int> _nukeTaken = new HashSet<int>();
+        private readonly List<ZombieAgent> _nukeVictims = new List<ZombieAgent>(32);
+
         private bool _authoritative = true;
         private bool _ready;
         private const float WindowReachabilityRefreshSeconds = 1.5f;
@@ -88,8 +96,17 @@ namespace Bunker.AI
         private bool[] _windowReachable;
         private NavMeshPath _reachabilityPath;
 
-        // Bir turda TEK boss: iki boss bir savas degil bir kusatma olurdu.
-        private bool _bossSpawnedThisRound;
+        // Boss turu (2026-09-11): tur BASINDA kac boss cikacagi sabitlenir, dogum
+        // sirasina esit aralikla yayilir (RoundScaling.BossSpawnIndex). 2026-09-06'daki
+        // "tek boss" kurali gelistiricinin istegiyle kalkti: co-op her boss turunda,
+        // tek oyuncu iki boss turunda bir fazla boss goruyor.
+        private int _bossesThisRound;
+        private int _bossesSpawnedThisRound;
+
+        // Bu turda BASARIYLA dogan zombi. RoundRunner.SpawnedThisRound tick sonunda
+        // guncelleniyor; ayni tick icindeki dogumlari bossun sirasi icin burada saymak
+        // gerekiyor.
+        private int _spawnedThisRound;
 
         private bool _warnedNoWindow;
         private bool _warnedInsideSpawn;
@@ -177,12 +194,18 @@ namespace Bunker.AI
             // Sahaya dokunan esyalarin sahibi burasi: yavaslatma ve dondurma
             // zombilerin hizina, nuke sahanin kendisine dokunur.
             PowerupSignals.Picked += OnPowerupPicked;
+
+            // HAZIR SISTEMI (2026-09-09): oyuncular molayi erken bitirebilir.
+            // Istek Gameplay'den geliyor ve bu assembly onu goremiyor - sinyal
+            // katmani araya giriyor (RoundSignals).
+            RoundSignals.BreatherSkipRequested += OnBreatherSkipRequested;
         }
 
         private void OnDisable()
         {
             RunSignals.RunRestarted -= OnRunRestarted;
             PowerupSignals.Picked -= OnPowerupPicked;
+            RoundSignals.BreatherSkipRequested -= OnBreatherSkipRequested;
         }
 
         /// <summary>
@@ -207,6 +230,24 @@ namespace Bunker.AI
             // ikinci run, birincinin dondurmasiyla acilirdi.
             PowerupPickup.ClearAll();
             PowerupState.Clear();
+
+            // Ekranin solundaki tehdit paneli de sifirlanir - yoksa ikinci run,
+            // birincinin 20. tur hiziyla acilir ve panel yalan soyler.
+            RoundThreat.Clear();
+        }
+
+        /// <summary>
+        /// Ayakta olan herkes hazir verdi: mola bir sonraki tick'te biter.
+        ///
+        /// <para><b>Otorite kontrolu sart:</b> yetkisiz bir yonetmen (M-02'de uzak
+        /// istemci) turu kendi basina baslatmaz - yoksa iki makine iki ayri turda
+        /// olurdu.</para>
+        /// </summary>
+        private void OnBreatherSkipRequested()
+        {
+            if (!_ready || !_authoritative) return;
+
+            _runner.SkipBreather();
         }
 
         private void OnDestroy()
@@ -283,10 +324,12 @@ namespace Bunker.AI
                     break;
 
                 case PowerupKind.Nuke:
-                    // Puan normal oldurme yolundan yazilir (KillAll -> ApplyDamage ->
-                    // Die -> Killed): nuke bir kestirme degil, hizlandirilmis bir tur.
+                    // Puan normal oldurme yolundan yazilir (ApplyDamage -> Die ->
+                    // Killed): nuke bir kestirme degil, hizlandirilmis bir tur.
                     _suppressDrops = true;
-                    KillAll();
+                    KillNearest(_zombieRuntimeConfig != null
+                                    ? _zombieRuntimeConfig.DropsNukeMaxKills
+                                    : 15);
                     _suppressDrops = false;
                     break;
             }
@@ -311,8 +354,12 @@ namespace Bunker.AI
                 // Skor ekraninin "ulasilan tur" sayisi (M1-11).
                 RunSignals.Current.NoteRound(_runner.Round);
 
-                // Yeni tur, yeni boss hakki.
-                _bossSpawnedThisRound = false;
+                // Bu turun tehdit sayilari (2026-09-09): arayuz ekranin solunda
+                // gosteriyor. Hesap BURADA yapiliyor cunku olceklemeyi bilen taraf
+                // burasi; arayuzun ayni hesabi tekrarlamasi, ekrandaki sayi ile
+                // oyuncuyu olduren sayinin sessizce ayrismasi demekti.
+                // Yeni tur, yeni boss hakki - boss sayisi ve panel tek yerde.
+                BeginRound(_runner.Round);
             }
 
             if (_runner.RoundClearedThisTick)
@@ -350,6 +397,61 @@ namespace Bunker.AI
             _runner.JumpToRound(round);
             RoundStarted?.Invoke(_runner.Round);
             RoundSignals.RaiseRoundStarted(_runner.Round);
+
+            // Atlanan tur da bir tur BASLANGICIDIR (2026-09-11): boss sayisi ve panel
+            // onun sayilarina gecmeli, yoksa F8 ile 10. tura atlayan test onceki turun
+            // boss hakkiyla oynar.
+            BeginRound(_runner.Round);
+        }
+
+        /// <summary>
+        /// Tur başlangıcının boss ve panel kısmı (2026-09-11). <b>Tek yer:</b> normal tur
+        /// geçişi de tur atlama da buradan geçer.
+        ///
+        /// <para>Boss sayısı <b>tur başında sabitlenir</b>, co-op durumu dahil: tur
+        /// ortasında katılan ya da ayrılan bir oyuncu doğmakta olan bossları
+        /// değiştirmez. Panelden <b>önce</b> hesaplanır, çünkü panel sayıyı gösteriyor.</para>
+        /// </summary>
+        private void BeginRound(int round)
+        {
+            _bossesThisRound = _scaling.BossCountForRound(round, IsCoopSession());
+            _bossesSpawnedThisRound = 0;
+            _spawnedThisRound = 0;
+
+            PublishThreat(round);
+        }
+
+        /// <summary>
+        /// Oturumda birden fazla oyuncu var mı. Kaynak sunucunun lobi listesi
+        /// (<see cref="SessionSignals.LobbyPlayers"/>): <c>Bunker.AI</c> Mirror'ı göremez
+        /// ve liste zaten sunucunun bağlantılarından kuruluyor. Ağsız çalışan sahnede
+        /// liste boştur, yani tek oyuncu.
+        /// </summary>
+        private static bool IsCoopSession() => SessionSignals.LobbyPlayers.Count > 1;
+
+        /// <summary>
+        /// Bu turun tehdit sayılarını arayüze yayınlar (<see cref="RoundThreat"/>).
+        ///
+        /// <para>Boss turlarında boss'un hasarı ayrıca gönderilir: <b>boss turu bir
+        /// uyarı olmalı</b>, sürpriz değil — oyuncu bir önceki turun molasında ona
+        /// hazırlanabilsin (<c>IsBossRound</c>'un düzenli aralıkta olmasıyla aynı
+        /// gerekçe).</para>
+        /// </summary>
+        private void PublishThreat(int round)
+        {
+            if (_scaling == null || _zombieRuntimeConfig == null) return;
+
+            // Panel, zombinin GERCEKTEN vurdugu carpani yaziyor (TrySpawnOne ile ayni
+            // iki metot) - ekrandaki sayi ile oyuncuyu olduren sayi ayrisamaz.
+            float baseDamage = _zombieRuntimeConfig.AttackDamage;
+
+            RoundThreat.Set(
+                round,
+                baseDamage * _scaling.ZombieDamageMultiplierForRound(round),
+                _scaling.SpeedForRound(round),
+                _scaling.SpeedTierForRound(round),
+                _bossesThisRound,
+                baseDamage * _scaling.BossDamageMultiplierForRound(round));
         }
 
         public void KillAll()
@@ -366,6 +468,97 @@ namespace Bunker.AI
                     Release(zombie);
                 }
             }
+        }
+
+        /// <summary>
+        /// Oyuncuya <b>en yakın</b> en fazla <paramref name="maxKills"/> zombiyi
+        /// öldürür. Nuke eşyasının 2026-09-09'daki yeni davranışı.
+        ///
+        /// <para><b>Neden bir sınır</b> (geliştirici): <i>"nuke drobunu kullanınca
+        /// alandaki 15 zombiyi öldürsün, birden hepsi ölüp turu geçince çok easy
+        /// oluyor."</i> Sahayı silen bir eşya, geç turda tek başına turu bitiriyordu —
+        /// oyuncunun kazandığı şey oyun değil, zar atışıydı. Sayı bir tavan olunca eşya
+        /// bir <b>zamanlama kararına</b> dönüşür: sekiz zombi varken basmak israf,
+        /// yirmi beş zombi varken basmak nefes.</para>
+        ///
+        /// <para><b>Neden EN YAKIN, rastgele değil:</b> uzaktakileri öldürüp oyuncunun
+        /// etrafındaki çemberi bırakan bir nuke, tam da en çok ihtiyaç duyulduğu anı
+        /// çözmezdi. En yakından silmek eşyanın vaadini okunur kılar: <i>etrafımı
+        /// aç</i> (PILLAR-04).</para>
+        ///
+        /// <para><b>Mesafe oyuncuya göre ölçülür</b>, yönetmene göre değil — yönetmen
+        /// sahnede sabit bir nesne ve ona göre ölçmek, oyuncu haritanın öbür ucundayken
+        /// yanlış zombileri seçerdi. Oyuncu bulunamazsa sıra listedeki hâliyle kalır:
+        /// yanlış on beş zombi, hiç zombi olmamasından iyidir.</para>
+        /// </summary>
+        public void KillNearest(int maxKills)
+        {
+            if (maxKills <= 0) return;
+
+            ZombieTargetBeacon player = ZombieTargets.Nearest(transform.position);
+            Vector3 origin = player != null ? player.GroundPosition : transform.position;
+
+            // Once olu/bos kayitlari temizle: bunlar "en yakin" siralamasinda yer
+            // kaplayip canli bir zombinin olmesini engellerdi.
+            for (int i = _active.Count - 1; i >= 0; i--)
+            {
+                if (_active[i] == null || !_active[i].IsAlive) Release(_active[i]);
+            }
+
+            if (_active.Count <= maxKills)
+            {
+                KillAll();
+                return;
+            }
+
+            // Tam siralama yerine SECIM: her adimda kalanlarin en yakinini bul.
+            // maxKills kucuk (15) ve _active tavani 40'larda, yani 15x40 = 600
+            // karsilastirma - tek seferlik bir esya icin sıralamanin ayirdigi
+            // diziden ucuz (csharp-code.md: kare basina tahsis yok; burasi kare
+            // basina calismasa da aliskanlik ayni).
+            _nukeTaken.Clear();
+
+            for (int k = 0; k < maxKills; k++)
+            {
+                int best = -1;
+                float bestSqr = float.MaxValue;
+
+                for (int i = 0; i < _active.Count; i++)
+                {
+                    ZombieAgent zombie = _active[i];
+                    if (zombie == null || !zombie.IsAlive) continue;
+                    if (_nukeTaken.Contains(i)) continue;
+
+                    float sqr = (zombie.transform.position - origin).sqrMagnitude;
+                    if (sqr >= bestSqr) continue;
+
+                    bestSqr = sqr;
+                    best = i;
+                }
+
+                if (best < 0) break;
+                _nukeTaken.Add(best);
+            }
+
+            // Oldurme AYRI bir gecis: ApplyDamage listeyi degistirebilir (olen zombi
+            // Release'e gider) ve secim sirasinda indeksleri kaydirmak, yanlis
+            // zombiyi oldurmenin en klasik yoludur.
+            _nukeVictims.Clear();
+            foreach (int index in _nukeTaken)
+            {
+                if (index >= 0 && index < _active.Count) _nukeVictims.Add(_active[index]);
+            }
+
+            for (int i = 0; i < _nukeVictims.Count; i++)
+            {
+                ZombieAgent zombie = _nukeVictims[i];
+                if (zombie == null || !zombie.IsAlive) continue;
+
+                zombie.ApplyDamage(new DamageInfo(float.MaxValue, DamageKind.Environment));
+            }
+
+            _nukeVictims.Clear();
+            _nukeTaken.Clear();
         }
 
         // ---------------------------------------------------------------- dogum
@@ -454,13 +647,18 @@ namespace Bunker.AI
             //
             // <b>İlk olması bilinçli:</b> boss turun sonunda gelseydi oyuncu turun
             // tamamını "acaba şimdi mi" diye oynardı; başta gelmesi turun geri kalanını
-            // <i>onunla birlikte</i> hayatta kalma problemine çevirir. Ve tek: iki boss
-            // bir savaş değil bir kuşatma olurdu.
-            bool boss = !_bossSpawnedThisRound && _scaling.IsBossRound(_runner.Round);
+            // <i>onunla birlikte</i> hayatta kalma problemine çevirir.
+            //
+            // <b>Birden fazla boss</b> (2026-09-11): sayı tur başında sabitlendi
+            // (BeginRound); ikinci ve sonraki bosslar turun doğum sırasına eşit aralıkla
+            // gelir. Hepsi birden gelseydi boss turu kaçılabilir bir olaydan duvara dönerdi.
+            bool boss = _bossesSpawnedThisRound < _bossesThisRound &&
+                        _spawnedThisRound >= _scaling.BossSpawnIndex(
+                            _bossesSpawnedThisRound, _bossesThisRound, _runner.TotalForRound);
 
             if (boss)
             {
-                _bossSpawnedThisRound = true;
+                _bossesSpawnedThisRound++;
 
                 zombie.Spawn(_zombieRuntimeConfig,
                              _scaling.BossHealthForRound(_runner.Round),
@@ -468,18 +666,24 @@ namespace Bunker.AI
                              window,
                              hit.position,
                              _scaling.BossScaleMultiplier,
-                             _scaling.BossDamageMultiplier);
+                             _scaling.BossDamageMultiplierForRound(_runner.Round));
 
                 GameAudio.PlayAt(SfxId.RoundStart, hit.position, 1.2f);
             }
             else
             {
+                // Normal zombi de TURUN hasar carpaniyla dogar (2026-09-11). Olcek 1 =
+                // boss degil; ZombieAgent.IsBoss olcege bakiyor.
                 zombie.Spawn(_zombieRuntimeConfig,
                              _scaling.HealthForRound(_runner.Round),
                              _scaling.SpeedForRound(_runner.Round),
                              window,
-                             hit.position);
+                             hit.position,
+                             bossScale: 1f,
+                             damageMultiplier: _scaling.ZombieDamageMultiplierForRound(_runner.Round));
             }
+
+            _spawnedThisRound++;
 
             zombie.SetSimulated(_authoritative);
 

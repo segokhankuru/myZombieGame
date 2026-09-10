@@ -75,6 +75,15 @@ namespace Bunker.Net
             // bu Mirror'in singleton davranisi ve bilerek kullaniliyor: sandbox
             // sahnesine dogrudan Play basmak calismaya devam etsin diye orada da bir
             // manager duruyor.
+            //
+            // KOPYA BURADA DURUR (2026-09-10, BUG-006). base.Awake kopyayi yok etmeye
+            // karar verip donuyor, ama bu metot devam ediyordu: kopyanin
+            // EnsureUsableTransport'u STATIK Transport.active'i kendi KCP'sine
+            // yaziyordu. "BASLAT"a basildiginda oturum Steam'den KCP'ye kaydi - host
+            // yerel istemcisiyle oynadi, davetliler Steam'den bir daha hic veri
+            // alamadi ve oyuna giremedi.
+            if (singleton != this) return;
+
             LastJoinAddress = PlayerPrefs.GetString(AddressKey, lastJoinAddress);
             _lobby = GetComponent<LobbyController>();
 
@@ -152,9 +161,26 @@ namespace Bunker.Net
         /// </summary>
         private void Use(Transport chosen, string label)
         {
-            SessionSignals.SetTransportLabel(label);
+            if (transport == chosen && Transport.active == chosen)
+            {
+                SessionSignals.SetTransportLabel(label);
+                return;
+            }
 
-            if (transport == chosen && Transport.active == chosen) return;
+            // OTURUM ACIKKEN TASIMA DEGISMEZ (2026-09-10, BUG-006). Mirror sunucuyu ve
+            // istemciyi Transport.active uzerinden pompaliyor; calisan bir baglantinin
+            // altindan onu degistirmek Steam'den gelen her paketi sessizce kaybetmek
+            // demekti. Bu yol artik reddeder ve SOYLER.
+            if (SessionActive)
+            {
+                string current = Transport.active != null ? Transport.active.GetType().Name : "yok";
+                Debug.LogError($"[Bunker] Oturum acikken tasima degisikligi REDDEDILDI: " +
+                               $"{current} -> {chosen.GetType().Name}. Bu cagriyi yapan yer hatali.",
+                               this);
+                return;
+            }
+
+            SessionSignals.SetTransportLabel(label);
 
             Debug.Log($"[Bunker] Tasima: {chosen.GetType().Name} ({label})");
 
@@ -233,6 +259,10 @@ namespace Bunker.Net
         /// </summary>
         private void OnEnable()
         {
+            // Yok edilecek kopya menu niyetlerini dinlememeli (BUG-006): ayni karede
+            // gelen bir "ayril" iki kez StopHost demek olurdu.
+            if (singleton != this) return;
+
             SessionSignals.SoloRequested += OnSoloRequested;
             SessionSignals.HostRequested += OnHostRequested;
             SessionSignals.JoinRequested += OnJoinRequested;
@@ -453,6 +483,10 @@ namespace Bunker.Net
         /// </summary>
         public override void Update()
         {
+            // Yok edilecek kopya bu karede de Update alabilir (Destroy kare sonunda
+            // islenir). Konfigurasyonu da, tasima secimini de o yapmamali (BUG-006).
+            if (singleton != this) return;
+
             base.Update();
 
             // Tasima secimi burada yoklanir (2026-09-09). AYRI bir Update yazilamaz:
@@ -464,6 +498,22 @@ namespace Bunker.Net
             if (!NetworkServer.active || !NetworkClient.isConnected) return;
 
             ServerStartGame();
+        }
+
+        /// <summary>
+        /// Yalnızca asıl örnek sahne yüklemesini bitirir (BUG-006).
+        ///
+        /// <para>Mirror'ın <c>LateUpdate</c>'i <b>statik</b> <c>loadingSceneAsync</c>'e
+        /// bakıp <c>FinishLoadScene</c>'i çağırıyor. Yok edilecek kopya bunu asıl
+        /// örnekten önce yaparsa sahne değişimi <i>kopyanın</i> üzerinde biter:
+        /// <c>OnServerSceneChanged</c> ve istemcinin "hazırım" akışı yanlış nesnede koşar
+        /// ve oyuncu doğmaz.</para>
+        /// </summary>
+        public override void LateUpdate()
+        {
+            if (singleton != this) return;
+
+            base.LateUpdate();
         }
 
         /// <summary>

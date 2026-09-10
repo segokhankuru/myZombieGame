@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/weapon.schema.json",
-  "version": 1,
+  "version": 2,
   "_meta": {
     "owner": "systems-designer",
     "system": "SYS-silah",
@@ -29,6 +29,10 @@
     "yawDegreesPerShot": 0.35,
     "recoverySpeedDegreesPerSecond": 14,
     "maxPitchDegrees": 6
+  },
+
+  "loadout": {
+    "firearmSlots": 2
   },
 
   "feel": {

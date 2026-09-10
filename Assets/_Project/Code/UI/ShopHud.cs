@@ -110,6 +110,13 @@ namespace Bunker.UI
             // Esc de kapatir cunku her menuden Esc'le cikilmasi beklenir.
             if (keyboard.eKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame)
             {
+                // KAPANDIGI KARE DAMGALANIR (2026-09-10, oyun testi: "yukseltme tezgahi
+                // acikken E'ye basinca kapanmiyor, silah tezgahi duzgun calisiyor").
+                // Silah tezgahi bu satiri 2026-09-09'da aldi, bu menu ALMADI: E menuyu
+                // kapatiyor, ayni karede PlayerInteract ayni basisi gorup tezgahi
+                // yeniden aciyordu. Ayni tusu paylasan iki menu, ayni korumayi da
+                // paylasmak zorunda.
+                Bunker.Systems.Ui.MenuSignals.NoteMenuClosed(Time.frameCount);
                 CardSignals.SetShopOpen(false);
             }
         }

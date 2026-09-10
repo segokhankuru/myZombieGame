@@ -23,6 +23,10 @@ GameObject:
   - component: {fileID: 7227001487057636917}
   - component: {fileID: 5267344498263627180}
   - component: {fileID: 6412149234775829127}
+  - component: {fileID: 903300041346559391}
+  - component: {fileID: 2262945617576473887}
+  - component: {fileID: 4349071411733709604}
+  - component: {fileID: 3197577900398106750}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -46,6 +50,7 @@ Transform:
   - {fileID: 8257948596560608170}
   - {fileID: 5408921473660128434}
   - {fileID: 5837629455009491758}
+  - {fileID: 5554198564365357214}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &6312501394129407822
@@ -319,6 +324,66 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 864752d12df748543a294f7427d6605e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerRevive
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &903300041346559391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38d99538f0dafac4cbef40a5389e304b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerAvatar
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  animator: {fileID: 8701332260366043554}
+  model: {fileID: 7863396565157020247}
+--- !u!114 &2262945617576473887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d25936c708583fc478cab94a0402a05b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerPowerups
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  zombieConfig: {fileID: 11400000, guid: 9fd8e71abbb04ed45956dcbe5179a4c3, type: 2}
+--- !u!114 &4349071411733709604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65c29143149177345b8e63101040328c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerFootsteps
+--- !u!114 &3197577900398106750
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014827978582427297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a34310129330544da444b468dea990e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Gameplay::Bunker.Gameplay.PlayerReady
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
@@ -700,3 +765,83 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1001 &190146236777587649
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 565321715909743293}
+    m_Modifications:
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8035527281834680726, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_Name
+      value: Body
+      objectReference: {fileID: 0}
+    - target: {fileID: 8818856659746204259, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 1edb68fca59fd524f819d450cd2fa610, type: 2}
+    - target: {fileID: 8818856659746204259, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+--- !u!4 &5554198564365357214 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5744326842257126239, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+  m_PrefabInstance: {fileID: 190146236777587649}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7863396565157020247 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8035527281834680726, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+  m_PrefabInstance: {fileID: 190146236777587649}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &8701332260366043554 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 8818856659746204259, guid: b792d8f84bd53714fa6607100a6d3119, type: 3}
+  m_PrefabInstance: {fileID: 190146236777587649}
+  m_PrefabAsset: {fileID: 0}

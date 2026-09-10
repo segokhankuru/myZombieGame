@@ -60,6 +60,9 @@ namespace Bunker.Gameplay
 
         private MeleeDefinition _current;
 
+        /// <summary>Elde ne oldugunu bilen taraf (PlayerWeapon.IsMeleeActive).</summary>
+        private PlayerWeapon _hands;
+
         /// <summary>Savaş günlüğünde vuranın adı ("Oyuncu[BALTA]"). Silah değişince kurulur.</summary>
         private string _logSource = "Oyuncu";
 
@@ -137,6 +140,20 @@ namespace Bunker.Gameplay
         private void Awake()
         {
             if (playerCamera == null) playerCamera = GetComponentInChildren<Camera>(true);
+
+            // "Elimde ne var" sorusunun sahibi (bkz. Update). Awake'te bir kez
+            // cozulur - kare basina GetComponent yasak (csharp-code.md).
+            _hands = GetComponent<PlayerWeapon>();
+
+            if (_hands == null)
+            {
+                // Sessiz kalmaz: bicak SESSIZCE calismaz hâle gelirdi ve oyun
+                // testinde "sol tik bicagi sallamiyor" diye okunurdu - teshisi en
+                // pahali hata turu.
+                Debug.LogError("[Bicak] Ayni nesnede PlayerWeapon yok. Bicak 1 numarali " +
+                               "SLOT oldugu icin hangi elin aktif oldugunu ondan okuyor; " +
+                               "onsuz hic sallanmaz.", this);
+            }
 
             if (knifeConfig == null)
             {
@@ -317,12 +334,24 @@ namespace Bunker.Gameplay
             // imkansiz kilardi.
             if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen) return;
 
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard == null) return;
+            // BICAK ARTIK BIR SLOT (2026-09-09, gelistirici: "melee atagi V'ye
+            // basarak yapiyorduk, bunu degistiriyoruz ve silah gibi slota
+            // yerlestiriyoruz").
+            //
+            // Eski hâlde bicak ayri bir tustaydi (V) ve bu onu bir SILAH degil bir
+            // KISAYOL yapiyordu: elindeki silahi birakmadan bicak sallayabilmek,
+            // bicagin bedelini (o sirada ates edememek) sifira indiriyordu. Artik
+            // bicak 1 numarali slotta ve sol tikla sallaniyor - yani her silah gibi.
+            //
+            // "Elimde ne var" sorusunun TEK cevabi PlayerWeapon'da (IsMeleeActive).
+            // Burada ikinci bir bayrak tutulsaydi, ikisinin ayristigi bir karede
+            // oyuncu hem ates eder hem bicak sallardi.
+            if (_hands == null || !_hands.IsMeleeActive) return;
 
-            // V: fare tuslari silahta, bicak ayri bir tusta. Ayni tusa binmek,
-            // sürünün icinde yanlislikla bicak cekmek demek olurdu.
-            if (keyboard.vKey.wasPressedThisFrame) TrySwing();
+            Mouse mouse = Mouse.current;
+            if (mouse == null) return;
+
+            if (mouse.leftButton.wasPressedThisFrame) TrySwing();
         }
 
         private void TrySwing()
@@ -473,8 +502,11 @@ namespace Bunker.Gameplay
                 Collider c = SwingRayHits[i].collider;
                 if (c == null) continue;
 
-                // Kendi collider'ini vurmak: savuran oyuncunun kendisi.
-                if (c.transform.IsChildOf(transform)) continue;
+                // OYUNCU GOVDESI YOK SAYILIR - kendisi de, takim arkadasi da (2026-09-10).
+                // Oyunda PvP yok (CONTEXT). Ilk surum yalnizca savuranin kendi
+                // carpistiricilarini eliyordu; bicak bir takim arkadasina hasar
+                // yazabiliyordu. Yolu da KESMEZ: arkadasin arkasindaki zombiye gecer.
+                if (c.GetComponentInParent<PlayerHealth>() != null) continue;
 
                 float distance = SwingRayHits[i].distance;
                 if (distance >= bestDistance) continue;

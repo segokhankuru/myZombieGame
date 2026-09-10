@@ -19,13 +19,17 @@ namespace Bunker.Systems.Tests
             float tolerance = 0.5f,
             float stuckAfter = 1f,
             float stuckRecovery = 0.5f,
-            float stuckSpeed = 0.1f)
+            float stuckSpeed = 0.1f,
+            float maxHit = 1f,
+            float bossMaxHit = 2f)
         {
             return new ZombieConfig(
                 spawnEmergeDelaySeconds: emerge,
                 windowEntryVaultSeconds: vault,
                 attackRangeMeters: range,
                 attackRangeToleranceMeters: tolerance,
+                attackMaxHitDistanceMeters: maxHit,
+                attackBossMaxHitDistanceMeters: bossMaxHit,
                 attackWindupSeconds: windup,
                 attackRecoverySeconds: recovery,
                 navigationStuckSpeedMetersPerSecond: stuckSpeed,
@@ -235,6 +239,65 @@ namespace Bunker.Systems.Tests
             brain.Tick(0.6f, new ZombieSenses(true, 2.0f, actualSpeedMetersPerSecond: 2f));
 
             Assert.IsTrue(brain.AttackLandedThisTick);
+        }
+
+        // ---------------------------------------------------------------- mutlak tavan (2026-09-10)
+
+        /// <summary>
+        /// Kol uzunluğu ne derse desin, merkezler arası 1 m'yi aşan oyuncuya telegraf
+        /// başlamaz (geliştirici: "zombiler 1 m'den uzaktan vuramaz").
+        /// </summary>
+        [Test]
+        public void AC3_MutlakTavan_BirMetreyiAsanOyuncuyaTelegrafBaslamaz()
+        {
+            var brain = Chasing(Config(range: 1.6f, maxHit: 1f));
+
+            brain.Tick(0.1f, new ZombieSenses(true, 0.2f, actualSpeedMetersPerSecond: 2f,
+                                              distanceToTargetMeters: 1.2f));
+
+            Assert.AreEqual(ZombieState.Chasing, brain.State);
+        }
+
+        [Test]
+        public void AC3_MutlakTavan_TelegrafSirasindaTavaniAsanOyuncuVurulmaz()
+        {
+            var brain = Chasing(Config(windup: 0.5f, range: 1.6f, tolerance: 0.5f, maxHit: 1f));
+
+            brain.Tick(0.1f, new ZombieSenses(true, 0.2f, actualSpeedMetersPerSecond: 2f,
+                                              distanceToTargetMeters: 0.9f));
+            Assert.AreEqual(ZombieState.WindingUp, brain.State, "kurulum: telegraf baslamaliydi");
+
+            // Kol hala yetisiyor (bosluk 0.3 < 2.1) ama merkez 1.05 m: tavan kazanir.
+            brain.Tick(0.6f, new ZombieSenses(true, 0.3f, actualSpeedMetersPerSecond: 2f,
+                                              distanceToTargetMeters: 1.05f));
+
+            Assert.IsFalse(brain.AttackLandedThisTick, "1 m'yi asan oyuncu hasar almaz");
+            Assert.AreEqual(ZombieState.Chasing, brain.State);
+        }
+
+        [Test]
+        public void AC3_MutlakTavan_BossIkiMetreyeKadarVurur()
+        {
+            var brain = Chasing(Config(windup: 0.5f, range: 1.6f, maxHit: 1f, bossMaxHit: 2f));
+            var senses = new ZombieSenses(true, 0.2f, actualSpeedMetersPerSecond: 2f,
+                                          distanceToTargetMeters: 1.8f, isBoss: true);
+
+            brain.Tick(0.1f, senses);
+            brain.Tick(0.6f, senses);
+
+            Assert.IsTrue(brain.AttackLandedThisTick,
+                          "boss 1.8 m'den vurabilmeli - normal zombi bu mesafeden vuramazdi");
+        }
+
+        [Test]
+        public void AC3_MutlakTavan_BossIkiMetredenUzaktanVuramaz()
+        {
+            var brain = Chasing(Config(range: 1.6f, bossMaxHit: 2f));
+
+            brain.Tick(0.1f, new ZombieSenses(true, 0.2f, actualSpeedMetersPerSecond: 2f,
+                                              distanceToTargetMeters: 2.2f, isBoss: true));
+
+            Assert.AreEqual(ZombieState.Chasing, brain.State);
         }
 
         [Test]

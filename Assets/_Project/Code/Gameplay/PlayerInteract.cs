@@ -3,6 +3,7 @@ using Bunker.Systems.Combat;
 using Bunker.Systems.Economy;
 using Bunker.Systems.Cards;
 using Bunker.Systems.Rounds;
+using Bunker.Systems.Ui;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -66,6 +67,17 @@ namespace Bunker.Gameplay
             if (RunSignals.IsRunOver || CardSignals.IsAnyMenuOpen)
             {
                 // HasTarget bu ikisinden turetilir; ayrica yazilmaz.
+                CurrentPrompt = string.Empty;
+                CanAfford = false;
+                return;
+            }
+
+            // MENU BU KAREDE KAPANDIYSA E YUTULUR (2026-09-09). Menuyu kapatan tus
+            // basisi, ayni karede menuyu yeniden acmamali - "E ile cikamiyorum"
+            // sikayetinin sebebi buydu. Bilesen sirasi tanimsiz oldugu icin cozum
+            // burada degil ORTAK yerde (MenuSignals.LastMenuClosedFrame).
+            if (MenuSignals.ClosedThisFrame(Time.frameCount))
+            {
                 CurrentPrompt = string.Empty;
                 CanAfford = false;
                 return;
@@ -216,24 +228,56 @@ namespace Bunker.Gameplay
                 return;
             }
 
+            // UC DURUM (2026-09-09), taşıma sınırı geldikten sonra:
+            //
+            //  1) HIC ALINMAMIS  -> satin alinir (fiyat), ele gecer
+            //  2) ALINMIS ama UZERINDE DEGIL -> BEDELSIZ ele gecer
+            //  3) ALINMIS ve UZERINDE -> mermi satar (eski davranis)
+            //
+            // Ikinci durum yeni ve geliştiricinin istegi: "satin alinmis silahlara
+            // puan harcamadan degistirebilme olayimiz olsun". Gerekce basit: o silahi
+            // zaten odedin. Ikinci kez ucret almak, tasima sinirini bir CEZAYA
+            // cevirirdi - oysa sinirin isi bir SECIM urettirmek.
             bool owned = weapon.Owns(definition.Id);
+            bool carrying = weapon.IsCarrying(definition.Id);
 
-            // Sahip olunan silah MERMI satar - tezgah, duvardaki muslugun ayni
-            // kuralini kullanir; oyuncu iki farkli kural ogrenmez.
-            int cost = owned
-                ? (definition.AmmoPrice > 0 ? definition.AmmoPrice : definition.Price)
-                : definition.Price;
+            int cost;
 
-            if (score.TrySpend(cost) != PurchaseResult.Success)
+            if (!owned) cost = definition.Price;
+            else if (!carrying) cost = 0;
+            else cost = definition.AmmoPrice > 0 ? definition.AmmoPrice : definition.Price;
+
+            // BEDAVA ELE ALIS CUZDANA UGRAMAZ (2026-09-10, oyun testi: "satin
+            // aldigimi ELE AL dedigimde degismiyor").
+            //
+            // Burada duran eski yorum "TrySpend(0) basarili doner" diyordu. Donmuyor:
+            // PlayerWallet.TryPurchase sifir maliyeti InvalidCost sayar - ve haklidir,
+            // cunku bedava bir "SATIN AL" dugmesi baska yerde bir hatanin belirtisi.
+            // Sonuc: cantadaki silaha gecis SESSIZCE reddediliyordu. Dugme calisiyor,
+            // komut gidiyor, sunucu geri donuyor ve oyuncuya gorunen tek sey "hicbir
+            // sey olmadi".
+            //
+            // Ders (2026-09-09'un aynisi): bir yorumun davranisi tarif etmesi, kodun
+            // oyle davrandigi anlamina gelmiyor. Bicak tarafi ayni durumu zaten ayri
+            // bir yolla cozuyordu; iki yol artik ayni sekli tutuyor.
+            if (cost > 0 && score.TrySpend(cost) != PurchaseResult.Success)
             {
                 TargetReportPurchase(connectionToClient, false);
                 return;
             }
 
-            // Mermi SATIN ALINAN SILAHA yazilir, eldekine degil: katalogdan pompali
-            // mermisi alan oyuncunun elinde tabanca olabilir.
-            if (owned) weapon.ServerAddReserveTo(definition.Id, AmmoPerPurchase(definition));
-            else weapon.ServerGrantWeapon(definition, equip: true);
+            if (owned && carrying)
+            {
+                // Mermi SATIN ALINAN SILAHA yazilir, eldekine degil: katalogdan
+                // pompali mermisi alan oyuncunun elinde tabanca olabilir.
+                weapon.ServerAddReserveTo(definition.Id, AmmoPerPurchase(definition));
+            }
+            else
+            {
+                // Hem satin alma hem bedelsiz gecis ayni yoldan: PlayerWeapon yer
+                // varsa ekler, yoksa ELDEKININ yerine koyar. Karar orada, tek yerde.
+                weapon.ServerGrantWeapon(definition, equip: true);
+            }
 
             TargetReportPurchase(connectionToClient, true);
         }

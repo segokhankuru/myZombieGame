@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b5f1051ee120944ba525b6943f07e5c, type: 3}
   m_Name: weapon
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.WeaponConfigAsset
-  version: 1
+  version: 2
   fireRoundsPerMinute: 400
   fireDamage: 55
   fireHeadshotMultiplier: 2
@@ -26,6 +26,7 @@ MonoBehaviour:
   recoilYawDegreesPerShot: 0.35
   recoilRecoverySpeedDegreesPerSecond: 14
   recoilMaxPitchDegrees: 6
+  loadoutFirearmSlots: 2
   feelTracerSeconds: 0.14
   feelHitMarkerSeconds: 0.12
   feelInputBufferSeconds: 0.15

@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class WeaponConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 1;
+        [SerializeField] private int version = 2;
 
         [Header("fire")]
         [Tooltip("Atis hizi. Bu silahin karakterinin yarisi burada: dusuk deger her atisin agirlik tasidigi, nisan almayi odullendiren bir silah verir; yuksek deger sprey ve panik verir. Cok dusurursen surunun icinde caresiz kalinir, cok artirirsan sarjor iki saniyede biter ve dolum suresi oyunun tamami olur.")]
@@ -77,6 +77,11 @@ namespace Bunker.Config
         [Range(0f, 30f)]
         [SerializeField] private float recoilMaxPitchDegrees = 6f;
 
+        [Header("loadout")]
+        [Tooltip("Ayni anda tasinabilen atesli silah sayisi. Tuş duzeninin ta kendisi: 1 bicak, 2..(1+bu sayi) atesli silahlar, sonrasi esya slotlari. Buyutursen esyalar parmak menzilinin disina cikar ve oyuncu tur ortasinda tus arar - 'silahlar numaralara sigmadi' sikayetinin sebebi tam olarak buydu. Kucultursen (1) silah secimi diye bir sey kalmaz: tezgahtan alinan her silah oncekini siler ve karsilastirma yapilamaz. SATIN ALINAN silah sayisini SINIRLAMAZ - alinmis silahlar run boyunca hatirlanir ve tezgahta bedelsiz degistirilir; bu sayi yalnizca UZERINDE kac tane tasidigini soyler.")]
+        [Range(1, 4)]
+        [SerializeField] private int loadoutFirearmSlots = 2;
+
         [Header("feel")]
         [Tooltip("Merminin izinin ekranda kaldigi sure. Kisa olursa atisin nereye gittigi okunmaz ve oyuncu isabetsizligin sebebini ogrenemez; uzun olursa ekran cizgilerle dolar ve kaosta okunabilirlik (PILLAR-04) bozulur.")]
         [Range(0.01f, 0.5f)]
@@ -108,6 +113,7 @@ namespace Bunker.Config
                 recoilYawDegreesPerShot,
                 recoilRecoverySpeedDegreesPerSecond,
                 recoilMaxPitchDegrees,
+                loadoutFirearmSlots,
                 feelTracerSeconds,
                 feelHitMarkerSeconds,
                 feelInputBufferSeconds);

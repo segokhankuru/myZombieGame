@@ -203,12 +203,17 @@ namespace Bunker.AI
             Vector3 delta = nearest.GroundPosition - _transform.position;
             if (delta.sqrMagnitude > _pickupRadiusSqr) return;
 
-            // Etki, esyanin kendisinde DEGIL: can Gameplay'de, yavaslatma sahada.
-            // Burasi yalnizca "toplandi" der ve yuku tasir (PowerupSignals).
-            PowerupSignals.RaisePicked(_kind, _amount, _seconds);
+            // 2026-09-09: esya artik ANINDA PATLAMIYOR, CEBE giriyor. Etki, oyuncunun
+            // 6-0 tuslarindan birine bastigi an uygulanir (PlayerPowerups).
+            //
+            // <b>Cep doluysa esya YERDE KALIR.</b> Yutup yok etmek, oyuncuya
+            // "topladim" deyip hicbir sey vermemek olurdu - ve tavani gormeyen oyuncu
+            // bunu bir kural degil bir hata olarak okurdu. Burada hicbir sey olmaz;
+            // esya doner, oyuncu uzerinden bir daha gecer, yine olmaz. Ne oldugunu
+            // arayuzdeki dolu slot soyler (CombatHud drop cubugu).
+            if (!PowerupSignals.TryStore(_kind, _amount, _seconds)) return;
 
-            GameAudio.PlayAt(_kind == PowerupKind.Nuke ? SfxId.RoundCleared : SfxId.Purchase,
-                             _transform.position);
+            GameAudio.PlayAt(SfxId.Purchase, _transform.position);
 
             Destroy(gameObject);
         }

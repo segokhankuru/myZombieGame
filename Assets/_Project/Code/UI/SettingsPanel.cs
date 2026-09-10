@@ -144,13 +144,20 @@ namespace Bunker.UI
             Slider(rect, ref y, $"EFEKTLER   %{Mathf.RoundToInt(GameSettings.SfxVolume * 100f)}",
                    GameSettings.SfxVolume, 0f, 1f, labelStyle, v => GameSettings.SfxVolume = v);
 
+            // MUZIK (2026-09-09): artik gercek bir muzik var (ana menu dongusu), yani
+            // ayar da gercek bir sey yapiyor. Onceki surumde bilerek YOKTU ve yerinde
+            // "muzik ayari yok cunku oyunda muzik yok" yaziyordu - hicbir sey yapmayan
+            // bir kaydirac, oyuncuya oyunun bozuk oldugunu ogretir.
+            Slider(rect, ref y, $"MUZIK   %{Mathf.RoundToInt(GameSettings.MusicVolume * 100f)}",
+                   GameSettings.MusicVolume, 0f, 1f, labelStyle, v => GameSettings.MusicVolume = v);
+
             Toggle(rect, ref y, "Oyun arka plandayken sesi kes",
                    GameSettings.MuteWhenUnfocused, v => GameSettings.MuteWhenUnfocused = v);
 
             GUI.color = new Color(1f, 1f, 1f, 0.55f);
             GUI.Label(new Rect(rect.x, y, rect.width, 40f),
-                      "Muzik ayari YOK cunku oyunda muzik yok. Bir sey yapmayan ayar, " +
-                      "oyuncuya oyunun bozuk oldugunu ogretir.", labelStyle);
+                      "Muzik yalnizca ANA MENUDE calar. Tur icinde muzik yok - " +
+                      "surunun sesi bir bilgi kaynagi ve muzik onu ortuyor.", labelStyle);
             GUI.color = Color.white;
         }
 
@@ -173,8 +180,10 @@ namespace Bunker.UI
 
             GUI.color = new Color(1f, 1f, 1f, 0.55f);
             GUI.Label(new Rect(rect.x, y, rect.width, 60f),
-                      "Tuslar: WASD hareket, Space ziplama, Shift kosu, Sol tik ates,\n" +
-                      "R dolum, V bicak, E etkilesim, F tamir, ESC menu.\n" +
+                      "Tuslar: WASD hareket, Space ziplama, Shift kosu.\n" +
+                      "1 bicak, 2-3 atesli silahlar, 4-8 esyalar (tekerlek de gecer).\n" +
+                      "Sol tik ates/savurus, sag tik durbun (M4 ve M107), R dolum,\n" +
+                      "E etkilesim/tezgah, F tur arasinda HAZIR, ESC menu.\n" +
                       "Tus degistirme M-05'te (girdi haritasi tasinacak).", labelStyle);
             GUI.color = Color.white;
         }

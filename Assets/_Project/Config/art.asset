@@ -15,32 +15,46 @@ MonoBehaviour:
   weapons:
   - id: weapon.pistol
     prefab: {fileID: 7109340728191115283, guid: ccfdadc9ddba7e34287081776467b6bf, type: 3}
-    localPosition: {x: 0, y: 0.037234604, z: 0.0588005}
-    localEulerAngles: {x: -0, y: 0, z: 0}
-    localScale: 0.9929229
-    muzzleLocal: {x: -1.0508313e-10, y: 0.07362542, z: 0.20348616}
+    localPosition: {x: -0.0305, y: 0.056520395, z: 0.054957457}
+    localEulerAngles: {x: -0, y: 180, z: 0}
+    localScale: 1.049833
+    muzzleLocal: {x: -0.0305, y: 0.08215917, z: 0.2090069}
     tint: {r: 1, g: 1, b: 1, a: 1}
   - id: weapon.smg
     prefab: {fileID: 8956439956424741665, guid: a0e992a8d281bb442966f02777b87039, type: 3}
-    localPosition: {x: 0, y: 0, z: 0.16639999}
-    localEulerAngles: {x: -0, y: 90, z: 0}
-    localScale: 0.7686243
-    muzzleLocal: {x: 0.0014110791, y: 0.060272407, z: 0.39401835}
+    localPosition: {x: 0, y: 0.044645358, z: 0.11858487}
+    localEulerAngles: {x: -0, y: 180, z: 0}
+    localScale: 1.257247
+    muzzleLocal: {x: 4.0981586e-11, y: 0.07579323, z: 0.39317825}
     tint: {r: 0.23529412, g: 0.24313726, b: 0.26666668, a: 1}
   - id: weapon.shotgun
     prefab: {fileID: 1729602111867954032, guid: ec1e16f5d7ea7dc4a8559de49c4cd1a4, type: 3}
-    localPosition: {x: 0, y: -0.0033253962, z: 0.16993873}
-    localEulerAngles: {x: -0, y: 0, z: 0}
-    localScale: 0.8275861
-    muzzleLocal: {x: 0.0000000019323794, y: 0.048955876, z: 0.6200787}
+    localPosition: {x: -0.007213208, y: 0.05324993, z: 0.28388214}
+    localEulerAngles: {x: -0, y: 180, z: 0}
+    localScale: 0.8806404
+    muzzleLocal: {x: -0.007213208, y: 0.044437833, z: 0.68500173}
     tint: {r: 1, g: 1, b: 1, a: 1}
-  - id: weapon.rifle
-    prefab: {fileID: 4403840822553857383, guid: 78b1a2db84534a049a9c9cca8b4dd782, type: 3}
-    localPosition: {x: -0.0000000017939633, y: 0, z: 0.2944}
-    localEulerAngles: {x: -0, y: 90, z: 0}
-    localScale: 0.9631266
-    muzzleLocal: {x: -0.000010857653, y: 0.034173828, z: 0.7276752}
-    tint: {r: 0.11320752, g: 0.10424454, b: 0.099857576, a: 1}
+  - id: weapon.ak74
+    prefab: {fileID: 1473158090779196872, guid: 0e33072642e33034db34f8e9ee959411, type: 3}
+    localPosition: {x: -0.012878378, y: 0.0794429, z: 0.21012777}
+    localEulerAngles: {x: -0, y: 180, z: 0}
+    localScale: 1.1417812
+    muzzleLocal: {x: -0.013006615, y: 0.09319167, z: 0.6874057}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - id: weapon.m4
+    prefab: {fileID: 5941457637228423281, guid: 181c2d4362bee2e43b6fa5ee5827c8bf, type: 3}
+    localPosition: {x: -0.0046589263, y: 0.004197461, z: 0.29603386}
+    localEulerAngles: {x: -0, y: 180, z: 0}
+    localScale: 1.1608437
+    muzzleLocal: {x: -0.0046719536, y: 0.07204499, z: 0.65919673}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  - id: weapon.sniper
+    prefab: {fileID: 1003861730051991013, guid: a7045dfab8ccabb49946a247ab52ba06, type: 3}
+    localPosition: {x: -0.02325046, y: 0.04569479, z: 0.34342366}
+    localEulerAngles: {x: -0, y: 180, z: 0}
+    localScale: 1.0929065
+    muzzleLocal: {x: -0.023250412, y: 0.071494155, z: 1.057209}
+    tint: {r: 1, g: 1, b: 1, a: 1}
   meleeWeapons:
   - id: melee.dagger
     prefab: {fileID: 4114314494923399715, guid: 9002539a4b4402345b72cb6caed9ad94, type: 3}

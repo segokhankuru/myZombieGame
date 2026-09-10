@@ -102,6 +102,13 @@ namespace Bunker.Systems.Combat
         public int MagazineCapacity =>
             Math.Max(1, (int)Math.Ceiling(_config.MagazineCapacity * _mods.MagazineMultiplier));
 
+        /// <summary>
+        /// Yedek mermi tavanı — <see cref="WeaponState.ReserveCapacity"/> ile birebir
+        /// aynı formül. Tur sonu ikmalini <b>sunucu</b> kırpıyor (otorite orada), yani
+        /// iki tarafın bir mermi ayrılması istemcinin sayacını yalancı yapar.
+        /// </summary>
+        public int ReserveCapacity => Math.Max(0, _config.ReserveCapacity + _mods.Reserve);
+
         public float ReloadSeconds => _config.ReloadSeconds / _mods.ReloadSpeedMultiplier;
 
         public int RoundsInMagazine => _roundsInMagazine;
@@ -152,11 +159,23 @@ namespace Bunker.Systems.Combat
             _reloadPending = true;
         }
 
-        /// <summary>Yedeğe mermi ekler (duvar silahı, dağıtıcı). <b>Tavan yok</b> (2026-09-07).</summary>
+        /// <summary>
+        /// Yedeğe mermi ekler. <b>Kendisi kırpmaz</b>: bedava mermide tavanı çağıran
+        /// taraf <see cref="ReserveAmmo"/> ile hesaplar, satın alınan mermi kırpılmaz
+        /// (2026-09-10).
+        /// </summary>
         public void AddReserve(int amount)
         {
             if (amount <= 0) return;
             _reserve += amount;
+        }
+
+        /// <summary>Yedekten mermi siler (olum cezasi). Sifirin altina inmez.</summary>
+        public void RemoveReserve(int amount)
+        {
+            if (amount <= 0) return;
+
+            _reserve = Math.Max(0, _reserve - amount);
         }
 
         /// <summary>Yeni run.</summary>

@@ -46,7 +46,7 @@ namespace Bunker.Systems.Tests
 
             var plusForty = new WeaponModifiers(
                 fireRate: 0f, reloadSpeed: 0f, damage: 0f,
-                magazine: 0.40f, headshotMultiplier: 0f);
+                magazine: 0.40f, reserve: 0, headshotMultiplier: 0f);
 
             pistol.ApplyModifiers(plusForty);
             shotgun.ApplyModifiers(plusForty);
@@ -67,7 +67,7 @@ namespace Bunker.Systems.Tests
 
             shotgun.ApplyModifiers(new WeaponModifiers(
                 fireRate: 0f, reloadSpeed: 0f, damage: 0f,
-                magazine: 0.10f, headshotMultiplier: 0f));
+                magazine: 0.10f, reserve: 0, headshotMultiplier: 0f));
 
             Assert.AreEqual(7, shotgun.MagazineCapacity, "6 * 1.10 = 6.6 -> 7");
         }
@@ -81,7 +81,7 @@ namespace Bunker.Systems.Tests
 
             w.ApplyModifiers(new WeaponModifiers(
                 fireRate: 0f, reloadSpeed: 0f, damage: 0f,
-                magazine: 0.50f, headshotMultiplier: 0f));
+                magazine: 0.50f, reserve: 0, headshotMultiplier: 0f));
 
             Assert.AreEqual(18, w.MagazineCapacity);
             Assert.AreEqual(11, w.RoundsInMagazine, "kapasite buyudu diye bedava dolum olmaz");
@@ -295,6 +295,28 @@ namespace Bunker.Systems.Tests
             WeaponState w = Weapon(startingReserve: 999, reserveCapacity: 100);
 
             Assert.AreEqual(999, w.Reserve, "baslangic yedegi bir tavana kirpilmaz");
+        }
+
+        /// <summary>
+        /// 2026-09-10: tavan bir sayı olarak geri geldi (yalnızca tur sonu ikmalini
+        /// kırpar) ve kart onu büyütür. Kart etkisinin buraya <b>ulaştığını</b>
+        /// doğrular — kartın en pahalı hata türü, oyuncunun seçtiği ve hiçbir şey
+        /// yapmayan karttır.
+        /// </summary>
+        [Test]
+        public void YedekTavaniKarti_TavaniBuyutur()
+        {
+            WeaponState w = Weapon(startingReserve: 120, reserveCapacity: 300);
+
+            Assert.AreEqual(300, w.ReserveCapacity, "kartsiz tavan silahin kendi degeri");
+
+            w.ApplyModifiers(new WeaponModifiers(
+                fireRate: 0f, reloadSpeed: 0f, damage: 0f,
+                magazine: 0f, reserve: 320, headshotMultiplier: 0f));
+
+            Assert.AreEqual(620, w.ReserveCapacity, "Fisekik (+120) + Cephanelik (+200)");
+            Assert.AreEqual(620, w.ReserveRestockReference,
+                            "tur sonu ikmalinin olcusu tavanin kendisi");
         }
 
         [Test]

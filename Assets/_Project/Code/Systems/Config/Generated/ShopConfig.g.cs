@@ -100,7 +100,7 @@ namespace Bunker.Systems.Config
             int damageMaxTier = 8,
             int firerateBaseCost = 450,
             float firerateCostGrowth = 1.5f,
-            float firerateIncrement = 0.06f,
+            float firerateIncrement = 0.01f,
             int firerateMaxTier = 6,
             int magazineBaseCost = 350,
             float magazineCostGrowth = 1.4f,

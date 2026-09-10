@@ -31,7 +31,7 @@ namespace Bunker.Editor
         private const int Height = 400;
 
         /// <summary>El modelinin ev konumu — <c>PlayerViewmodel.GunHome</c> ile aynı.</summary>
-        private static readonly Vector3 GunHome = new Vector3(0.17f, -0.15f, 0.42f);
+        internal static readonly Vector3 GunHome = new Vector3(0.17f, -0.15f, 0.42f);
 
         public static void RenderBatch()
         {
@@ -78,11 +78,14 @@ namespace Bunker.Editor
                 // olcum de bir hipotez ve dogrulanmasi lazim. Silahlarda tam olarak
                 // bu adim atlandigi icin dordunun ikisi ters cikmisti; ayni hatayi
                 // bicaklarda tekrarlamanin sebebi yok.
-                string[] ids =
-                {
-                    "weapon.pistol", "weapon.smg", "weapon.shotgun", "weapon.rifle",
-                    "melee.dagger", "melee.sword", "melee.axe"
-                };
+                // Ates silahlari weapon-art.json'dan (2026-09-10): Silah Atolyesi'nden
+                // eklenen silah onizlemeye kendiliginden girer, burada unutulmaz.
+                var ids = new System.Collections.Generic.List<string>();
+                foreach (WeaponArtData art in WeaponWorkshopData.LoadArt()) ids.Add(art.WeaponId);
+
+                ids.Add("melee.dagger");
+                ids.Add("melee.sword");
+                ids.Add("melee.axe");
 
                 foreach (string id in ids)
                 {

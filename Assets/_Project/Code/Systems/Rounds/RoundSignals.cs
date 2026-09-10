@@ -126,8 +126,27 @@ namespace Bunker.Systems.Rounds
         /// abonelerin kaydı silinir ve o aboneler sessizce hiçbir olay almaz. Bir kez
         /// yaşandı — pencerelerin bir kısmı tur başında yenilenmiyordu.</para>
         /// </summary>
+        /// <summary>
+        /// Molayi ERKEN bitirme istegi (2026-09-09, gelistirici: "herkes ready (F
+        /// tusu) verirse zaman direk bitsin ve sonraki tur baslasin").
+        ///
+        /// <para><b>Neden bir sinyal:</b> "herkes hazir mi" sorusunu cevaplayan taraf
+        /// oyuncular (<c>Bunker.Gameplay</c>), molayi yuruten taraf yonetmen
+        /// (<c>Bunker.AI</c>) ve <b>ikisi birbirini goremiyor</b> (ARCHITECTURE.md).
+        /// <c>PowerupSignals</c> ile ayni desen: bagimlilik ters cevrilir.</para>
+        ///
+        /// <para><b>Yalnizca sunucu yayinlar</b> (ADR-0004): tur akisi otoritenin isi
+        /// ve bir istemcinin kendi basina tur baslatabilmesi, netcode.md'nin "her RPC
+        /// bir guven siniridir" kuralinin en pahali ihlali olurdu.</para>
+        /// </summary>
+        public static event Action BreatherSkipRequested;
+
+        /// <summary>Molayi erken bitirmeyi ister. <b>Yalnizca sunucu.</b></summary>
+        public static void RaiseBreatherSkip() => BreatherSkipRequested?.Invoke();
+
         public static void Clear()
         {
+            BreatherSkipRequested = null;
             RoundStarted = null;
             RoundCleared = null;
             RoundEndRestock = null;

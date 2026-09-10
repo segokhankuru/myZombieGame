@@ -34,7 +34,8 @@ namespace Bunker.Editor
     /// </summary>
     public static class AssetPalette
     {
-        private const string RootName = "_AssetPalette (cogaltmak icin)";
+        /// <summary>Rafın kök adı. <c>EditorShelfStripper</c> build'de bununla bulur.</summary>
+        internal const string RootName = "_AssetPalette (cogaltmak icin)";
 
         /// <summary>Rafın oyun alanından uzaklığı (metre).</summary>
         private const float OriginX = -200f;
@@ -115,6 +116,12 @@ namespace Bunker.Editor
 
             var root = new GameObject(RootName);
             Undo.RegisterCreatedObjectUndo(root, "Asset rafi");
+
+            // EditorOnly: Unity bu etiketli nesneyi build'e HIC koymaz (2026-09-10,
+            // "kullanilmayan objeler build'in icinde olmamali"). EditorShelfStripper
+            // etiketsiz eski raflari da build aninda cikariyor; bu satir yenisini en
+            // bastan dogru kuruyor.
+            root.tag = "EditorOnly";
             root.transform.position = new Vector3(OriginX, 0f, 0f);
 
             int placed = 0;

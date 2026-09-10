@@ -360,5 +360,81 @@ namespace Bunker.Systems.Tests
             Assert.AreEqual(RoundPhase.Breather, runner.Phase);
             Assert.AreEqual(0, runner.SpawnedThisRound);
         }
+
+        // ------------------------------------------------------ hazir (2026-09-09)
+
+        /// <summary>
+        /// Herkes hazir verdiginde mola <b>suresini beklemeden</b> biter.
+        ///
+        /// <para>Gelistirici: "herkes ready (F tusu) verirse zaman direk bitsin".
+        /// Mola 30 saniye ama bu bir TAVAN, bir sure degil.</para>
+        /// </summary>
+        [Test]
+        public void HazirVerilince_MolaSureyiBeklemedenBiter()
+        {
+            var runner = Runner(breatherSeconds: 30f);
+
+            runner.Tick(1f, 0);
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase, "Bir saniyede bitmemeli.");
+
+            runner.SkipBreather();
+            runner.Tick(0.016f, 0);
+
+            Assert.AreEqual(RoundPhase.Active, runner.Phase);
+            Assert.AreEqual(1, runner.Round);
+            Assert.IsTrue(runner.RoundStartedThisTick,
+                          "Tur basladi bayragi kurulmali - yoksa yonetmen turu hic gormez.");
+        }
+
+        /// <summary>
+        /// Hazir bayragi tur baslayinca <b>temizlenir</b>: kalsaydi bir sonraki molayi
+        /// da aninda bitirir ve oyuncu hazirlik yapamadan tur acilirdi.
+        /// </summary>
+        [Test]
+        public void HazirBayragi_SonrakiMolayaTasinmaz()
+        {
+            var runner = Runner(breatherSeconds: 30f);
+
+            runner.SkipBreather();
+            runner.Tick(0.016f, 0);
+            Assert.AreEqual(RoundPhase.Active, runner.Phase);
+
+            // Turu bitir: hepsi dogsun ve sahada kimse kalmasin.
+            runner.ReportSpawned(runner.TotalForRound);
+            runner.Tick(0.016f, 0);
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase);
+
+            // Yeni mola: bayrak tasinmadiysa sure beklenmeli.
+            runner.Tick(1f, 0);
+            Assert.AreEqual(RoundPhase.Breather, runner.Phase,
+                            "Onceki turun hazir bayragi bu molayi bitirmemeli.");
+        }
+
+        /// <summary>Tur aktifken hazir vermek hicbir sey yapmaz.</summary>
+        [Test]
+        public void AktifTurda_HazirVermek_EtkisizdIr()
+        {
+            var runner = Runner(breatherSeconds: 30f);
+
+            runner.SkipBreather();
+            runner.Tick(0.016f, 0);
+            Assert.AreEqual(RoundPhase.Active, runner.Phase);
+
+            int round = runner.Round;
+            runner.SkipBreather();
+            runner.Tick(0.016f, 0);
+
+            Assert.AreEqual(round, runner.Round, "Aktif turda hazir, tur atlatmamali.");
+        }
+
+        private static RoundRunner Runner(float breatherSeconds)
+        {
+            return new RoundRunner(new RoundScaling(new RoundsConfig(
+                countPerPlayerAtRoundOne: 1f,
+                countAliveCapAtRoundOne: 60,
+                pacingBreatherSecondsEarly: breatherSeconds,
+                pacingBreatherSecondsLate: breatherSeconds,
+                pacingBreatherEarlyUntilRound: 5)));
+        }
     }
 }

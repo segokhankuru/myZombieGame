@@ -12,5 +12,6 @@ Her satır bir mimari karar. Önce burası okunur, sonra gereken dosyaya inilir.
 | [0006](ADR-0006-ses-assembly-si-ve-uretilen-sfx.md) | `Bunker.Audio` assembly'si; sesler çalışma anında sentezleniyor, varlık dosyası yok | kabul |
 | [0007](ADR-0007-steam-daveti-ve-tasima.md) | Steam daveti ve tasima: FizzyFacepunch, KCP yolu korunur; ucuncu parti kaynakta iki yama | kabul - iki makinede test bekliyor |
 | [0008](ADR-0008-magaza-sanati-ve-urp-kopyalama.md) | Asset Store sanati: ucuncu parti klasoru salt okunur, URP kopyasi uretilir; yerlesim olculur, `art.asset`'te saklanir | kabul |
+| [0009](ADR-0009-magaza-ses-dosyalari.md) | Magaza ses dosyalari + `audio.asset` katalogu; sentezlenmis yol YEDEK olarak kalir | kabul → 0006'nin "varlik dosyasi yok" kismini supersede eder |
 
 Yeni ADR: `/adr` — numarayı buradan devam ettirir ve bu tabloya bir satır ekler.

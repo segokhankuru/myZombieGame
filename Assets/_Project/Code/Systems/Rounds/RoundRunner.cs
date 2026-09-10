@@ -64,6 +64,29 @@ namespace Bunker.Systems.Rounds
         /// </summary>
         public float BreatherSeconds => _scaling.BreatherSecondsForRound(Round + 1);
 
+        /// <summary>
+        /// Bir sonraki <see cref="Tick"/>'te mola <b>bitirilir</b> (2026-09-09).
+        ///
+        /// <para><b>Neden bir bayrak, doğrudan <c>BeginRound</c> değil:</b> tur
+        /// başlangıcı <see cref="RoundStartedThisTick"/> bayrağını kuruyor ve o bayrağı
+        /// okuyan taraf (<c>ZombieDirector</c>) yalnızca <c>Tick</c> içinde bakıyor.
+        /// Döngünün dışından tur başlatmak, o karede kimsenin görmediği bir tur
+        /// üretirdi — sayaçlar ilerler, kimse haberdar olmaz.</para>
+        ///
+        /// <para><b>Yalnızca molada anlamlı</b> ve tur zaten başlamışsa sessizce
+        /// yutulmuyor: bayrak kalkıp bir sonraki molayı erken bitirmesin diye
+        /// <c>BeginRound</c>'da temizleniyor.</para>
+        /// </summary>
+        public void SkipBreather()
+        {
+            if (Phase != RoundPhase.Breather) return;
+
+            _skipBreather = true;
+        }
+
+        /// <summary>Mola bu tick'te bitirilecek mi (hazır sistemi kurdu).</summary>
+        private bool _skipBreather;
+
         /// <summary>Molanın bitmesine kalan süre. Aktif turda sıfır.</summary>
         public float BreatherRemainingSeconds =>
             Phase == RoundPhase.Breather
@@ -93,8 +116,9 @@ namespace Bunker.Systems.Rounds
 
             if (Phase == RoundPhase.Breather)
             {
-                if (PhaseTimeSeconds < BreatherSeconds) return 0;
+                if (!_skipBreather && PhaseTimeSeconds < BreatherSeconds) return 0;
 
+                _skipBreather = false;
                 BeginRound();
                 return 0;
             }
@@ -169,6 +193,10 @@ namespace Bunker.Systems.Rounds
             TotalForRound = _scaling.TotalZombiesForRound(Round, _playerCount);
             RoundStartedThisTick = true;
             RoundClearedThisTick = false;
+
+            // Hazir bayragi tur BASLARKEN temizlenir: kalsaydi bir sonraki molayi
+            // da aninda bitirirdi.
+            _skipBreather = false;
         }
 
         /// <summary>Run'ı baştan başlatır.</summary>
@@ -178,6 +206,7 @@ namespace Bunker.Systems.Rounds
             Phase = RoundPhase.Breather;
             PhaseTimeSeconds = 0f;
             _spawnTimer = 0f;
+            _skipBreather = false;
             SpawnedThisRound = 0;
             TotalForRound = 0;
             RoundStartedThisTick = false;

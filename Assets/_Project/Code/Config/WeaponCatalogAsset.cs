@@ -45,6 +45,12 @@ namespace Bunker.Config
 
             /// <summary>Dolum mermi mermi mi ilerliyor (pompali).</summary>
             public bool reloadPerShell;
+
+            /// <summary>Durbun buyutmesi. 0 ya da 1 = durbun yok (WeaponDefinition.ScopeMagnification).</summary>
+            public float scopeMagnification;
+
+            /// <summary>Nisan alirken ekranda ne gorundugu (WeaponDefinition.ScopeStyle).</summary>
+            public ScopeStyle scopeStyle = ScopeStyle.None;
         }
 
         [SerializeField] private int version = 1;
@@ -82,7 +88,8 @@ namespace Bunker.Config
                     e.recoilPitchPerShot, e.recoilYawPerShot,
                     e.recoilRecoveryPerSecond, e.recoilMaxPitch,
                     feelTracerSeconds, feelHitMarkerSeconds, feelInputBufferSeconds,
-                    e.price, e.ammoPrice, e.reloadPerShell));
+                    e.price, e.ammoPrice, e.reloadPerShell, e.scopeMagnification,
+                    e.scopeStyle));
             }
 
             return result;

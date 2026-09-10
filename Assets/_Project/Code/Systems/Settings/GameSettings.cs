@@ -70,6 +70,17 @@ namespace Bunker.Systems.Settings
         public const float MaxSensitivity = 0.30f;
         public const float DefaultSensitivity = 0.08f;
 
+        /// <summary>
+        /// Muzigin varsayilan seviyesi (2026-09-09, gelistirici: "ana menu icin %50 ses
+        /// seviyesi olsun").
+        ///
+        /// <para><b>Neden tam sesle baslamiyor:</b> muzik bir ATMOSFER katmani, bir geri
+        /// bildirim degil. Tam sesteki bir dongu, oyunun ilk on saniyesinde menu
+        /// seslerinin ustune biner ve oyuncunun ilk yaptigi sey ayarlara gidip onu
+        /// kismak olur - yani varsayilan yanlis demektir.</para>
+        /// </summary>
+        public const float DefaultMusicVolume = 0.5f;
+
         public const float MinFieldOfView = 60f;
         public const float MaxFieldOfView = 110f;
         public const float DefaultFieldOfView = 75f;
@@ -90,6 +101,7 @@ namespace Bunker.Systems.Settings
         // --- ses
         private static float _masterVolume = 1f;
         private static float _sfxVolume = 1f;
+        private static float _musicVolume = DefaultMusicVolume;
         private static bool _muteWhenUnfocused = true;
 
         // --- goruntu
@@ -152,6 +164,21 @@ namespace Bunker.Systems.Settings
             set => SetFloat(ref _sfxVolume, Clamp(value, 0f, 1f), "sfxVolume");
         }
 
+        /// <summary>
+        /// Muzik sesi (0..1). Ana sesle <b>carpilir</b>. 2026-09-09.
+        ///
+        /// <para><b>Neden ayri bir kaydirac, efektle ayni degil:</b> muzik kapatilabilir
+        /// olmali ve bu bir tercih degil ERISILEBILIRLIK (audio-code.md: oyuncunun
+        /// kismak isteyebilecegi her bus bir kaydirac alir). Ayrica ikisi ayni
+        /// kaydiracta olsaydi, muzigi kismak icin silah seslerini de kismak
+        /// gerekirdi - yani oyunun geri bildirimini feda etmek.</para>
+        /// </summary>
+        public static float MusicVolume
+        {
+            get { EnsureLoaded(); return _musicVolume; }
+            set => SetFloat(ref _musicVolume, Clamp(value, 0f, 1f), "musicVolume");
+        }
+
         /// <summary>Oyun arka plandayken ses kesilsin mi.</summary>
         public static bool MuteWhenUnfocused
         {
@@ -159,8 +186,11 @@ namespace Bunker.Systems.Settings
             set => SetBool(ref _muteWhenUnfocused, value, "muteWhenUnfocused");
         }
 
-        /// <summary>Ses servisine gidecek nihai seviye.</summary>
+        /// <summary>Ses servisine gidecek nihai efekt seviyesi.</summary>
         public static float EffectiveSfxVolume => MasterVolume * SfxVolume;
+
+        /// <summary>Muzik calara gidecek nihai seviye.</summary>
+        public static float EffectiveMusicVolume => MasterVolume * MusicVolume;
 
         // ---------------------------------------------------------------- goruntu
 
@@ -279,6 +309,7 @@ namespace Bunker.Systems.Settings
 
             _masterVolume = 1f;
             _sfxVolume = 1f;
+            _musicVolume = DefaultMusicVolume;
             _muteWhenUnfocused = true;
 
             _resolutionWidth = 0;
@@ -310,6 +341,7 @@ namespace Bunker.Systems.Settings
             _sprintMode = HoldMode.Hold;
             _masterVolume = 1f;
             _sfxVolume = 1f;
+            _musicVolume = DefaultMusicVolume;
             _muteWhenUnfocused = true;
             _resolutionWidth = 0;
             _resolutionHeight = 0;
@@ -378,6 +410,7 @@ namespace Bunker.Systems.Settings
 
             _store.SetFloat(Prefix + "masterVolume", _masterVolume);
             _store.SetFloat(Prefix + "sfxVolume", _sfxVolume);
+            _store.SetFloat(Prefix + "musicVolume", _musicVolume);
             _store.SetBool(Prefix + "muteWhenUnfocused", _muteWhenUnfocused);
 
             _store.SetInt(Prefix + "resolutionWidth", _resolutionWidth);
@@ -415,6 +448,7 @@ namespace Bunker.Systems.Settings
 
             _masterVolume = Clamp(_store.GetFloat(Prefix + "masterVolume", 1f), 0f, 1f);
             _sfxVolume = Clamp(_store.GetFloat(Prefix + "sfxVolume", 1f), 0f, 1f);
+            _musicVolume = Clamp(_store.GetFloat(Prefix + "musicVolume", DefaultMusicVolume), 0f, 1f);
             _muteWhenUnfocused = _store.GetBool(Prefix + "muteWhenUnfocused", true);
 
             _resolutionWidth = _store.GetInt(Prefix + "resolutionWidth", 0);

@@ -224,11 +224,39 @@ namespace Bunker.Gameplay
         {
             if (playerCamera == null) return;
 
-            float fov = GameSettings.FieldOfView;
+            float fov = GameSettings.FieldOfView / Mathf.Max(1f, _scopeBlend);
             if (Mathf.Approximately(playerCamera.fieldOfView, fov)) return;
 
             playerCamera.fieldOfView = fov;
         }
+
+        /// <summary>
+        /// Dürbün büyütmesi. <b>Silah söyler, kamera uygular</b> (2026-09-09).
+        ///
+        /// <para><b>Neden burada, <c>PlayerWeapon</c>'da değil:</b> kameranın görüş
+        /// açısının tek sahibi bu bileşen — ayar (<c>GameSettings.FieldOfView</c>),
+        /// çömelme ve dürbün aynı sayıya yazsaydı, sırayla çalışan iki yazıcı
+        /// birbirini ezer ve oyuncu ayarını kaybederdi. Silah yalnızca "şu kadar
+        /// büyüt" der.</para>
+        ///
+        /// <para><b>Ayar bölünüyor, sabit bir sayı yazılmıyor:</b> oyuncunun seçtiği
+        /// görüş açısı 90 da olsa 110 da olsa dürbün <i>aynı oranda</i> yakınlaştırır.
+        /// Sabit bir dürbün açısı, geniş FOV kullanan oyuncuya daha güçlü bir dürbün
+        /// vermek olurdu — konfor ayarının avantaja dönüşmesi (M-04'ün kuralı).</para>
+        /// </summary>
+        public void SetScopeMagnification(float magnification)
+        {
+            float target = magnification < 1f ? 1f : magnification;
+            if (Mathf.Approximately(target, _scopeBlend)) return;
+
+            _scopeBlend = target;
+            ApplyFieldOfView();
+        }
+
+        /// <summary>1 = dürbün kapalı. Nişangâhı gizlemek için HUD de okur.</summary>
+        public float ScopeMagnification => _scopeBlend;
+
+        private float _scopeBlend = 1f;
 
         public override void OnStartLocalPlayer()
         {

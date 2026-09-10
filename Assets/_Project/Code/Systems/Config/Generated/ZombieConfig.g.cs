@@ -48,9 +48,17 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0.2 .. 3 | JSON: attack.recoverySeconds</remarks>
         public readonly float AttackRecoverySeconds;
 
-        /// <summary>Bir vurusun hasari. Oyuncu cani 100 kabul edilir; 30 demek uc vurusta olum demektir. Buyutursen tek hata olumcul olur ve oyuncu riskten kacinir, oyun korkakca oynanir; kucultursen sürünün icinde durmak bedava olur ve haritayi kullanma sebebi kalmaz.</summary>
+        /// <summary>TUR 1'de bir vurusun hasari; tura gore artisi rounds.json damage bolumunde (2026-09-11). Oyuncu cani 100 kabul edilir; 30 demek uc vurusta olum demektir. Buyutursen tek hata olumcul olur ve oyuncu riskten kacinir, oyun korkakca oynanir; kucultursen sürünün icinde durmak bedava olur ve haritayi kullanma sebebi kalmaz.</summary>
         /// <remarks>Aralik: 5 .. 100 | JSON: attack.damage</remarks>
         public readonly float AttackDamage;
+
+        /// <summary>MUTLAK VURUS TAVANI (2026-09-10, gelistirici: 'zombiler 1 m den uzaktan vuramaz'). Zombinin merkeziyle oyuncunun merkezi arasindaki YATAY mesafe bunu asarsa vurus ne baslar ne iner - kol uzunlugu (rangeMeters + tolerans) ne derse desin. Kol uzunlugu govde yaricaplarina bagli ve bir yaricap yanlis olculurse sessizce buyur; bu tavan yaricaptan bagimsiz. 0.6 altinda zombi oyuncunun govdesine (0.35 + 0.4 yaricap) yaklasamadigi icin HIC vuramaz ve zararsizlasir; 1.5 ustunde oyuncu arada gorunur bir bosluk varken hasar yer ve olum haksizlik gibi okunur.</summary>
+        /// <remarks>Aralik: 0.6 .. 1.5 | JSON: attack.maxHitDistanceMeters</remarks>
+        public readonly float AttackMaxHitDistanceMeters;
+
+        /// <summary>Boss icin ayni mutlak tavan (2026-09-10, gelistirici: 'bosslarda 2 m'). Boss 1.7 kat buyuk ve govdesi de o kadar genis; normal zombinin tavanini kullansaydi merkezine yaklasamadan vuramazdi. 1.0 altinda boss hic vuramaz ve tur dondurucu bir sungere doner; 3.0 ustunde boss'un kolu ekranda gorunenden uzun olur ve oyuncu nereden yedigini okuyamaz (PILLAR-04).</summary>
+        /// <remarks>Aralik: 1 .. 3 | JSON: attack.bossMaxHitDistanceMeters</remarks>
+        public readonly float AttackBossMaxHitDistanceMeters;
 
         /// <summary>Isabet alan zombinin sendeleme suresi. Vurmanin bir sey hissettirmesinin TEMELI budur: zombi hasari kabul ettigini gostermezse sürü, mermilerin icinden yuruyen bir duvar gibi okunur. Sifir yaparsan vurus karsiliksiz kalir; buyutursen zombiler surekli sendeler ve tehdit olmaktan cikar, oyuncu tek basina sürüyü kilitleyebilir.</summary>
         /// <remarks>Aralik: 0 .. 1.5 | JSON: hitReaction.flinchSeconds</remarks>
@@ -136,13 +144,21 @@ namespace Bunker.Systems.Config
         /// <remarks>Aralik: 0.05 .. 0.9 | JSON: drops.slowFraction01</remarks>
         public readonly float DropsSlowFraction01;
 
-        /// <summary>Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez.</summary>
-        /// <remarks>Aralik: 2 .. 30 | JSON: drops.slowSeconds</remarks>
+        /// <summary>Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez. UST SINIR 30 -&gt; 40 (2026-09-09): dondurma iki katina cikinca yavaslatma da onunla birlikte kaydi, yoksa iki esya arasindaki mesafe kapanirdi.</summary>
+        /// <remarks>Aralik: 2 .. 40 | JSON: drops.slowSeconds</remarks>
         public readonly float DropsSlowSeconds;
 
-        /// <summary>Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir.</summary>
-        /// <remarks>Aralik: 1 .. 15 | JSON: drops.freezeSeconds</remarks>
+        /// <summary>Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir. UST SINIR 15 -&gt; 20 (2026-09-09, gelistirici: 'dondurma drobunun suresini 2 kat uzatalim'). Sure 5 -&gt; 10 sn. Gerekce degisti: esya artik SLOTTA BEKLIYOR (istege bagli kullaniliyor), yani 'yanlis anda dustu' diye bosa gitmiyor - oyuncu onu dogru anda basacak. Dogru anda basilan bir esyanin karsiligi da o ana degmeli.</summary>
+        /// <remarks>Aralik: 1 .. 20 | JSON: drops.freezeSeconds</remarks>
         public readonly float DropsFreezeSeconds;
+
+        /// <summary>Nuke'un OLDURDUGU EN FAZLA ZOMBI, en yakindan baslayarak (2026-09-09, gelistirici: 'nuke drobunu kullaninca alandaki 15 zombiyi oldursun, birden hepsi olup turu gecince cok easy oluyor'). Onceki hali sahadaki HERKESI siliyordu, yani gec turda tek bir esya turu bitiriyordu - oyuncunun kazandigi sey oyun degil, zar atisiydi. Sinir bir SAYI oldugu icin esya artik bir ZAMANLAMA karari: 8 zombi varken basmak israf, 25 zombi varken basmak nefes. Cok buyutursen eski 'hepsini sil' haline geri donersin; 1-2 gibi bir sayi ise esyayi en nadir ciktigi halde en ise yaramaz esya yapar.</summary>
+        /// <remarks>Aralik: 1 .. 200 | JSON: drops.nukeMaxKills</remarks>
+        public readonly int DropsNukeMaxKills;
+
+        /// <summary>Bir drop slotunda en fazla kac esya birikebilir (2026-09-09, gelistirici: 'yerden topladigimiz droplari stacklenebilen sekilde biriktirebilelim'). Tavan SART: tavansiz bir cep, gec turda oyuncuya on can ve alti nuke tasitir ve olum imkansizlasir - yani zorluk egrisi envanterle iptal edilir. Kucultursen (1-2) biriktirme karari yok olur, esya yine 'an'a baglanir; buyutursen tur arasi hazirlik yerine esya stoku oyunun kendisi olur.</summary>
+        /// <remarks>Aralik: 1 .. 20 | JSON: drops.stackPerSlot</remarks>
+        public readonly int DropsStackPerSlot;
 
         /// <summary>Can esyasinin cikma agirligi. Agirliklar birbirine gore okunur: toplamin icindeki payi kadar cikar. Hepsini esitlemek, en guclu esyayi (nuke) en sik esyayla ayni sikliga getirir.</summary>
         /// <remarks>Aralik: 0 .. 100 | JSON: drops.weightHealth</remarks>
@@ -189,15 +205,17 @@ namespace Bunker.Systems.Config
         /// Testler yalnizca ilgilendikleri alani gecer.
         /// </summary>
         public ZombieConfig(
-            int version = 7,
+            int version = 11,
             float spawnEmergeDelaySeconds = 0.6f,
             float windowEntryTriggerDistanceMeters = 1.8f,
             float windowEntryVaultSeconds = 1.4f,
-            float attackRangeMeters = 0.5f,
-            float attackRangeToleranceMeters = 0.3f,
+            float attackRangeMeters = 0.2f,
+            float attackRangeToleranceMeters = 0.1f,
             float attackWindupSeconds = 0.55f,
             float attackRecoverySeconds = 0.9f,
             float attackDamage = 30f,
+            float attackMaxHitDistanceMeters = 1f,
+            float attackBossMaxHitDistanceMeters = 2f,
             float hitReactionFlinchSeconds = 0.22f,
             float hitReactionFlinchSpeedMultiplier = 0.35f,
             float hitReactionHeadshotFlinchMultiplier = 2f,
@@ -210,8 +228,8 @@ namespace Bunker.Systems.Config
             float navigationStuckSpeedMetersPerSecond = 0.15f,
             float navigationStuckAfterSeconds = 1.5f,
             float navigationStuckRecoverySeconds = 0.6f,
-            float cardsExplosionRadiusMeters = 4.5f,
-            int cardsExplosionShrapnelCount = 14,
+            float cardsExplosionRadiusMeters = 9f,
+            int cardsExplosionShrapnelCount = 30,
             float cardsExplosionSelfDamageFraction01 = 0f,
             float dropsChance01 = 0.07f,
             float dropsLifetimeSeconds = 25f,
@@ -219,8 +237,10 @@ namespace Bunker.Systems.Config
             float dropsHealthFraction01 = 0.35f,
             float dropsAmmoMagazines = 3f,
             float dropsSlowFraction01 = 0.1f,
-            float dropsSlowSeconds = 10f,
-            float dropsFreezeSeconds = 5f,
+            float dropsSlowSeconds = 20f,
+            float dropsFreezeSeconds = 10f,
+            int dropsNukeMaxKills = 15,
+            int dropsStackPerSlot = 5,
             int dropsWeightHealth = 25,
             int dropsWeightAmmo = 40,
             int dropsWeightSlow = 18,
@@ -241,6 +261,8 @@ namespace Bunker.Systems.Config
             AttackWindupSeconds = attackWindupSeconds;
             AttackRecoverySeconds = attackRecoverySeconds;
             AttackDamage = attackDamage;
+            AttackMaxHitDistanceMeters = attackMaxHitDistanceMeters;
+            AttackBossMaxHitDistanceMeters = attackBossMaxHitDistanceMeters;
             HitReactionFlinchSeconds = hitReactionFlinchSeconds;
             HitReactionFlinchSpeedMultiplier = hitReactionFlinchSpeedMultiplier;
             HitReactionHeadshotFlinchMultiplier = hitReactionHeadshotFlinchMultiplier;
@@ -264,6 +286,8 @@ namespace Bunker.Systems.Config
             DropsSlowFraction01 = dropsSlowFraction01;
             DropsSlowSeconds = dropsSlowSeconds;
             DropsFreezeSeconds = dropsFreezeSeconds;
+            DropsNukeMaxKills = dropsNukeMaxKills;
+            DropsStackPerSlot = dropsStackPerSlot;
             DropsWeightHealth = dropsWeightHealth;
             DropsWeightAmmo = dropsWeightAmmo;
             DropsWeightSlow = dropsWeightSlow;

@@ -69,6 +69,28 @@ namespace Bunker.Systems.Tests
             StringAssert.Contains("tur 7", text);
         }
 
+        /// <summary>
+        /// Zombi vuruşu satırı mesafeyi yazar (2026-09-10): "kaç metreden yedim" sorusu
+        /// ölçümle cevaplanır. Mesafesi bilinmeyen satır "mesafe" yazmaz.
+        /// </summary>
+        [Test]
+        public void MESAFE_ZombiVurusuSatirinaMesafeYazilir()
+        {
+            CombatLogWriter writer = NewWriter();
+            CombatLog.Install(writer);
+
+            CombatLog.PlayerDamage("Zombi#7", null, 30f, 70f, 100f, false, 0.85f);
+            CombatLog.Damage("Oyuncu[TUFEK]", null, "Zombi#8", "kafa", 50f, 100f, 150f);
+            CombatLog.Flush();
+
+            string text = File.ReadAllText(writer.FilePath);
+
+            StringAssert.Contains("mesafe 0.85 m", text);
+
+            int count = text.Split(new[] { "mesafe" }, System.StringSplitOptions.None).Length - 1;
+            Assert.AreEqual(1, count, "mesafesi bilinmeyen satir mesafe yazmamali");
+        }
+
         [Test]
         public void AC3_OlumDokumuSonVuruslariAralariylaBirlikteYazar()
         {

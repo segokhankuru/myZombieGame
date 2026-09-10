@@ -23,7 +23,7 @@ MonoBehaviour:
   damageMaxTier: 8
   firerateBaseCost: 450
   firerateCostGrowth: 1.5
-  firerateIncrement: 0.06
+  firerateIncrement: 0.01
   firerateMaxTier: 6
   magazineBaseCost: 350
   magazineCostGrowth: 1.4

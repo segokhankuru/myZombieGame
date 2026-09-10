@@ -4,7 +4,7 @@
   "title": "Baslangic silahi",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "fire", "magazine", "recoil", "feel"],
+  "required": ["version", "_meta", "fire", "magazine", "recoil", "loadout", "feel"],
   "properties": {
     "version": {
       "type": "integer",
@@ -94,6 +94,19 @@
         "maxPitchDegrees": {
           "type": "number", "minimum": 0, "maximum": 30,
           "description": "Birikmis geri tepmenin tavani. Tavan olmazsa uzun bir sprey oyuncuyu gokyuzune baktirir. Dusurursen uzun spreyin bedeli kalmaz."
+        }
+      }
+    },
+
+    "loadout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["firearmSlots"],
+      "description": "Oyuncunun ayni anda TASIYABILECEGI atesli silah sayisi (2026-09-09, gelistirici: 'silahlar numaralara sigmadi, o yuzden 2 atesli silah sinirimiz olsun').",
+      "properties": {
+        "firearmSlots": {
+          "type": "integer", "minimum": 1, "maximum": 4,
+          "description": "Ayni anda tasinabilen atesli silah sayisi. Tuş duzeninin ta kendisi: 1 bicak, 2..(1+bu sayi) atesli silahlar, sonrasi esya slotlari. Buyutursen esyalar parmak menzilinin disina cikar ve oyuncu tur ortasinda tus arar - 'silahlar numaralara sigmadi' sikayetinin sebebi tam olarak buydu. Kucultursen (1) silah secimi diye bir sey kalmaz: tezgahtan alinan her silah oncekini siler ve karsilastirma yapilamaz. SATIN ALINAN silah sayisini SINIRLAMAZ - alinmis silahlar run boyunca hatirlanir ve tezgahta bedelsiz degistirilir; bu sayi yalnizca UZERINDE kac tane tasidigini soyler."
         }
       }
     },

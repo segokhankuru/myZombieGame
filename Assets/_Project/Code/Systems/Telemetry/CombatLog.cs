@@ -116,9 +116,14 @@ namespace Bunker.Systems.Telemetry
         /// <param name="amount">Uygulanan hasar.</param>
         /// <param name="remaining">Vuruştan SONRA kalan can. Bilinmiyorsa negatif.</param>
         /// <param name="max">Hedefin can tavanı. Bilinmiyorsa negatif.</param>
+        /// <param name="distanceMeters">
+        /// Vuranla vurulan arasındaki yatay mesafe; bilinmiyorsa negatif (2026-09-10).
+        /// "Kaç metreden yedim" sorusu tahminle değil satırla cevaplansın diye.
+        /// </param>
         public static void Damage(string attacker, string weapon, string target, string part,
                                   float amount, float remaining, float max,
-                                  bool killed = false, bool headshot = false)
+                                  bool killed = false, bool headshot = false,
+                                  float distanceMeters = -1f)
         {
             if (_writer == null) return;
 
@@ -142,6 +147,11 @@ namespace Bunker.Systems.Telemetry
             if (headshot) Line.Append("  KAFA");
             if (killed) Line.Append("  OLDURDU");
 
+            if (distanceMeters >= 0f)
+            {
+                Line.Append("  mesafe ").Append(Number(distanceMeters)).Append(" m");
+            }
+
             _writer.Write(Line.ToString());
         }
 
@@ -152,10 +162,15 @@ namespace Bunker.Systems.Telemetry
         /// Her hasarı hatırlamak, kalabalık bir turda halkayı saniyede yüz kez
         /// döndürür ve ölüm anına dair hiçbir şey kalmaz.</para>
         /// </summary>
+        /// <param name="distanceMeters">
+        /// Vuranın yatay mesafesi; bilinmiyorsa negatif (2026-09-10).
+        /// </param>
         public static void PlayerDamage(string attacker, string weapon, float amount,
-                                        float remaining, float max, bool killed)
+                                        float remaining, float max, bool killed,
+                                        float distanceMeters = -1f)
         {
-            Damage(attacker, weapon, "Oyuncu", null, amount, remaining, max, killed);
+            Damage(attacker, weapon, "Oyuncu", null, amount, remaining, max, killed,
+                   distanceMeters: distanceMeters);
 
             if (_writer == null) return;
 

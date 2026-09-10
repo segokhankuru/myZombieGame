@@ -20,7 +20,7 @@ namespace Bunker.Config
     public sealed class ZombieConfigAsset : ScriptableObject
     {
         [Tooltip("Sema surumu. Anahtar adi degisir ya da silinirse artar.")]
-        [SerializeField] private int version = 7;
+        [SerializeField] private int version = 11;
 
         [Header("spawn")]
         [Tooltip("Zombi dogduktan sonra hareket etmeden once bekledigi sure. Sifir olursa zombiler dogar dogmaz kosar ve oyuncu belirme anini goremez - PILLAR-04 (kaosta okunabilirlik) burada kirilir. Cok uzun olursa surunun temposu duser ve pencere savunmasi kolaylasir.")]
@@ -39,11 +39,11 @@ namespace Bunker.Config
         [Header("attack")]
         [Tooltip("Zombinin KOL UZUNLUGU: iki GOVDE YUZEYI arasinda en fazla bu kadar bosluk varken vurabilir. 2026-09-06'ya kadar merkezler arasi olculuyordu; 1.6 degeri govdeler arasinda 0.9 m bosluk varken vurmak demekti ve oyun testinde 'en oendekiyle mesafem varken vurmus oluyor' diye okundu. Buyutursen zombi yine degmeden vurur ve oyuncu haksizliga ugradigini hisseder; kucultursen zombi oyuncunun icine girip vuramaz.")]
         [Range(0.15f, 1.5f)]
-        [SerializeField] private float attackRangeMeters = 0.5f;
+        [SerializeField] private float attackRangeMeters = 0.2f;
 
         [Tooltip("Telegraf sirasinda oyuncu bu kadar uzaklasirsa vurus HALA isabet eder. Bu da GOVDE BOSLUGU olcusundedir (bkz. rangeMeters). Sifir yaparsan geri geri yuruyerek hasar almadan sonsuza kadar oynanir; cok buyutursen telegrafi okumanin odulu kalmaz ve geri cekilme hissi olur.")]
         [Range(0f, 1f)]
-        [SerializeField] private float attackRangeToleranceMeters = 0.3f;
+        [SerializeField] private float attackRangeToleranceMeters = 0.1f;
 
         [Tooltip("Vurus hazirligi - oyuncunun goreceği telegraf. Kisaltirsan vurus habersiz gelir, oyuncu 'nereden yedim' der ve oyun adaletsiz hissettirir (ai-code.md). Uzatirsan zombiler zararsizlasir ve gerilim biter.")]
         [Range(0.15f, 1.5f)]
@@ -53,9 +53,17 @@ namespace Bunker.Config
         [Range(0.2f, 3f)]
         [SerializeField] private float attackRecoverySeconds = 0.9f;
 
-        [Tooltip("Bir vurusun hasari. Oyuncu cani 100 kabul edilir; 30 demek uc vurusta olum demektir. Buyutursen tek hata olumcul olur ve oyuncu riskten kacinir, oyun korkakca oynanir; kucultursen sürünün icinde durmak bedava olur ve haritayi kullanma sebebi kalmaz.")]
+        [Tooltip("TUR 1'de bir vurusun hasari; tura gore artisi rounds.json damage bolumunde (2026-09-11). Oyuncu cani 100 kabul edilir; 30 demek uc vurusta olum demektir. Buyutursen tek hata olumcul olur ve oyuncu riskten kacinir, oyun korkakca oynanir; kucultursen sürünün icinde durmak bedava olur ve haritayi kullanma sebebi kalmaz.")]
         [Range(5f, 100f)]
         [SerializeField] private float attackDamage = 30f;
+
+        [Tooltip("MUTLAK VURUS TAVANI (2026-09-10, gelistirici: 'zombiler 1 m den uzaktan vuramaz'). Zombinin merkeziyle oyuncunun merkezi arasindaki YATAY mesafe bunu asarsa vurus ne baslar ne iner - kol uzunlugu (rangeMeters + tolerans) ne derse desin. Kol uzunlugu govde yaricaplarina bagli ve bir yaricap yanlis olculurse sessizce buyur; bu tavan yaricaptan bagimsiz. 0.6 altinda zombi oyuncunun govdesine (0.35 + 0.4 yaricap) yaklasamadigi icin HIC vuramaz ve zararsizlasir; 1.5 ustunde oyuncu arada gorunur bir bosluk varken hasar yer ve olum haksizlik gibi okunur.")]
+        [Range(0.6f, 1.5f)]
+        [SerializeField] private float attackMaxHitDistanceMeters = 1f;
+
+        [Tooltip("Boss icin ayni mutlak tavan (2026-09-10, gelistirici: 'bosslarda 2 m'). Boss 1.7 kat buyuk ve govdesi de o kadar genis; normal zombinin tavanini kullansaydi merkezine yaklasamadan vuramazdi. 1.0 altinda boss hic vuramaz ve tur dondurucu bir sungere doner; 3.0 ustunde boss'un kolu ekranda gorunenden uzun olur ve oyuncu nereden yedigini okuyamaz (PILLAR-04).")]
+        [Range(1f, 3f)]
+        [SerializeField] private float attackBossMaxHitDistanceMeters = 2f;
 
         [Header("hitReaction")]
         [Tooltip("Isabet alan zombinin sendeleme suresi. Vurmanin bir sey hissettirmesinin TEMELI budur: zombi hasari kabul ettigini gostermezse sürü, mermilerin icinden yuruyen bir duvar gibi okunur. Sifir yaparsan vurus karsiliksiz kalir; buyutursen zombiler surekli sendeler ve tehdit olmaktan cikar, oyuncu tek basina sürüyü kilitleyebilir.")]
@@ -111,11 +119,11 @@ namespace Bunker.Config
         [Header("cards")]
         [Tooltip("Olen zombinin patlama yaricapi (Yikim kartlari). Kucuk olursa patlama yalnizca ust uste duran zombileri vurur ve kart hissedilmez; buyuk olursa tek bir oldurme butun surudu siler ve nisan almanin anlami kalmaz.")]
         [Range(1f, 10f)]
-        [SerializeField] private float cardsExplosionRadiusMeters = 4.5f;
+        [SerializeField] private float cardsExplosionRadiusMeters = 9f;
 
         [Tooltip("Patlamanin firlattigi sarapnel sayisi. Toplam hasar bu sayiya BOLUNUR: az parca = her biri agir ama cogu bosa gider (piyango); cok parca = yakindaki zombi cogunu yer, uzaktaki birkacini (okunabilir). 4'un altinda patlama bir sans oyununa doner, 40'in ustunde kure sorgusundan farksizlasir ve isin maliyeti buyur.")]
         [Range(4, 40)]
-        [SerializeField] private int cardsExplosionShrapnelCount = 14;
+        [SerializeField] private int cardsExplosionShrapnelCount = 30;
 
         [Tooltip("Patlamanin OYUNCUYA verdigi hasarin orani. Sifir: patlama oyuncuyu yakmaz. Sifirdan buyuk yapmak kartı bir risk-odul karari haline getirir ama yakin dovusu (bicak) cezalandirir - once oynanarak denenmeli.")]
         [Range(0f, 1f)]
@@ -146,13 +154,21 @@ namespace Bunker.Config
         [Range(0.05f, 0.9f)]
         [SerializeField] private float dropsSlowFraction01 = 0.1f;
 
-        [Tooltip("Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez.")]
-        [Range(2f, 30f)]
-        [SerializeField] private float dropsSlowSeconds = 10f;
+        [Tooltip("Yavaslatmanin suresi. Sure, bu esyanin ne ise yaradigini soyler: barikata donup tamir etmeye ya da yeniden doldurmaya yetecek kadar. Kisaltirsan hicbir seye yetmez. UST SINIR 30 -> 40 (2026-09-09): dondurma iki katina cikinca yavaslatma da onunla birlikte kaydi, yoksa iki esya arasindaki mesafe kapanirdi.")]
+        [Range(2f, 40f)]
+        [SerializeField] private float dropsSlowSeconds = 20f;
 
-        [Tooltip("Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir.")]
-        [Range(1f, 15f)]
-        [SerializeField] private float dropsFreezeSeconds = 5f;
+        [Tooltip("Dondurmanin suresi - butun zombiler durur. Bu esya bir KACIS penceresidir, bir katliam degil; uzatirsan tur, esyanin duserdigi ana indirgenir ve zorluk egrisi anlamsizlasir. UST SINIR 15 -> 20 (2026-09-09, gelistirici: 'dondurma drobunun suresini 2 kat uzatalim'). Sure 5 -> 10 sn. Gerekce degisti: esya artik SLOTTA BEKLIYOR (istege bagli kullaniliyor), yani 'yanlis anda dustu' diye bosa gitmiyor - oyuncu onu dogru anda basacak. Dogru anda basilan bir esyanin karsiligi da o ana degmeli.")]
+        [Range(1f, 20f)]
+        [SerializeField] private float dropsFreezeSeconds = 10f;
+
+        [Tooltip("Nuke'un OLDURDUGU EN FAZLA ZOMBI, en yakindan baslayarak (2026-09-09, gelistirici: 'nuke drobunu kullaninca alandaki 15 zombiyi oldursun, birden hepsi olup turu gecince cok easy oluyor'). Onceki hali sahadaki HERKESI siliyordu, yani gec turda tek bir esya turu bitiriyordu - oyuncunun kazandigi sey oyun degil, zar atisiydi. Sinir bir SAYI oldugu icin esya artik bir ZAMANLAMA karari: 8 zombi varken basmak israf, 25 zombi varken basmak nefes. Cok buyutursen eski 'hepsini sil' haline geri donersin; 1-2 gibi bir sayi ise esyayi en nadir ciktigi halde en ise yaramaz esya yapar.")]
+        [Range(1, 200)]
+        [SerializeField] private int dropsNukeMaxKills = 15;
+
+        [Tooltip("Bir drop slotunda en fazla kac esya birikebilir (2026-09-09, gelistirici: 'yerden topladigimiz droplari stacklenebilen sekilde biriktirebilelim'). Tavan SART: tavansiz bir cep, gec turda oyuncuya on can ve alti nuke tasitir ve olum imkansizlasir - yani zorluk egrisi envanterle iptal edilir. Kucultursen (1-2) biriktirme karari yok olur, esya yine 'an'a baglanir; buyutursen tur arasi hazirlik yerine esya stoku oyunun kendisi olur.")]
+        [Range(1, 20)]
+        [SerializeField] private int dropsStackPerSlot = 5;
 
         [Tooltip("Can esyasinin cikma agirligi. Agirliklar birbirine gore okunur: toplamin icindeki payi kadar cikar. Hepsini esitlemek, en guclu esyayi (nuke) en sik esyayla ayni sikliga getirir.")]
         [Range(0, 100)]
@@ -209,6 +225,8 @@ namespace Bunker.Config
                 attackWindupSeconds,
                 attackRecoverySeconds,
                 attackDamage,
+                attackMaxHitDistanceMeters,
+                attackBossMaxHitDistanceMeters,
                 hitReactionFlinchSeconds,
                 hitReactionFlinchSpeedMultiplier,
                 hitReactionHeadshotFlinchMultiplier,
@@ -232,6 +250,8 @@ namespace Bunker.Config
                 dropsSlowFraction01,
                 dropsSlowSeconds,
                 dropsFreezeSeconds,
+                dropsNukeMaxKills,
+                dropsStackPerSlot,
                 dropsWeightHealth,
                 dropsWeightAmmo,
                 dropsWeightSlow,

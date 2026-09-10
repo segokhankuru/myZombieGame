@@ -4,7 +4,7 @@
   "title": "Tur olcekleme",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "_meta", "count", "health", "speed", "boss", "roundEnd", "pacing"],
+  "required": ["version", "_meta", "count", "health", "speed", "damage", "boss", "roundEnd", "pacing"],
   "properties": {
     "version": {
       "type": "integer",
@@ -131,12 +131,41 @@
       }
     },
 
+    "damage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["growthPerRound01", "maxMultiplier"],
+      "description": "Zombi vurus hasarinin tura gore artisi (2026-09-11). Taban hasar zombie.json attack.damage'da; burasi yalnizca carpan.",
+      "properties": {
+        "growthPerRound01": {
+          "type": "number", "minimum": 0, "maximum": 0.15,
+          "description": "Tur basina hasar artisi, DOGRUSAL (0.03 = her tur taban hasarin +%3'u). Hasar = attack.damage x (1 + bu x (tur - 1)). 0 yaparsan hasar yeniden sabitlenir ve gec turda zombi sayisi disinda sertlesen hicbir sey kalmaz; buyutursen can kartlari ve tezgahin DAYANIKLILIK hatti gec turda anlamsizlasir cunku her temas iki vurusta oldurur."
+        },
+        "maxMultiplier": {
+          "type": "number", "minimum": 1, "maximum": 4,
+          "description": "Hasar carpaninin tavani. 100 canli oyuncuda 30 x 2.5 = 75: tavanda bile tek vurus oldurmez. Tavansiz ya da cok yuksek olursa yeterince ileri turda her temas olum olur ve oyun bir kacis sinavindan bir zar atisina doner."
+        }
+      }
+    },
+
     "boss": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["everyRounds", "healthMultiplier", "speedMultiplier", "damageMultiplier", "scaleMultiplier", "pointsMultiplier"],
-      "description": "Boss zombi: her N turda bir tane. Turun zombisinin CARPANLARIYLA tanimlanir, ayri bir varlik olarak degil - boylece zorluk egrisi tek yerden (health, speed) yonetilmeye devam eder.",
+      "required": ["extraEveryBossRoundsCoop", "extraEveryBossRoundsSolo", "maxPerRound", "everyRounds", "healthMultiplier", "speedMultiplier", "damageMultiplier", "scaleMultiplier", "pointsMultiplier"],
+      "description": "Boss zombi: her N turda bir BOSS TURU. Sayisi boss turlari ilerledikce artar - co-op'ta ve tek oyuncuda farkli hizda (2026-09-11). Turun zombisinin CARPANLARIYLA tanimlanir, ayri bir varlik olarak degil - boylece zorluk egrisi tek yerden (health, speed) yonetilmeye devam eder.",
       "properties": {
+        "extraEveryBossRoundsCoop": {
+          "type": "integer", "minimum": 1, "maximum": 10,
+          "description": "CO-OP'ta (oturumda birden fazla oyuncu) boss sayisi kac BOSS TURUNDA bir artar. 1 = her boss turunda bir fazla: 1, 2, 3... Buyutursen dort kisilik bir ekip tek bir bossa karsi kalir ve boss turu kalabalik bir takim icin olay olmaktan cikar."
+        },
+        "extraEveryBossRoundsSolo": {
+          "type": "integer", "minimum": 1, "maximum": 10,
+          "description": "TEK OYUNCUDA boss sayisi kac boss turunda bir artar. 2 = 1, 1, 2, 2, 3... Co-op hizinda (1) artarsa solo oyuncu, dikkati dagitacak ikinci bir oyuncu olmadan uc bossla ayni odada kalir - bu bir savas degil bir kusatmadir."
+        },
+        "maxPerRound": {
+          "type": "integer", "minimum": 1, "maximum": 10,
+          "description": "Bir turda en fazla boss. Tavan olmazsa co-op 50. turda on boss dogurur; her biri turun caninin 14 kati ve mermi ekonomisi de PERF-BUDGET de birlikte coker."
+        },
         "everyRounds": {
           "type": "integer", "minimum": 2, "maximum": 20,
           "description": "Kac turda bir boss cikar. Sik olursa boss sıradanlasir ve bir olay olmaktan cikar; seyrek olursa oyuncu onu tanimadan tur 20'ye gelir."

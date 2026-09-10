@@ -1,10 +1,18 @@
 {
-  "version": 3,
+  "version": 5,
   "_meta": {
     "owner": "game-designer",
     "system": "SYS-02",
-    "lastTuned": "2026-09-07"
+    "lastTuned": "2026-09-11"
   },
+
+  "_v7": "2026-09-11, gelistirici: 'tetik ozelligi %2,5-5-8 seklinde artsin'. HIZLI TETIK I/II: 0.15/0.25 -> 0.025/0.05, yeni HIZLI TETIK III = 0.08 (card.ballistics.firerate.3). Sarjor kartlarindaki (_v5) merdiven deseni: uc kademe. Tezgahin TETIK hatti da ayni gun alis basina +%1'e indi (shop.json _v3). Ballistik etiketine bir kart eklendi; etiket esigi etkilenmez. Beklenen his: atis hizi karti artik silahi DEGISTIRMEZ, inceltir - uc kademenin toplami +%15,5, eski tek kartin (+%15) kadar.",
+
+  "_v6": "2026-09-10, gelistirici: 'yedek mermi kapasite artis kartlarini geri getir, artis oranlari ayni kalsin'. FISEKLIK (+120) ve CEPHANELIK (+200) geri geldi, degerleri ayni. 2026-09-07'de silinmislerdi cunku o gun yedek merminin TAVANI kaldirilmisti ve kart, sayaci hic degistirmeyen gorunmez bir sey satiyordu. Bugun tavan geri geldi - ama sinirli bir sekilde: tavan yalnizca TUR SONU BEDAVA IKMALINI kirpiyor (rounds.json roundEnd.reserveAmmoFraction01, artik tavanin YARISI). Oyuncunun kendi eylemiyle aldigi mermi (tezgah, yerden toplama, oldurme odulu) tavani asabiliyor - orada buharlasan sey odenmis bir bedel olurdu, 2026-09-07'nin dersi tam olarak buydu. Yani kart artik somut bir sey satiyor: her tur sonu daha cok mermiyle baslamak. Deger MUTLAK, sarjor kartinin tersine - gerekce WeaponModifiers.Reserve'de: tavan oyuncunun HUD'da gordugu bir SAYI ve '+%40 tavan' o sayiya cevrilmeden okunamaz.",
+
+  "_v5": "2026-09-09, gelistirici: 'kartlardan gelen sarjor kapasitesi %10-20-40 seklinde seviyelendir'. GENIS SARJOR I/II/III: 0.20/0.40/0.70 -> 0.10/0.20/0.40. Iki sebep. (1) KADEMELER ARTIK IKI KATLANIYOR: 10-20-40 okunabilir bir merdiven, 20-40-70 degil - oyuncu ucuncu kademenin ikincinin iki kati oldugunu bir bakista goruyor ve 'bir daha alayim mi' karari sayiya bakmadan verilebiliyor. (2) TEZGAHLA CAKISMA: tezgahin sarjor hatti da alis basina +%10 veriyor (shop.json magazine.increment) ve kartlar toplamsal (SYS-02 §3.1). Eski degerlerle sekiz tezgah alimi + uc kart %230 ederdi - 30 mermilik M4 99 mermiye cikardi ve dolum diye bir mekanik kalmazdi. Yeni tavan %150 civarinda: sarjor buyuyor ama dolum hala turun ritminin parcasi. Kart ile tezgah AYNI dili konusuyor artik (ikisi de %10'un katlari), yani oyuncu ikisini kafasinda toplayabiliyor.",
+
+  "_v4": "2026-09-09: CABUK TOPARLANMA (card.blood.regen, RegenDelay) SILINDI. Sebep bir denge ayari degil, kartin dayandigi SISTEMIN kalkmasi: tur icinde can yenilenmesi kapatildi (gelistirici: 'artik tur icinde catisirken can otomatik dolmasin, tur bittikten sonra dolsun') ve dolum artik tur sonunda TAM. 'Yenilenme %40 daha erken baslar' cumlesinin isaret ettigi gecikme artik hicbir yerde islemiyordu - yani kart secilebilir duruyor ama hicbir sey yapmiyordu. CALISMAYAN BIR KART EN KOTU KART TURUDUR (_beklemede notunun kendi kurali): oyuncu onu secer, uc tur bekler ve oyunun yalan soyledigini ogrenir. Kan etiketi 8 karta dustu, esik hala 3 - etiket bonusu etkilenmiyor. Yerine yeni bir kart KONMADI: havuzu doldurmak icin acele yazilan bir kart, tam da bu kartin bugun oldugu sey olurdu. Kan etiketinin bosalan yeri, can esyasinin (6 tusu) gercek bir kaynak hâline gelmesiyle zaten dolduruldu.",
 
   "_note": "v3 (2026-09-07, gelistirici): MARATONCU eklendi - 'tek kullanimlik olsun, %50 daha fazla kosma suresi'. unique=true, yani bir kez alinir ve havuzdan cikar (bu oyundaki 'tek kullanimlik' karsiligi; tuketilen esya diye bir sistem yok). SURE uzatiyor, HIZ degil: kosu hizini artirmak rounds.json'daki zombi hiz kademelerini anlamsiz kilardi - gec turda yakalanabilir olmak, turlarin zorlasmasinin yarisi. Sure uzayinca kacisin karakteri ayni kalir, menzili buyur. Ayrica SARAPNEL kartinin gucu 0.35 -> 0.60 (patlama capiyla birlikte, zombie.json v9). v2 (2026-09-07, gelistirici: 'bazi kartlar anlamsiz kaliyor'). Dort degisiklik. (1) GENIS SARJOR ARTIK ORANSAL: +6 mermi tabancada +%50, pompalida +%100, SMG'de +%20 ediyordu - ayni kart, silaha gore bambaska bir odul. Artik silahin KENDI sarjorunun orani (%20/%40/%70) ve her alista o kadar artar. (2) YEDEK MERMI TAVANI KARTLARI SILINDI ve tavanin kendisi kaldirildi: kart, sayaci degistirmeyen gorunmez bir sey satiyordu. (3) DELICI MERMI TEK KART: iki kademe ayni seyi soyluyordu, tekrar alinca zaten bir zombi daha deliyor. (4) SARAPNEL TEK KART: uc patlama karti secim ekraninda birbirinin yerine geciyordu; tek kart, tekrar alindikca guclenir. Yerine bir kart geldi: Ugurlu Bulus (drop sansi). M-03 kart havuzunun UYGULANABILIR dilimi. SYS-02'de 55 kart tasarlandi ama cogu henuz olmayan sistemlere dokunuyor (kayma, diriltme). Buradaki her kart BUGUN var olan bir sisteme baglanir - hicbiri sessizce hicbir sey yapmaz.",
 
@@ -19,13 +27,16 @@
   "cards": [
     { "id": "card.ballistics.damage.1",    "name": "Sert Cekirdek",     "tag": "Ballistics", "stat": "WeaponDamage",       "value": 0.20, "text": "Silah hasari +%20." },
     { "id": "card.ballistics.damage.2",    "name": "Sert Cekirdek II",  "tag": "Ballistics", "stat": "WeaponDamage",       "value": 0.30, "text": "Silah hasari +%30." },
-    { "id": "card.ballistics.firerate.1",  "name": "Hizli Tetik",       "tag": "Ballistics", "stat": "FireRate",           "value": 0.15, "text": "Atis hizi +%15." },
-    { "id": "card.ballistics.firerate.2",  "name": "Hizli Tetik II",    "tag": "Ballistics", "stat": "FireRate",           "value": 0.25, "text": "Atis hizi +%25." },
+    { "id": "card.ballistics.firerate.1",  "name": "Hizli Tetik",       "tag": "Ballistics", "stat": "FireRate",           "value": 0.025, "text": "Atis hizi +%2,5." },
+    { "id": "card.ballistics.firerate.2",  "name": "Hizli Tetik II",    "tag": "Ballistics", "stat": "FireRate",           "value": 0.05, "text": "Atis hizi +%5." },
+    { "id": "card.ballistics.firerate.3",  "name": "Hizli Tetik III",   "tag": "Ballistics", "stat": "FireRate",           "value": 0.08, "text": "Atis hizi +%8." },
     { "id": "card.ballistics.headshot",    "name": "Keskin Nisan",      "tag": "Ballistics", "stat": "HeadshotMultiplier", "value": 1.00, "text": "Kafa vurusu carpani 2x yerine 3x.", "unique": true },
-    { "id": "card.ballistics.magazine",    "name": "Genis Sarjor",      "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 0.20, "text": "Sarjor kapasitesi +%20." },
+    { "id": "card.ballistics.magazine",    "name": "Genis Sarjor",      "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 0.10, "text": "Sarjor kapasitesi +%10." },
     { "id": "card.ballistics.damage.3",    "name": "Sert Cekirdek III", "tag": "Ballistics", "stat": "WeaponDamage",       "value": 0.45, "text": "Silah hasari +%45." },
-    { "id": "card.ballistics.magazine.2",  "name": "Genis Sarjor II",   "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 0.40, "text": "Sarjor kapasitesi +%40." },
-    { "id": "card.ballistics.magazine.3",  "name": "Genis Sarjor III",  "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 0.70, "text": "Sarjor kapasitesi +%70." },
+    { "id": "card.ballistics.magazine.2",  "name": "Genis Sarjor II",   "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 0.20, "text": "Sarjor kapasitesi +%20." },
+    { "id": "card.ballistics.magazine.3",  "name": "Genis Sarjor III",  "tag": "Ballistics", "stat": "MagazineCapacity",   "value": 0.40, "text": "Sarjor kapasitesi +%40." },
+    { "id": "card.ballistics.reserve",     "name": "Fisekik",           "tag": "Ballistics", "stat": "ReserveCapacity",    "value": 120.0, "text": "Yedek mermi tavani +120. Tur sonu ikmali de o kadar buyur." },
+    { "id": "card.ballistics.reserve.2",   "name": "Cephanelik",        "tag": "Ballistics", "stat": "ReserveCapacity",    "value": 200.0, "text": "Yedek mermi tavani +200. Tur sonu ikmali de o kadar buyur." },
 
     { "id": "card.ballistics.penetration.1", "name": "Delici Mermi",    "tag": "Ballistics", "stat": "Penetration",         "value": 1.00, "text": "Mermi bir zombiden GECER ve arkadakine de vurur. Tekrar alirsan bir zombi daha deler." },
 
@@ -33,7 +44,6 @@
     { "id": "card.blood.maxhealth.2",      "name": "Kalin Deri II",     "tag": "Blood",      "stat": "MaxHealth",          "value": 0.35, "text": "Maksimum can +%35." },
     { "id": "card.blood.armor.1",          "name": "Yelek",             "tag": "Blood",      "stat": "EffectiveHealth",    "value": 0.25, "text": "Alinan hasar %20 azalir." },
     { "id": "card.blood.armor.2",          "name": "Yelek II",          "tag": "Blood",      "stat": "EffectiveHealth",    "value": 0.35, "text": "Alinan hasar daha da azalir." },
-    { "id": "card.blood.regen",            "name": "Cabuk Toparlanma",  "tag": "Blood",      "stat": "RegenDelay",         "value": 0.40, "text": "Can yenilenmesi %40 daha erken baslar.", "unique": true },
     { "id": "card.blood.maxhealth.3",      "name": "Kalin Deri III",    "tag": "Blood",      "stat": "MaxHealth",          "value": 0.50, "text": "Maksimum can +%50." },
     { "id": "card.blood.armor.3",          "name": "Agir Yelek",        "tag": "Blood",      "stat": "EffectiveHealth",    "value": 0.50, "text": "Alinan hasar belirgin azalir." },
     { "id": "card.blood.lifesteal.1",      "name": "Kan Icici",         "tag": "Blood",      "stat": "HealOnKill",         "value": 0.06, "text": "Her oldurme maksimum caninin %6'si kadar iyilestirir." },

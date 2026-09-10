@@ -20,7 +20,7 @@ namespace Bunker.Systems.Combat
     /// </summary>
     public readonly struct WeaponModifiers
     {
-        public static readonly WeaponModifiers None = new WeaponModifiers(0f, 0f, 0f, 0f, 0f);
+        public static readonly WeaponModifiers None = new WeaponModifiers(0f, 0f, 0f, 0f, 0, 0f);
 
         /// <summary>Atış hızı oranı (0.15 = +%15).</summary>
         public readonly float FireRate;
@@ -41,11 +41,24 @@ namespace Bunker.Systems.Combat
         /// </summary>
         public readonly float Magazine;
 
+        /// <summary>
+        /// Yedek mermi tavanına eklenen mermi, <b>mutlak sayı</b> (2026-09-10'da geri
+        /// geldi — geliştirici: <i>"yedek mermi kapasite artış kartlarını geri getir,
+        /// artış oranları aynı kalsın"</i>).
+        ///
+        /// <para><b>Neden mutlak, şarjör kartının tersine:</b> tavan artık oyuncunun
+        /// HUD'da gördüğü bir sayı ve tur sonu ikmalinin ölçüsü. "+%40 tavan" cümlesi
+        /// o sayıya çevrilmeden okunamaz; "+120 mermi" doğrudan okunur. Silahlar arası
+        /// fark burada kusur değil: 90 tavanlı pompalıda +120 tavanı ikiye katlar ve
+        /// pompalı mermisi zaten en çok sıkışan kaynak.</para>
+        /// </summary>
+        public readonly int Reserve;
+
         /// <summary>Kafa vuruşu çarpanına eklenen değer.</summary>
         public readonly float HeadshotMultiplier;
 
         public WeaponModifiers(float fireRate, float reloadSpeed, float damage,
-                               float magazine, float headshotMultiplier)
+                               float magazine, int reserve, float headshotMultiplier)
         {
             // Negatif bir oran silahi tersine cevirir; -1 ise sifira boler. Kart
             // degerleri bugun hep pozitif ama bir gun "ates hizi -%20, hasar +%80"
@@ -54,6 +67,7 @@ namespace Bunker.Systems.Combat
             ReloadSpeed = Math.Max(-0.9f, reloadSpeed);
             Damage = Math.Max(-0.9f, damage);
             Magazine = Math.Max(-0.9f, magazine);
+            Reserve = Math.Max(0, reserve);
             HeadshotMultiplier = headshotMultiplier;
         }
 

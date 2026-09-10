@@ -57,6 +57,11 @@ namespace Bunker.Editor
                 return false;
             }
 
+            // OYUN SAHNESI ONCE (2026-09-10): bu adim sahne actigi icin en sonda
+            // menu sahnesi acik kalmali - araci calistiran kisi Play'e basmaya hazir
+            // olsun.
+            EnsureGameSceneReturnsToMenu();
+
             Directory.CreateDirectory(Path.GetDirectoryName(MenuScenePath) ?? ".");
 
             Scene scene;
@@ -132,6 +137,58 @@ namespace Bunker.Editor
             }
 
             if (host.GetComponent<MainMenu>() == null) host.AddComponent<MainMenu>();
+
+            // MENU MUZIGI (2026-09-09, gelistirici: "Mystical Music Loops sesini ana
+            // menude cal... oyuna katilinca bu ses calmasin, sadece menu muzigi
+            // olacak"). playMusic ACIK yalnizca burada; oyun sahnesindeki ayni bilesen
+            // kapali ve muzigi ayrica SUSTURUYOR - yani durdurma isi menuden cikan
+            // koda degil, oyun sahnesinin kendisine ait.
+            var audio = host.GetComponent<Bunker.Audio.AudioBootstrap>();
+            if (audio == null) audio = host.AddComponent<Bunker.Audio.AudioBootstrap>();
+
+            const string catalogPath = "Assets/_Project/Config/audio.asset";
+            var catalog = AssetDatabase.LoadAssetAtPath<Bunker.Audio.AudioCatalogAsset>(catalogPath);
+
+            if (catalog == null)
+            {
+                Debug.LogWarning($"[Menu] Ses katalogu yok: {catalogPath} - menude " +
+                                 "muzik CALMAYACAK. 'Bunker/Gorunum/Ses Dosyalarini " +
+                                 "Bagla' calistir.");
+            }
+
+            SetPrivateField(audio, "catalog", catalog);
+            SetPrivateField(audio, "playMusic", true);
+        }
+
+        /// <summary>
+        /// Serileşmiş özel bir alanı yazar. <c>SerializedObject</c> üzerinden, çünkü
+        /// doğrudan atama <c>private</c> alanlara ulaşamaz ve prefab/sahne kaydını
+        /// kirletmez.
+        /// </summary>
+        private static void SetPrivateField(UnityEngine.Object target, string field, object value)
+        {
+            if (target == null) return;
+
+            var serialized = new SerializedObject(target);
+            SerializedProperty property = serialized.FindProperty(field);
+
+            if (property == null)
+            {
+                Debug.LogWarning($"[Menu] '{target.GetType().Name}' uzerinde '{field}' " +
+                                 "alani yok - alan adi degismis olabilir.");
+                return;
+            }
+
+            switch (value)
+            {
+                case bool b: property.boolValue = b; break;
+                case UnityEngine.Object o: property.objectReferenceValue = o; break;
+                case null: property.objectReferenceValue = null; break;
+                default: return;
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(target);
         }
 
         /// <summary>
@@ -257,6 +314,106 @@ namespace Bunker.Editor
         /// sırada kalsaydı, derlenen oyun menüyü hiç görmeden oyuna düşerdi — menü
         /// yazılmış ama hiç açılmayan bir sahne olurdu.</para>
         /// </summary>
+        /// <summary>
+        /// Oyun sahnesindeki <c>NetworkManager</c>'a <b>menüye dönüş yolunu</b> öğretir
+        /// (2026-09-10, oyun testi: <i>"ana menü açılmıyor"</i> — iki belirti birden).
+        ///
+        /// <para><b>Belirti 1: Play doğrudan oyuna düşüyordu.</b> Derleme sahne
+        /// listesinin başında oyun sahnesi duruyordu; <see cref="EnsureBuildSettings"/>
+        /// bunu zaten menü lehine düzeltiyor ama araç bir süredir çalıştırılmamıştı.
+        /// Liste elle sürüklenebildiği sürece bu belirti geri gelir — o yüzden düzeltme
+        /// araca ait, hafızaya değil.</para>
+        ///
+        /// <para><b>Belirti 2: "ANA MENÜYE DÖN" hiçbir şey yapmıyordu.</b> Ayrılma
+        /// isteği oturumu kapatıyor (<c>StopHost</c>) ve menüye dönüşü Mirror'ın
+        /// <c>offlineScene</c>'i yapıyor. O alan yalnızca <b>menü sahnesindeki</b>
+        /// yöneticide doluydu. Oyun sahnesinden başlatan oyuncu (Editor'de Play,
+        /// ya da doğrudan bu sahneye düşen bir oturum) o yöneticiyi hiç görmüyor:
+        /// oturum kapanıyor, sahne değişmiyor, ekranda hiçbir şey olmuyor.</para>
+        ///
+        /// <para><b>İki yöneticinin de aynı cümleyi kurması gerekiyor</b> — çünkü
+        /// hangisinin hayatta olduğu, oyunun nereden başlatıldığına bağlı ve bu bir
+        /// çalışma anı sorusu. Aynı değeri iki yerde tutmak burada bir kopya değil:
+        /// tek kaynak <see cref="MenuScenePath"/> sabiti, ikisi de onu yazıyor.</para>
+        /// </summary>
+        private static void EnsureGameSceneReturnsToMenu()
+        {
+            if (!File.Exists(GameScenePath))
+            {
+                Debug.LogWarning($"[Menu] Oyun sahnesi yok: {GameScenePath} - menuye " +
+                                 "donus yolu kurulamadi.");
+                return;
+            }
+
+            Scene game = EditorSceneManager.OpenScene(GameScenePath, OpenSceneMode.Single);
+
+            var manager = UnityEngine.Object.FindFirstObjectByType<BunkerNetworkManager>();
+
+            if (manager == null)
+            {
+                Debug.LogWarning("[Menu] Oyun sahnesinde NetworkManager yok - menuye " +
+                                 "donus yolu kurulamadi. 'Bunker/Zombi/Test Alanini Kur' " +
+                                 "calistir.");
+                return;
+            }
+
+            var serialized = new SerializedObject(manager);
+
+            // autoStartSolo KAPALI (2026-09-10, gelistirici istegi).
+            //
+            // Bu bayrak bir gelistirici kisayoluydu: oyun sahnesinden Play'e basinca
+            // menuyu atlayip dogrudan solo oturum aciyordu. Ama menu artik oyunun
+            // gercek girisi (lobi, ayarlar, davet oradan geciyor) ve bayrak, menuyu
+            // ATLANABILIR bir sey yapiyordu - "ana menu acilmiyor"un ikinci sebebi.
+            //
+            // Kapali oldugunda M0-Sandbox'tan Play'e basmak BOS bir sahne verir
+            // (oturum yok, oyuncu yok). Bu bir hata degil, bilgi: giris Menu.unity.
+            SerializedProperty autoSolo = serialized.FindProperty("autoStartSolo");
+
+            SerializedProperty offline = serialized.FindProperty("offlineScene");
+            SerializedProperty gameScene = serialized.FindProperty("gameScene");
+
+            bool changed = false;
+
+            if (autoSolo != null && autoSolo.boolValue)
+            {
+                autoSolo.boolValue = false;
+                changed = true;
+
+                Debug.Log("[Menu] Oyun sahnesinde autoStartSolo KAPATILDI - giris artik " +
+                          "her zaman Menu.unity.");
+            }
+
+            if (offline != null && offline.stringValue != MenuScenePath)
+            {
+                offline.stringValue = MenuScenePath;
+                changed = true;
+            }
+
+            if (gameScene != null && gameScene.stringValue != GameScenePath)
+            {
+                gameScene.stringValue = GameScenePath;
+                changed = true;
+            }
+
+            // ZATEN DOGRUYSA SAHNE KIRLETILMEZ (editor-tools.md): 3 MB'lik bir sahneyi
+            // her calistirmada yeniden kaydetmek, hicbir seyi degistirmeyen bir diff
+            // uretir ve o diff bir sonraki gercek degisikligi gizler.
+            if (!changed)
+            {
+                Debug.Log("[Menu] Oyun sahnesi zaten menuye donuyor - degisiklik yok.");
+                return;
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(manager);
+            EditorSceneManager.MarkSceneDirty(game);
+            EditorSceneManager.SaveScene(game);
+
+            Debug.Log($"[Menu] Oyun sahnesindeki NetworkManager artik menuye donuyor: " +
+                      $"offlineScene = {MenuScenePath}");
+        }
+
         private static void EnsureBuildSettings()
         {
             var wanted = new List<string> { MenuScenePath, GameScenePath };

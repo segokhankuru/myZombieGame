@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14994113a835cc94e9df290a67fb77fa, type: 3}
   m_Name: economy
   m_EditorClassIdentifier: Bunker.Config::Bunker.Config.EconomyConfigAsset
-  version: 4
+  version: 5
   awardsHit: 10
   awardsBodyKill: 60
   awardsHeadshotKill: 100
@@ -27,5 +27,7 @@ MonoBehaviour:
   pricesMysteryBox: 950
   pricesCardRerollBase: 200
   pricesCardRerollAddPerRound: 50
+  pricesReviveBase: 500
+  pricesReviveAddPerRound: 100
   ammoMagazinesPerPurchase: 5
   ammoRefillCost: 250

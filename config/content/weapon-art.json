@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "_meta": {
+    "owner": "technical-artist",
+    "system": "SYS-silah",
+    "lastTuned": "2026-09-10"
+  },
+
+  "_note": "Her ates silahinin GORUNUMU: hangi model, modelin kendi yonu, eldeki boyu, eldeki konum duzeltmesi ve takili aksesuarlar. Elle degil Unity'de 'Bunker > Silah Atolyesi' penceresinden duzenle: model ve aksesuarlar gorulerek yerlestirilir, Kaydet prefab'lari ve katalogu yeniden uretir. Yon neden elle yaziliyor: namlunun hangi ucta oldugu geometriden cikarilamaz (2026-09-07: dort silahin ikisi ters cikti), ancak gorulur. Aksesuar konumu silahin KENDI olcusunun orani - silah olceklendiginde parca yerinde kalir. weapon-attachments.json'in yerini aldi (2026-09-10).",
+
+  "weapons": [
+    {
+      "weaponId": "weapon.pistol",
+      "model": "Assets/Low Poly Weapons VOL.1/Prefabs/M1911.prefab",
+      "_why": "Tabanca (M1911): en kisa siluet, referans silah.",
+      "lengthMeters": 0.26, "nativeForward": "-Z", "nativeUp": "+Y",
+      "handOffsetMeters": [-0.0305, 0.0258, 0],
+      "attachments": []
+    },
+    {
+      "weaponId": "weapon.smg",
+      "model": "Assets/Low Poly Weapons VOL.1/Prefabs/Uzi.prefab",
+      "_why": "Taramali (Uzi): kutu govde, sarkan sarjor - tabancadan ilk bakista ayrilir.",
+      "lengthMeters": 0.48, "nativeForward": "-Z", "nativeUp": "+Y",
+      "handOffsetMeters": [0, 0, 0],
+      "attachments": []
+    },
+    {
+      "weaponId": "weapon.shotgun",
+      "model": "Assets/Low Poly Weapons VOL.1/Prefabs/Bennelli_M4.prefab",
+      "_why": "Pompali (Benelli M4): kalin namlu, tup sarjor - yakin mesafenin cevabi.",
+      "lengthMeters": 0.86, "nativeForward": "-Z", "nativeUp": "+Y",
+      "handOffsetMeters": [0, 0, 0],
+      "attachments": []
+    },
+    {
+      "weaponId": "weapon.ak74",
+      "model": "Assets/Low Poly Weapons VOL.1/Prefabs/AK74.prefab",
+      "_why": "AK-74: egik sarjor ve gaz tupu - siluetini M4'ten ayiran sey bu ikisi.",
+      "lengthMeters": 0.88, "nativeForward": "-Z", "nativeUp": "+Y",
+      "handOffsetMeters": [0, 0, 0],
+      "attachments": []
+    },
+    {
+      "weaponId": "weapon.m4",
+      "model": "Assets/Low Poly Weapons VOL.1/Prefabs/M4_8.prefab",
+      "_why": "M4: duz hatli, tasima sapi - AK'nin egrilerine karsit. ELCAN prizmali optik (HAMR): sniper'in durbununden AYRI model olmasi bir okuma karari, iki silah ayni optigi tasisaydi hangisinin uzun menzilli oldugu siluetten okunamazdi.",
+      "lengthMeters": 0.84, "nativeForward": "-Z", "nativeUp": "+Y",
+      "handOffsetMeters": [0, 0, 0],
+      "attachments": [
+        {
+          "name": "elcan",
+          "prefab": "Assets/Low Poly Weapons VOL.1/Prefabs/ELCAN.prefab",
+          "alongBarrel01": 0.528, "gapOfWeaponHeight": -0.1507, "sideOfWeaponWidth": -0.0872,
+          "scaleMultiplier": 1, "eulerDegrees": [0, 0, 0]
+        },
+        {
+          "name": "forwardgrip_e",
+          "prefab": "Assets/Low Poly ShotGun Weapon Pack 1/Prefabs/Attachments/UnderBarrels/ForwardGrips/ForwardGrip_E.prefab",
+          "alongBarrel01": 0.3063, "gapOfWeaponHeight": -0.7318, "sideOfWeaponWidth": -0.098,
+          "scaleMultiplier": 0.6, "eulerDegrees": [0, 0, 0]
+        },
+        {
+          "name": "laser_b_left",
+          "prefab": "Assets/Low Poly ShotGun Weapon Pack 1/Prefabs/Attachments/Accessories/Tatical Lasers/Laser_B_Left.prefab",
+          "alongBarrel01": 0.3171, "gapOfWeaponHeight": -0.369, "sideOfWeaponWidth": -0.6862,
+          "scaleMultiplier": 1, "eulerDegrees": [0, 0, 0]
+        }
+      ]
+    },
+    {
+      "weaponId": "weapon.sniper",
+      "model": "Assets/Low Poly Weapons VOL.1/Prefabs/M107.prefab",
+      "_why": "M107: acik ara en uzun siluet, uzaktan is gordugu bakisla okunmali. Uzun menzil durbunu (2026-09-09, gelistirici: 'L scope 1 olacakti'); ilk surumde SR_Scope_00 takilmisti - en uzun namlulu silaha en kisa optik (PILLAR-04).",
+      "lengthMeters": 1.35, "nativeForward": "-Z", "nativeUp": "+Y",
+      "handOffsetMeters": [0, 0, 0],
+      "attachments": [
+        {
+          "name": "tan_lr_scope_01",
+          "prefab": "Assets/Low Poly Weapons VOL.1/Prefabs/TAN_LR_Scope_01.prefab",
+          "alongBarrel01": 0.643, "gapOfWeaponHeight": -0.0155, "sideOfWeaponWidth": -0.249,
+          "scaleMultiplier": 1.2, "eulerDegrees": [0, 0, 0]
+        }
+      ]
+    }
+  ]
+}

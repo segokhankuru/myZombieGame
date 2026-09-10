@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -22,6 +23,13 @@ namespace Bunker.Editor
     /// derleme başarısızsa <b>sıfırdan farklı çıkış kodu</b> döner. Başarılı görünüp boş
     /// bir klasör bırakan bir build, bu projedeki en pahalı hata türünün build
     /// versiyonudur.</para>
+    ///
+    /// <para><b>Küçük kalır</b> (2026-09-10, geliştirici: <i>"daha compact build
+    /// olmalı"</i>): her build öncesi mağaza dokuları tavana indirilir
+    /// (<see cref="ThirdPartyTextureBudget"/>), editör rafı sahneden çıkarılır
+    /// (<see cref="EditorShelfStripper"/>), veri dosyaları LZ4 ile sıkıştırılır ve build
+    /// sonunda en ağır varlıklar loga yazılır — bir sonraki büyüme tahminle değil
+    /// satırla bulunsun diye.</para>
     /// </summary>
     public static class BuildPipelineEntry
     {
@@ -43,6 +51,9 @@ namespace Bunker.Editor
         /// build listesinde olmazsa geçiş çalışma anında başarısız olur.
         /// </summary>
         private const string PlayScene = "Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity";
+
+        /// <summary>Build sonunda loga yazılan en ağır varlık sayısı.</summary>
+        private const int HeaviestAssetsToLog = 15;
 
         public static void BuildFromArgs()
         {
@@ -95,6 +106,19 @@ namespace Bunker.Editor
 
             ApplyProductSettings(development);
 
+            // DOKU BUTCESI (2026-09-10). Her build'de denetlenir: yeni ya da yeniden
+            // indirilen bir paket 4096'lik dokularla gelir ve kimse fark etmez - ta ki
+            // zip 500 MB olana kadar. Butcedeyse hicbir sey ice aktarilmaz.
+            ThirdPartyTextureBudget.Apply();
+
+            // HAVA SHADER'LARI (2026-09-10). Girmezse build DURUR: havasi olmayan bir
+            // build basarili gorunup arkadasa gonderilirdi.
+            if (!WeatherShaders.EnsureIncluded(out string shaderError))
+            {
+                Debug.LogError($"[Build] BASARISIZ: {shaderError}");
+                return false;
+            }
+
             // Sahne listesi BUILD SIRASINDA belirlenir (yukarida), EditorBuildSettings'ten
             // okunmaz. Sebep: o liste elle degistirilebilen bir editor ayari ve
             // icinde SampleScene gibi artiklar birikir. Build'in neyi icerdigi
@@ -108,7 +132,13 @@ namespace Bunker.Editor
                 locationPathName = exePath,
                 target = target,
                 targetGroup = BuildPipeline.GetBuildTargetGroup(target),
-                options = development ? BuildOptions.Development : BuildOptions.None
+
+                // SIKISTIRMA (2026-09-10): veri dosyalari diskte LZ4 ile sikistirilir.
+                // Release icin LZ4HC - daha yavas paketlenir, daha kucuk olur, acilisi
+                // ayni hizda. Development'ta LZ4: her testte dakikalar kaybetmemek icin.
+                options = development
+                    ? BuildOptions.Development | BuildOptions.CompressWithLz4
+                    : BuildOptions.CompressWithLz4HC
             };
 
             Debug.Log($"[Build] {target} / {config} -> {exePath}");
@@ -124,11 +154,55 @@ namespace Bunker.Editor
             }
 
             CopySteamAppId(output);
+            LogHeaviestAssets(report);
 
             Debug.Log($"[Build] TAMAM: {summary.totalSize / (1024 * 1024)} MB, " +
                       $"{summary.totalTime.TotalMinutes:F1} dk.");
 
             return true;
+        }
+
+        /// <summary>
+        /// Build'deki en ağır varlıkları loga yazar (2026-09-10).
+        ///
+        /// <para><b>Neden:</b> build'in neden büyüdüğü sorusunun cevabı Unity'nin kendi
+        /// raporunda var ama 9000 satırlık bir logun ortasında. Burada ilk
+        /// <see cref="HeaviestAssetsToLog"/> kalem, paketlenmiş boyutuyla, <c>[Build]</c>
+        /// önekiyle — bir satır grep ile bulunur.</para>
+        /// </summary>
+        private static void LogHeaviestAssets(BuildReport report)
+        {
+            var sizes = new Dictionary<string, ulong>();
+
+            foreach (PackedAssets packed in report.packedAssets)
+            {
+                foreach (PackedAssetInfo info in packed.contents)
+                {
+                    string path = string.IsNullOrEmpty(info.sourceAssetPath)
+                        ? "(Unity yerlesik)"
+                        : info.sourceAssetPath;
+
+                    sizes.TryGetValue(path, out ulong total);
+                    sizes[path] = total + info.packedSize;
+                }
+            }
+
+            var ordered = new List<KeyValuePair<string, ulong>>(sizes);
+            ordered.Sort((a, b) => b.Value.CompareTo(a.Value));
+
+            var log = new StringBuilder();
+            log.Append("[Build] En agir varliklar (paketlenmis boyut):\n");
+
+            for (int i = 0; i < ordered.Count && i < HeaviestAssetsToLog; i++)
+            {
+                log.Append("  ")
+                   .Append((ordered[i].Value / (1024.0 * 1024.0)).ToString("0.0").PadLeft(6))
+                   .Append(" MB  ")
+                   .Append(ordered[i].Key)
+                   .Append('\n');
+            }
+
+            Debug.Log(log.ToString());
         }
 
         /// <summary>

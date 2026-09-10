@@ -11165,6 +11165,7 @@ GameObject:
   - component: {fileID: 1545468827}
   - component: {fileID: 1545468829}
   - component: {fileID: 1545468828}
+  - component: {fileID: 1545468830}
   m_Layer: 0
   m_Name: _CombatHud
   m_TagString: Untagged
@@ -11366,6 +11367,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ba856e0450b7374fb13232c7a1c0719, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Bunker.UI::Bunker.UI.SpectatorHud
+--- !u!114 &1545468830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1545468814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3312ba9f60db90f4dbd6e08f2573da81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bunker.Audio::Bunker.Audio.AudioBootstrap
+  catalog: {fileID: 11400000, guid: 041279e795309b84cafa5ccb21022ef7, type: 2}
+  playMusic: 0
 --- !u!1 &1552106300
 GameObject:
   m_ObjectHideFlags: 0
@@ -14196,7 +14211,7 @@ MonoBehaviour:
   headlessStartMode: 0
   editorAutoStart: 0
   sendRate: 60
-  offlineScene: 
+  offlineScene: Assets/_Project/Scenes/Menu/Menu.unity
   onlineScene: 
   offlineSceneLoadDelay: 0
   transport: {fileID: 1873938297}
@@ -14224,7 +14239,7 @@ MonoBehaviour:
   evaluationMethod: 0
   evaluationInterval: 3
   timeInterpolationGui: 0
-  autoStartSolo: 1
+  autoStartSolo: 0
   lastJoinAddress: localhost
   gameScene: Assets/_Project/Scenes/Sandbox/M0-Sandbox.unity
 --- !u!4 &1873938299
